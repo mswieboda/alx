@@ -1,6 +1,6 @@
 # --- CUSTOMIZE YOUR GAME NAMES HERE ---
-NAME ?= mini_game
-TITLE ?= Mini Game
+NAME ?= alx
+TITLE ?= Aetherlux
 
 # --- DEFAULT BUILD SETTING (Debug or Release) ---
 BUILD ?= Debug
@@ -69,7 +69,7 @@ music: $(MUSIC_STAMP)
 build: assets
 	@echo "--- Compiling [$(NAME) | Mode: $(BUILD)] ---"
 	@if [ ! -d "$(BUILD_DIR)" ]; then \
-		cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME) -DGAME_TITLE="$(TITLE)"; \
+		cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME); \
 	fi
 	@cmake --build $(BUILD_DIR) -j
 
@@ -100,9 +100,9 @@ release:
 
 # --- CMAKE CONFIG SHORTCUTS ---
 config:
-	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME) -DGAME_TITLE="$(TITLE)"
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME)
 
 reconfig:
-	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME) -DGAME_TITLE="$(TITLE)" --fresh
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME) --fresh
 
 reset: clean reconfig

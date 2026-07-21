@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 # Initialize project name dynamically from our Makefile argument
 if(NOT GAME_BIN)
-    set(GAME_BIN "mini_game")
+    set(GAME_BIN "alx")
 endif()
 
 project(${GAME_BIN} C CXX)

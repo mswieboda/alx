@@ -1,6 +1,10 @@
-# mini_game
+# Aetherlux
 
-Boilerplate project for a C++ `minifb` game, via macOS or Linux.
+Aetherlux - a 1.44Mb (floppy disk 💾 size) game jam submission.
+
+([1.44Mb game jam](https://2pgarcade.com/contest-144mb.html) site)
+
+A 2D adventure and partial factory/automation, part puzzle game with GBA style aesthetic.
 
 ## 🧰 Toolchain & Dependencies
 
@@ -80,8 +84,8 @@ To install the configured versions:
 1. **Clone with Submodules:**
 
    ```bash
-   git clone --recursive [https://github.com/mswieboda/mini_game.git](https://github.com/mswieboda/mini_game.git)
-   cd mini_game
+   git clone --recursive [https://github.com/mswieboda/alx.git](https://github.com/mswieboda/alx.git)
+   cd alx
    ```
 
    *(If already cloned without submodules, run `git submodule update --init --recursive`)*
@@ -426,16 +430,16 @@ make clean-assets # Removes internal asset tracking stamps (preserves manual src
 
 ### Output Location
 
-* **Debug builds:** `build/Debug/mini_game`
-* **Release builds:** `build/Release/mini_game`
+* **Debug builds:** `build/Debug/alx`
+* **Release builds:** `build/Release/alx`
 
-For game jam submissions, grab the compiled release binary at `build/Release/mini_game`!
+For game jam submissions, grab the compiled release binary at `build/Release/alx`!
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork it (<https://github.com/mswieboda/mini_game/fork>)
+1. Fork it (<https://github.com/mswieboda/alx/fork>)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
