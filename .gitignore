@@ -1,0 +1,9 @@
+/docs/
+/lib/
+/bin/
+/build/
+
+.DS_Store
+
+# Ignore the generated C++ asset headers
+src/assets/
