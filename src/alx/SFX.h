@@ -1,6 +1,7 @@
 #pragma once
 #include "core/Audio.h"
 
+namespace alx {
 namespace SFX {
     inline SfxrParams phaser() {
         SfxrParams p;
@@ -31,4 +32,5 @@ namespace SFX {
         p.decay_time = 0.03f;
         return p;
     }
-}
+} // namespace SFX
+} // namespace alx

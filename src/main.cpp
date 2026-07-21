@@ -8,7 +8,7 @@
 #include "core/Log.h"
 #include "core/Draw.h"
 #include "assets/Images.h"
-#include "MainScene.h"
+#include "alx/MainScene.h"
 
 // --- UPDATE --- where game logic updates happens
 void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager) {
@@ -72,7 +72,7 @@ int main() {
     SceneManager scene_manager;
 
     // Initialize and change to the first scene
-    scene_manager.change_scene(std::make_unique<MainScene>());
+    scene_manager.change_scene(std::make_unique<alx::MainScene>());
 
     while (game_window.is_running()) {
         Input::update_input_state(game_window.raw());
