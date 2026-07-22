@@ -2,22 +2,17 @@
 #include <string>
 #include <vector>
 #include "core/Draw.h"
-#include "core/helpers.h"
 #include "core/Scene.h"
-#include "core/Entity.h"
 #include "core/Input.h"
-#include "core/Audio.h"
-#include "assets/Images.h"
-#include "assets/Music.h"
 #include "Grid.h"
-#include "SFX.h"
+#include "Player.h"
 
 namespace alx {
 
 class MainScene : public Scene {
 private:
-    Grid m_grid{20, 15, 16};
-    int m_score = 0;
+    Grid m_grid{40, 30, 16};
+    Player m_player{128, 128};
 
 public:
     void init(SceneManager& sm) override {
@@ -50,6 +45,7 @@ public:
 
     void update(SceneManager& sm, float dt) override {
         // Future: update entities, player movement, pipe flow logic here
+        m_player.update(dt);
     }
 
     // Direct primitive rendering loop for the grid
@@ -82,6 +78,8 @@ public:
                     1, // thickness (unused if filled)
                     0 // z-index
                 );
+
+                m_player.draw(screen_buffer, alpha);
             }
         }
     }
