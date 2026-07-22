@@ -11,7 +11,7 @@ namespace alx {
 
 class MainScene : public Scene {
 private:
-    Grid m_grid{40, 30, 16};
+    Grid m_grid{20, 15, 32};
     alx::Player m_player;
 
 public:
@@ -44,7 +44,7 @@ public:
 
         // Drop a Twilight Seep resource node in the center
         Tile& seepTile = m_grid.get_tile(width / 2, height / 2);
-        seepTile.type = TileType::TwilightSeep;
+        seepTile.type = TileType::Seep;
         seepTile.manaState = ManaState::RawDark;
     }
 
@@ -66,8 +66,10 @@ public:
 
                 if (tile.type == TileType::Wall) {
                     color = 0xFF1C1C24; // Deep charcoal wall
-                } else if (tile.type == TileType::TwilightSeep) {
+                } else if (tile.type == TileType::Seep) {
                     color = 0xFF00FF66; // Sickly-green mana glow for the seep!
+                } else if (tile.type == TileType::Pipe) {
+                    color = 0xFF00CCCC; // Pipe, cyan for now?
                 } else {
                     fill = false;
                 }

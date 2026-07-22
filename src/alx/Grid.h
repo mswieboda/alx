@@ -10,9 +10,9 @@ enum class TileType : uint8_t {
     Empty = 0,
     Floor,
     Wall,
-    TwilightSeep,  // Raw resource node (dark purple-black mana source)
-    ConduitPipe,   // Player-laid infrastructure pipe
-    RefinerPrism   // Conversion station (turns dark mana into cyan/gold light)
+    Seep,       // Raw resource node (dark purple-black mana source)
+    Pipe,       // Player-laid infrastructure pipe
+    Refiner     // Conversion station (turns dark mana into cyan/gold light)
 };
 
 // State for pipes or nodes to handle power/mana routing logic later
@@ -54,6 +54,26 @@ public:
     int get_width() const { return m_width; }
     int get_height() const { return m_height; }
     int get_tile_size() const { return m_tileSize; }
+
+    void toggle_conduit(int tx, int ty) {
+        // Bounds check
+        if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) {
+            return;
+        }
+
+        // Grab the tile reference
+        Tile& tile = get_tile(tx, ty);
+
+        // Toggle logic
+        if (tile.type == TileType::Floor || tile.type == TileType::Empty) {
+            tile.type = TileType::Pipe;
+        } else if (tile.type == TileType::Pipe) {
+            // Pick it back up
+            tile.type = TileType::Floor;
+            tile.manaState = ManaState::None; // Reset state just in case
+            tile.isPowered = false;
+        }
+    }
 
 private:
     int m_width;
