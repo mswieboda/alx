@@ -120,7 +120,7 @@ private:
 
             // Tell the grid to toggle the pipe at that location
             // TODO: check for player inventory, if they have pipes available, etc
-            grid.toggle_conduit(target_tx, target_ty);
+            grid.place_tile(target_tx, target_ty, TileType::Pipe);
         }
     }
 
