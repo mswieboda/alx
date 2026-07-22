@@ -72,4 +72,8 @@ namespace Draw {
 
     // Process, order, and draw everything to the screen buffer
     void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color);
+
+    inline float interpolate(float prev, float curr, float alpha) {
+        return prev + (curr - prev) * alpha;
+    }
 }

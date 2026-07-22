@@ -6,10 +6,6 @@
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-inline float interpolate(float prev, float curr, float alpha) {
-    return prev + (curr - prev) * alpha;
-}
-
 void Scene::sync_prev_transforms() {
     for (auto& entity : entities) {
         entity.transform_prev = entity.transform;
@@ -70,8 +66,8 @@ void Scene::draw_entities(std::vector<uint32_t>& screen_buffer, float alpha) {
     for (const auto& entity : entities) {
         if (!entity.active) continue;
 
-        float draw_x = interpolate(entity.transform_prev.x, entity.transform.x, alpha);
-        float draw_y = interpolate(entity.transform_prev.y, entity.transform.y, alpha);
+        float draw_x = Draw::interpolate(entity.transform_prev.x, entity.transform.x, alpha);
+        float draw_y = Draw::interpolate(entity.transform_prev.y, entity.transform.y, alpha);
 
         std::visit(overloaded {
             [&](const RectangleRender& visual_data) {

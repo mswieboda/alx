@@ -12,8 +12,6 @@ namespace Draw {
         YSortMode g_y_sort_mode = YSortMode::TopY;
         const uint32_t* g_palette = nullptr;
 
-
-
         void clear_screen(std::vector<uint32_t>& buf, uint32_t color) {
             std::fill(buf.begin(), buf.end(), color);
         }

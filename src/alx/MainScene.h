@@ -12,12 +12,17 @@ namespace alx {
 class MainScene : public Scene {
 private:
     Grid m_grid{40, 30, 16};
-    Player m_player{128, 128};
+    alx::Player m_player;
 
 public:
+    MainScene() :
+        m_player(128, 128) // initial x, y
+    {}
+
     void init(SceneManager& sm) override {
         background_color = 0xFF131313; // very dark gray from your boilerplate
 
+        // --- Tiles ---
         // Load the room data when the scene officially starts
         // Simple test pattern for our Cellar room setup:
         // Border walls, floor in the middle, and a twilight seep in the center
@@ -44,7 +49,6 @@ public:
     }
 
     void update(SceneManager& sm, float dt) override {
-        // Future: update entities, player movement, pipe flow logic here
         m_player.update(dt);
     }
 
