@@ -26,12 +26,12 @@ public:
         // Load the room data when the scene officially starts
         // Simple test pattern for our Cellar room setup:
         // Border walls, floor in the middle, and a twilight seep in the center
-        int width = m_grid.getWidth();
-        int height = m_grid.getHeight();
+        int width = m_grid.get_width();
+        int height = m_grid.get_height();
 
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                Tile& tile = m_grid.getTile(x, y);
+                Tile& tile = m_grid.get_tile(x, y);
 
                 // Set borders as walls
                 if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
@@ -43,22 +43,22 @@ public:
         }
 
         // Drop a Twilight Seep resource node in the center
-        Tile& seepTile = m_grid.getTile(width / 2, height / 2);
+        Tile& seepTile = m_grid.get_tile(width / 2, height / 2);
         seepTile.type = TileType::TwilightSeep;
         seepTile.manaState = ManaState::RawDark;
     }
 
     void update(SceneManager& sm, float dt) override {
-        m_player.update(dt);
+        m_player.update(dt, m_grid);
     }
 
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha = 1.0f) override {
-        int tile_size = m_grid.getTileSize();
+        int tile_size = m_grid.get_tile_size();
 
-        for (int y = 0; y < m_grid.getHeight(); ++y) {
-            for (int x = 0; x < m_grid.getWidth(); ++x) {
-                const Tile& tile = m_grid.getTile(x, y);
+        for (int y = 0; y < m_grid.get_height(); ++y) {
+            for (int x = 0; x < m_grid.get_width(); ++x) {
+                const Tile& tile = m_grid.get_tile(x, y);
 
                 // Choose color based on TileType
                 uint32_t color = 0xFF2A2A38; // Default Floor (desaturated dark purple-grey)
@@ -89,8 +89,8 @@ public:
     }
 
     // Optional getters if needed by player collision later
-    Grid& getGrid() { return m_grid; }
-    const Grid& getGrid() const { return m_grid; }
+    Grid& get_grid() { return m_grid; }
+    const Grid& get_grid() const { return m_grid; }
 };
 
 } // namespace alx

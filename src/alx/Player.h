@@ -1,6 +1,7 @@
 #pragma once
-#include "core/Entity.h"
 #include <MiniFB.h>
+#include "core/Entity.h"
+#include "Grid.h"
 
 namespace alx {
 
@@ -23,7 +24,7 @@ struct Player : public Entity {
         transform_prev = transform;
     }
 
-    void update(float dt) {
+    void update(float dt, const Grid& grid) {
         sync_prev_transforms();
 
         float dx = 0.0f;
@@ -41,9 +42,34 @@ struct Player : public Entity {
             dy *= inv_length;
         }
 
-        // Apply movement scaled by delta time
-        transform.x += dx * speed * dt;
-        transform.y += dy * speed * dt;
+        // --- AXIS-BY-AXIS COLLISION RESOLUTION ---
+
+        // Try moving along the X axis first
+        float target_x = transform.x + dx * speed * dt;
+        if (!is_solid_box(target_x, transform.y, transform.width, transform.height, grid)) {
+            transform.x = target_x;
+        }
+
+        // Try moving along the Y axis independently
+        float target_y = transform.y + dy * speed * dt;
+        if (!is_solid_box(transform.x, target_y, transform.width, transform.height, grid)) {
+            transform.y = target_y;
+        }
+    }
+
+    // Helper method checking the four corners against grid->is_walkable()
+    bool is_solid_box(float x, float y, float width, float height, const Grid& grid) const {
+        int tile_size = grid.get_tile_size();
+
+        int left   = static_cast<int>(x) / tile_size;
+        int right  = static_cast<int>(x + width - 1) / tile_size;
+        int top    = static_cast<int>(y) / tile_size;
+        int bottom = static_cast<int>(y + height - 1) / tile_size;
+
+        return !grid.is_walkable(left, top) ||
+               !grid.is_walkable(right, top) ||
+               !grid.is_walkable(left, bottom) ||
+               !grid.is_walkable(right, bottom);
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha) {
