@@ -10,9 +10,10 @@ enum class TileType : uint8_t {
     Empty = 0,
     Floor,
     Wall,
-    Seep,       // Raw resource node (dark purple-black mana source)
+    Seep,       // Produces dark mana, and releases twilight into room
     Pipe,       // Player-laid infrastructure pipe
-    Refiner     // Conversion station (turns dark mana into cyan/gold light)
+    Refiner,    // Converts dark mana into light mana
+    LightSpire  // Converts light mana into light to fight room twilight
 };
 
 // State for pipes or nodes to handle power/mana routing logic later
@@ -90,42 +91,12 @@ public:
         }
     }
 
-    // TODO: tmp, unused, old
-    void update_mana_flow() {
-        // 1. Reset power/mana state across all active conduits for a fresh calculation pass
-        for (auto& tile : m_tiles) {
-            if (tile.type == TileType::Pipe) {
-                tile.mana_state = ManaState::None;
-                tile.is_powered = false;
-            } else if (tile.type == TileType::Refiner) {
-                tile.is_powered = false; // Will light up if connected to a pipe carrying raw mana
-            }
-        }
-
-        // 2. Simple Propagation: Scan for Seeps and push mana to adjacent pipes
-        for (int y = 0; y < m_height; ++y) {
-            for (int x = 0; x < m_width; ++x) {
-                const Tile& current = get_tile(x, y);
-
-                // If we found a raw resource node, propagate to neighbors
-                if (current.type == TileType::Seep) {
-                    propagate_from(x, y, ManaState::Dark);
-                }
-            }
-        }
-    }
-
     void tick_simulation() {
-        // We want to evaluate what each pipe should do based on its neighbors.
-        // To prevent a chain reaction from fully propagating in a single tick,
-        // we can either use a temporary buffer or evaluate a propagation front.
-        // A clean grid-based approach for gradual flow is checking adjacent inputs:
-
-        // Temporary storage or a two-pass check so flow moves 1 tile per tick
         std::vector<ManaState> next_mana_states(m_tiles.size(), ManaState::None);
         std::vector<bool> next_powered(m_tiles.size(), false);
 
-        // Preserve Seeps and Refiners base states during the check
+        // Preserve fixed sources
+        // Seeps produce Dark mana, Refiners process it, Spires consume Light mana)
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
@@ -136,19 +107,42 @@ public:
                     next_mana_states[idx] = ManaState::Dark;
                     next_powered[idx] = true;
                     continue;
-                }
+                } else if (current.type == TileType::Refiner) {
+                    // A refiner powers on and processes if it receives Dark mana from an adjacent pipe/seep
+                    // TODO: do only Pipes in future, not anything with Dark mana (like Seep)
+                    bool has_dark_input = has_active_neighbor_with_state(x, y, ManaState::Dark);
 
-                // Refiners keep their type, but check if an adjacent pipe is powered
-                if (current.type == TileType::Refiner) {
-                    next_powered[idx] = has_powered_adjacent_pipe(x, y);
-                    next_mana_states[idx] = next_powered[idx] ? ManaState::Dark : ManaState::None;
-                    continue;
-                }
-
-                // For Pipes: Check if any orthogonal neighbor is a Seep or an active powered Pipe/Refiner
-                if (current.type == TileType::Pipe) {
-                    if (has_active_upstream_neighbor(x, y)) {
+                    if (has_dark_input) {
+                        next_powered[idx] = true;
                         next_mana_states[idx] = ManaState::Dark;
+
+                        // --- REFINER OUTPUT LOGIC ---
+                        // Try to push Light mana into an adjacent empty/pipe tile
+                        push_light_mana_to_neighbor(x, y);
+                    } else {
+                        next_powered[idx] = false;
+                        next_mana_states[idx] = ManaState::None;
+                    }
+                } else if (current.type == TileType::LightSpire) {
+                    // Spire powers on if it receives Light mana
+                    bool has_light_input = has_active_neighbor_with_state(x, y, ManaState::Light);
+                    next_powered[idx] = has_light_input;
+                    next_mana_states[idx] = has_light_input ? ManaState::Light : ManaState::None;
+                }
+            }
+        }
+
+        // Second Pass: Mana Pipe Propagation (respecting fluid type separation)
+        for (int y = 0; y < m_height; ++y) {
+            for (int x = 0; x < m_width; ++x) {
+                int idx = y * m_width + x;
+                const Tile& current = m_tiles[idx];
+
+                if (current.type == TileType::Pipe) {
+                    // Check what kind of fluid-yielding neighbor is nearby
+                    ManaState incoming_fluid = get_compatible_upstream_fluid(x, y);
+                    if (incoming_fluid != ManaState::None) {
+                        next_mana_states[idx] = incoming_fluid;
                         next_powered[idx] = true;
                     } else {
                         next_mana_states[idx] = ManaState::None;
@@ -158,7 +152,7 @@ public:
             }
         }
 
-        // Apply the next states back to the grid buffer
+        // Commit changes back to grid
         for (size_t i = 0; i < m_tiles.size(); ++i) {
             m_tiles[i].mana_state = next_mana_states[i];
             m_tiles[i].is_powered = next_powered[i];
@@ -166,10 +160,7 @@ public:
     }
 
 private:
-    // TODO: unused, old
-    // Recursive or iterative helper to spread mana through adjacent pipes
-    void propagate_from(int x, int y, ManaState state) {
-        // Check 4 orthogonal neighbors (Up, Down, Left, Right)
+    bool has_active_neighbor_with_state(int x, int y, ManaState target_state) const {
         int dx[] = { 0, 0, -1, 1 };
         int dy[] = { -1, 1, 0, 0 };
 
@@ -177,60 +168,59 @@ private:
             int nx = x + dx[i];
             int ny = y + dy[i];
 
-            if (nx >= 0 && nx < m_width && ny >= 0 && ny < m_height) {
+            if (is_in_bounds(nx, ny)) {
+                const Tile& neighbor = get_tile(nx, ny);
+                if (neighbor.is_powered && neighbor.mana_state == target_state) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    ManaState get_compatible_upstream_fluid(int x, int y) const {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                const Tile& neighbor = get_tile(nx, ny);
+                if (neighbor.is_powered && neighbor.mana_state != ManaState::None) {
+                    // A pipe adopts the fluid state of its powered neighbor
+                    return neighbor.mana_state;
+                }
+            }
+        }
+
+        return ManaState::None;
+    }
+
+    void push_light_mana_to_neighbor(int refiner_x, int refiner_y) {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        // Find an adjacent pipe or empty-ish tile to inject purified Light mana into
+        for (int i = 0; i < 4; ++i) {
+            int nx = refiner_x + dx[i];
+            int ny = refiner_y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
                 Tile& neighbor = get_tile(nx, ny);
 
-                // If it's a pipe and hasn't been energized yet on this tick
-                if (neighbor.type == TileType::Pipe && neighbor.mana_state == ManaState::None) {
-                    neighbor.mana_state = state;
+                // If it's a pipe carrying nothing or already carrying light, inject light
+                if (neighbor.type == TileType::Pipe &&
+                    (neighbor.mana_state == ManaState::None || neighbor.mana_state == ManaState::Light)
+                ) {
+                    neighbor.mana_state = ManaState::Light;
                     neighbor.is_powered = true;
-                    propagate_from(nx, ny, state); // Continue flow downstream
-                }
-                // If it reaches a refiner, power it up!
-                else if (neighbor.type == TileType::Refiner && !neighbor.is_powered) {
-                    neighbor.is_powered = true;
-                    neighbor.mana_state = state;
+                    break; // Output to one valid adjacent pipe per tick
                 }
             }
         }
-    }
-
-    bool has_active_upstream_neighbor(int x, int y) const {
-        int dx[] = { 0, 0, -1, 1 };
-        int dy[] = { -1, 1, 0, 0 };
-
-        for (int i = 0; i < 4; ++i) {
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-
-            if (is_in_bounds(nx, ny)) {
-                const Tile& neighbor = get_tile(nx, ny);
-                // If neighbor is a Seep, or a pipe/refiner that is currently powered, we receive flow!
-                if (neighbor.type == TileType::Seep ||
-                    ((neighbor.type == TileType::Pipe || neighbor.type == TileType::Refiner) && neighbor.is_powered)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    bool has_powered_adjacent_pipe(int x, int y) const {
-        int dx[] = { 0, 0, -1, 1 };
-        int dy[] = { -1, 1, 0, 0 };
-
-        for (int i = 0; i < 4; ++i) {
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-
-            if (is_in_bounds(nx, ny)) {
-                const Tile& neighbor = get_tile(nx, ny);
-                if (neighbor.type == TileType::Pipe && neighbor.is_powered) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 };
 
