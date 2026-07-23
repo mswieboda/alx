@@ -32,6 +32,8 @@ struct Tile {
     bool is_powered = false;
     uint8_t process_timer = 0;
     uint8_t mana_ttl = 0;
+    uint8_t overpressure_timer = 0;
+    uint16_t reserve_count = 50;
 };
 
 class Grid {
@@ -155,11 +157,79 @@ public:
         std::vector<bool> next_powered(m_tiles.size(), false);
         std::vector<uint8_t> next_process_timers(m_tiles.size(), 0);
         std::vector<uint8_t> next_mana_ttl(m_tiles.size(), 0);
+        std::vector<uint8_t> next_overpressure_timers(m_tiles.size(), 0);
+        std::vector<uint16_t> next_reserve_counts(m_tiles.size(), 50);
+
+        // Initialize next-state buffers with current tile state
+        for (size_t i = 0; i < m_tiles.size(); ++i) {
+            next_mana_states[i] = m_tiles[i].mana_state;
+            next_powered[i] = m_tiles[i].is_powered;
+            next_process_timers[i] = m_tiles[i].process_timer;
+            next_mana_ttl[i] = m_tiles[i].mana_ttl;
+            next_overpressure_timers[i] = m_tiles[i].overpressure_timer;
+            next_reserve_counts[i] = m_tiles[i].reserve_count;
+        }
 
         std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
         std::vector<int> light_dist = compute_distance_field(TileType::Refiner);
 
-        // --- PASS 1: Evaluate fixed sources (Seeps, Refiners, and Spires) ---
+        // --- PASS 1: Discrete Pipe Packet Flow & Back-pressure (Downstream-to-Upstream Order) ---
+        struct PipeIndex {
+            int x, y, idx, dist;
+        };
+        std::vector<PipeIndex> active_pipes;
+        for (int y = 0; y < m_height; ++y) {
+            for (int x = 0; x < m_width; ++x) {
+                int idx = y * m_width + x;
+                const Tile& current = m_tiles[idx];
+                if (current.type == TileType::Pipe && current.is_powered && current.mana_state != ManaState::None) {
+                    int d = (current.mana_state == ManaState::Dark) ? dark_dist[idx] : light_dist[idx];
+                    active_pipes.push_back({ x, y, idx, d });
+                }
+            }
+        }
+
+        // Sort pipes descending by distance (downstream pipes processed before upstream pipes)
+        std::sort(active_pipes.begin(), active_pipes.end(), [](const PipeIndex& a, const PipeIndex& b) {
+            return a.dist > b.dist;
+        });
+
+        for (const auto& pipe_node : active_pipes) {
+            int idx = pipe_node.idx;
+            int x = pipe_node.x;
+            int y = pipe_node.y;
+            const Tile& current = m_tiles[idx];
+
+            int downstream_idx = find_downstream_pipe_neighbor(x, y, current.mana_state, dark_dist, light_dist, next_mana_states);
+
+            if (downstream_idx != -1) {
+                // Downstream pipe is open: move packet forward 1 step
+                next_mana_states[downstream_idx] = current.mana_state;
+                next_powered[downstream_idx] = true;
+                next_mana_ttl[downstream_idx] = (current.mana_state == ManaState::Light && current.mana_ttl > 1) ? (current.mana_ttl - 1) : current.mana_ttl;
+
+                // Vacate current pipe tile
+                next_mana_states[idx] = ManaState::None;
+                next_powered[idx] = false;
+            } else {
+                // Downstream pipe is full or busy: PACKET WAITS IN PLACE (Back-pressure)
+                next_mana_states[idx] = current.mana_state;
+                next_powered[idx] = true;
+                next_mana_ttl[idx] = current.mana_ttl;
+
+                // Check Dark Mana Overflow on dead-ends
+                if (current.mana_state == ManaState::Dark) {
+                    bool has_downstream = has_downstream_connection(x, y, ManaState::Dark, dark_dist, light_dist);
+                    if (!has_downstream && !has_adjacent_seep(x, y) && count_adjacent_pipes(x, y) <= 1) {
+                        m_tiles[idx].type = TileType::Seep;
+                        next_mana_states[idx] = ManaState::Dark;
+                        next_powered[idx] = true;
+                    }
+                }
+            }
+        }
+
+        // --- PASS 2: Node Processing (Seeps, Refiners, and LightSpires) ---
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
@@ -168,26 +238,68 @@ public:
                 if (current.type == TileType::Seep) {
                     next_mana_states[idx] = ManaState::Dark;
                     next_powered[idx] = true;
+
+                    // Try to drain Dark Mana into an empty adjacent pipe
+                    int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_mana_states);
+
+                    if (open_pipe_idx != -1) {
+                        // Drain Dark Mana packet into open pipe
+                        next_mana_states[open_pipe_idx] = ManaState::Dark;
+                        next_powered[open_pipe_idx] = true;
+                        next_overpressure_timers[idx] = 0;
+                    } else {
+                        // Line backed up or no open pipe: accumulate overpressure
+                        uint8_t op = current.overpressure_timer + 1;
+                        uint16_t res = current.reserve_count;
+                        if (op >= Game::SEEP_OVERPRESSURE_THRESHOLD_TICKS) {
+                            res += 1;
+                        }
+                        next_overpressure_timers[idx] = op;
+                        next_reserve_counts[idx] = res;
+                    }
                 }
                 else if (current.type == TileType::Refiner) {
-                    if (has_active_neighbor_with_state(x, y, ManaState::Dark)) {
+                    if (current.process_timer > 0) {
+                        // Currently refining (3-tick cycle)
                         next_powered[idx] = true;
                         next_mana_states[idx] = ManaState::Dark;
 
                         uint8_t progress = current.process_timer + 1;
                         if (progress >= Game::REFINER_TICKS_REQUIRED) {
-                            push_light_mana_forward(x, y, next_mana_states, next_powered, next_mana_ttl);
-                            progress = 0;
+                            // On tick 3: try to output 1 Light Mana packet
+                            int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_mana_states);
+                            if (out_pipe_idx != -1) {
+                                next_mana_states[out_pipe_idx] = ManaState::Light;
+                                next_powered[out_pipe_idx] = true;
+                                next_mana_ttl[out_pipe_idx] = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
+                                progress = 0; // Completed cycle!
+                            } else {
+                                // Output blocked: stall on completion until output clears
+                                progress = Game::REFINER_TICKS_REQUIRED;
+                            }
                         }
                         next_process_timers[idx] = progress;
                     } else {
-                        next_powered[idx] = false;
-                        next_mana_states[idx] = ManaState::None;
-                        next_process_timers[idx] = 0;
+                        // Idle: check if an adjacent input pipe has Dark Mana to absorb
+                        int in_pipe_idx = find_active_input_pipe_from_next(x, y, ManaState::Dark, next_mana_states, next_powered);
+                        if (in_pipe_idx != -1) {
+                            // Absorb Dark Mana packet from input pipe into Refiner
+                            next_mana_states[in_pipe_idx] = ManaState::None;
+                            next_powered[in_pipe_idx] = false;
+
+                            next_powered[idx] = true;
+                            next_mana_states[idx] = ManaState::Dark;
+                            next_process_timers[idx] = 1;
+                        } else {
+                            next_powered[idx] = false;
+                            next_mana_states[idx] = ManaState::None;
+                            next_process_timers[idx] = 0;
+                        }
                     }
                 }
                 else if (current.type == TileType::LightSpire) {
-                    if (has_active_neighbor_with_state(x, y, ManaState::Light)) {
+                    if (current.process_timer > 0) {
+                        // Currently digesting (3-tick cycle)
                         next_powered[idx] = true;
                         next_mana_states[idx] = ManaState::Light;
 
@@ -195,64 +307,26 @@ public:
                         if (progress >= Game::LIGHT_SPIRE_TICKS_REQUIRED) {
                             Log::info("LightSpire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
                             progress = 0;
+                            next_powered[idx] = false;
+                            next_mana_states[idx] = ManaState::None;
                         }
                         next_process_timers[idx] = progress;
                     } else {
-                        next_powered[idx] = false;
-                        next_mana_states[idx] = ManaState::None;
-                        next_process_timers[idx] = current.process_timer;
-                    }
-                }
-            }
-        }
+                        // Idle: check if an adjacent input pipe has Light Mana to absorb
+                        int in_pipe_idx = find_active_input_pipe_from_next(x, y, ManaState::Light, next_mana_states, next_powered);
+                        if (in_pipe_idx != -1) {
+                            // Absorb Light Mana packet from input pipe into LightSpire
+                            next_mana_states[in_pipe_idx] = ManaState::None;
+                            next_powered[in_pipe_idx] = false;
+                            next_mana_ttl[in_pipe_idx] = 0;
 
-        // --- PASS 2: Sequential Pipe Propagation & Dead-End Overflow/Decay ---
-        for (int y = 0; y < m_height; ++y) {
-            for (int x = 0; x < m_width; ++x) {
-                int idx = y * m_width + x;
-                const Tile& current = m_tiles[idx];
-
-                if (current.type == TileType::Pipe) {
-                    FlowInfo flow = get_valid_flow_source(x, y, dark_dist, light_dist);
-
-                    if (flow.state != ManaState::None) {
-                        next_mana_states[idx] = flow.state;
-                        next_powered[idx] = true;
-                        next_mana_ttl[idx] = flow.ttl;
-
-                        // Check if Dark mana flows into a pipe with NO DOWNSTREAM CONNECTION, NO ADJACENT SEEP, and AT MOST 1 PIPE NEIGHBOR!
-                        if (flow.state == ManaState::Dark) {
-                            bool has_downstream = has_downstream_connection(x, y, ManaState::Dark, dark_dist, light_dist);
-                            if (!has_downstream && !has_adjacent_seep(x, y) && count_adjacent_pipes(x, y) <= 1) {
-                                // Dark Mana Overflow: Pipe bursts and transforms into a new Seep node!
-                                m_tiles[idx].type = TileType::Seep;
-                                next_mana_states[idx] = ManaState::Dark;
-                                next_powered[idx] = true;
-                            }
-                        }
-                    } else if (current.type == TileType::Pipe && current.mana_state != ManaState::None) {
-                        // Dead-end holding & decay for Light mana
-                        bool has_downstream = has_downstream_connection(x, y, current.mana_state, dark_dist, light_dist);
-
-                        if (!has_downstream) {
-                            if (current.mana_state == ManaState::Dark && !has_adjacent_seep(x, y) && count_adjacent_pipes(x, y) <= 1) {
-                                // Dark Mana Overflow: Pipe bursts and transforms into a new Seep node!
-                                m_tiles[idx].type = TileType::Seep;
-                                next_mana_states[idx] = ManaState::Dark;
-                                next_powered[idx] = true;
-                            } else if (current.mana_state == ManaState::Light) {
-                                // Light Mana TTL Decay (6 ticks max before dissolving)
-                                if (current.mana_ttl > 1) {
-                                    next_mana_states[idx] = ManaState::Light;
-                                    next_powered[idx] = true;
-                                    next_mana_ttl[idx] = current.mana_ttl - 1;
-                                } else {
-                                    // Expire / Dissipate
-                                    next_mana_states[idx] = ManaState::None;
-                                    next_powered[idx] = false;
-                                    next_mana_ttl[idx] = 0;
-                                }
-                            }
+                            next_powered[idx] = true;
+                            next_mana_states[idx] = ManaState::Light;
+                            next_process_timers[idx] = 1;
+                        } else {
+                            next_powered[idx] = false;
+                            next_mana_states[idx] = ManaState::None;
+                            next_process_timers[idx] = 0;
                         }
                     }
                 }
@@ -265,10 +339,108 @@ public:
             m_tiles[i].is_powered = next_powered[i];
             m_tiles[i].process_timer = next_process_timers[i];
             m_tiles[i].mana_ttl = next_mana_ttl[i];
+            m_tiles[i].overpressure_timer = next_overpressure_timers[i];
+            m_tiles[i].reserve_count = next_reserve_counts[i];
         }
     }
 
 private:
+    int find_empty_adjacent_pipe(int x, int y, const std::vector<ManaState>& next_mana_states) const {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                int n_idx = ny * m_width + nx;
+                const Tile& neighbor = m_tiles[n_idx];
+                if (neighbor.type == TileType::Pipe && neighbor.mana_state == ManaState::None && next_mana_states[n_idx] == ManaState::None) {
+                    return n_idx;
+                }
+            }
+        }
+        return -1;
+    }
+
+    int find_active_input_pipe(int x, int y, ManaState target_state) const {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                int n_idx = ny * m_width + nx;
+                const Tile& neighbor = m_tiles[n_idx];
+                if (neighbor.type == TileType::Pipe && neighbor.is_powered && neighbor.mana_state == target_state) {
+                    return n_idx;
+                }
+            }
+        }
+        return -1;
+    }
+
+    int find_active_input_pipe_from_next(int x, int y, ManaState target_state, const std::vector<ManaState>& next_mana_states, const std::vector<bool>& next_powered) const {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                int n_idx = ny * m_width + nx;
+                const Tile& neighbor = m_tiles[n_idx];
+                if (neighbor.type == TileType::Pipe && next_powered[n_idx] && next_mana_states[n_idx] == target_state) {
+                    return n_idx;
+                }
+            }
+        }
+        return -1;
+    }
+
+    int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& dark_dist, const std::vector<int>& light_dist, const std::vector<ManaState>& next_mana_states) const {
+        int idx = y * m_width + x;
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        if (state == ManaState::Dark) {
+            int my_d = dark_dist[idx];
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (is_in_bounds(nx, ny)) {
+                    int n_idx = ny * m_width + nx;
+                    const Tile& n = m_tiles[n_idx];
+                    if (n.type == TileType::Pipe && dark_dist[n_idx] > my_d && dark_dist[n_idx] < 9000) {
+                        if (n.mana_state == ManaState::None && next_mana_states[n_idx] == ManaState::None) {
+                            return n_idx;
+                        }
+                    }
+                }
+            }
+        } else if (state == ManaState::Light) {
+            int my_d = light_dist[idx];
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (is_in_bounds(nx, ny)) {
+                    int n_idx = ny * m_width + nx;
+                    const Tile& n = m_tiles[n_idx];
+                    if (n.type == TileType::Pipe && light_dist[n_idx] > my_d && light_dist[n_idx] < 9000) {
+                        if (n.mana_state == ManaState::None && next_mana_states[n_idx] == ManaState::None) {
+                            return n_idx;
+                        }
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
     struct FlowInfo {
         ManaState state = ManaState::None;
         uint8_t ttl = 0;
