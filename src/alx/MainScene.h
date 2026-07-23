@@ -13,7 +13,7 @@ namespace alx {
 
 class MainScene : public Scene {
 private:
-    Grid m_grid{20, 15, 32};
+    Grid m_grid{40, 25, 32};
     Player m_player;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
@@ -21,16 +21,25 @@ private:
 
 public:
     MainScene() :
-        m_player(128, 128) // initial x, y
+        m_player(300, 300) // initial x, y
     {}
 
     void init(SceneManager& sm) override {
-        background_color = 0xFF131313; // very dark gray from your boilerplate
+        background_color = 0xFF131313; // very dark gray
+
+        // --- CAMERA ---
+        // Target tracking
+        camera.follow(&m_player.center_x, &m_player.center_y);
+
+        // Map boundary limits
+        int tile_size = m_grid.get_tile_size();
+        int bound_width = m_grid.get_width() * tile_size;
+        int bound_height = (m_grid.get_height() * tile_size);
+
+        camera.set_limits(0, 0, bound_width, bound_height);
 
         // --- Tiles ---
         // Load the room data when the scene officially starts
-        // Simple test pattern for our Cellar room setup:
-        // Border walls, floor in the middle, and a twilight seep in the center
         int width = m_grid.get_width();
         int height = m_grid.get_height();
 
@@ -38,8 +47,11 @@ public:
             for (int x = 0; x < width; ++x) {
                 Tile& tile = m_grid.get_tile(x, y);
 
-                // Set borders as walls
                 if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
+                    // Set borders as empty
+                    tile.type = TileType::Empty;
+                } else if (x == 1 || x == width - 2 || y == 1 || y == height - 2) {
+                    // Set inner borders as walls
                     tile.type = TileType::Wall;
                 } else {
                     tile.type = TileType::Floor;
@@ -48,25 +60,18 @@ public:
         }
 
         // Drop a Twilight Seep resource node
-        Tile& seep_tile = m_grid.get_tile(10, 7);
+        Tile& seep_tile = m_grid.get_tile(15, 12);
         seep_tile.type = TileType::Seep;
         seep_tile.mana_state = ManaState::Dark;
 
         // Drop a Refiner node
-        Tile& refiner_tile = m_grid.get_tile(5, 4);
+        Tile& refiner_tile = m_grid.get_tile(10, 8);
         refiner_tile.type = TileType::Refiner;
 
-        // Drop a LightSpire node
-        // Tile& spire_tile = m_grid.get_tile(1, 2);
-        // spire_tile.type = TileType::LightSpire;
-
-        // Place initial test pipes (matching debug layout)
+        // Place initial test pipes
         std::vector<std::pair<int, int>> pipes = {
             // Input pipeline (Seep to Refiner)
-            {1, 3}, {1, 4}, {2, 4}, {3, 4}, {4, 4},
-            // Output pipeline (Refiner to LightSpire)
-            {6, 4}, {6, 5}, {6, 6}, {6, 7}, {6, 8}, {6, 9},
-            {7, 9}, {8, 9}, {8, 8}, {8, 7}
+            {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11}
         };
 
         for (auto [px, py] : pipes) {
@@ -81,9 +86,11 @@ public:
 
         update_tick_simulation(dt);
 
-
         // --- PLAYER ---
         m_player.update(dt, m_grid);
+
+        // --- CAMERA ---
+        camera.update();
     }
 
     void update_tick_simulation(float dt) {
@@ -102,13 +109,15 @@ public:
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha) override {
         draw_tiles(screen_buffer);
-        m_player.draw(screen_buffer, alpha);
+        m_player.draw(screen_buffer, alpha, camera);
         draw_hud();
     }
 
     void draw_hud() {
+        int screen_width = Game::WIDTH;
+
         // Draw top HUD background bar (height 34px for 2-line display)
-        Draw::rect(0, 0, m_grid.get_width() * m_grid.get_tile_size(), 34, 0xCC101018, true, 1, 99);
+        Draw::rect(0, 0, screen_width, 34, 0xAA101019, true, 1, 99);
 
         // Build status string
         const char* selected_name = "Pipe";
@@ -128,7 +137,6 @@ public:
 
         std::string_view build_str = Draw::fmt("BUILD: %s (%d)", selected_name, cost);
         int build_width = Draw::text_width(build_str, 1, &Assets::Fonts::mini);
-        int screen_width = m_grid.get_width() * m_grid.get_tile_size();
         Draw::text(
             screen_width - 6 - build_width, 4,
             build_str,
@@ -146,17 +154,25 @@ public:
     void draw_tiles(std::vector<uint32_t>& screen_buffer) {
         int tile_size = m_grid.get_tile_size();
 
-        for (int y = 0; y < m_grid.get_height(); ++y) {
-            for (int x = 0; x < m_grid.get_width(); ++x) {
+        int min_tx = std::max(0, static_cast<int>(camera.get_x()) / tile_size);
+        int max_tx = std::min(m_grid.get_width() - 1, static_cast<int>(camera.get_x() + Game::WIDTH) / tile_size + 1);
+        int min_ty = std::max(0, static_cast<int>(camera.get_y()) / tile_size);
+        int max_ty = std::min(m_grid.get_height() - 1, static_cast<int>(camera.get_y() + Game::HEIGHT) / tile_size + 1);
+
+        for (int y = min_ty; y <= max_ty; ++y) {
+            for (int x = min_tx; x <= max_tx; ++x) {
                 Tile tile = m_grid.get_tile(x, y);
-                draw_tile_bg(tile, x, y, tile_size);
-                draw_tile_mana(tile, x, y, tile_size);
-                draw_tile_powered(tile, x, y, tile_size);
+                int screen_x = camera.to_screen_x(x * tile_size);
+                int screen_y = camera.to_screen_y(y * tile_size);
+
+                draw_tile_bg(tile, screen_x, screen_y, tile_size);
+                draw_tile_mana(tile, screen_x, screen_y, tile_size);
+                draw_tile_powered(tile, screen_x, screen_y, tile_size);
             }
         }
     }
 
-    void draw_tile_bg(const Tile& tile, int x, int y, int tile_size) {
+    void draw_tile_bg(const Tile& tile, int screen_x, int screen_y, int tile_size) {
         // Choose color based on TileType
         uint32_t color = 0xFF2A2A38; // Default Floor (desaturated dark purple-grey)
         bool fill = true;
@@ -169,16 +185,19 @@ public:
             color = 0xFF00CCCC; // Pipe, cyan for now?
         } else if (tile.type == TileType::Refiner) {
             color = 0xFF301C66; // Refiner, purplish for now?
-        } else {
-            // Floor grid for now
+        } else if (tile.type == TileType::Floor) {
+            // Floor is a lined grid for now
             fill = false;
+        } else {
+            // Empty
+            color = 0x00FF00FF; // transparent, whatever the scene background is
         }
 
         Draw::rect(
-            x * tile_size, // x
-            y * tile_size, // y
-            tile_size, // width
-            tile_size, // height
+            screen_x,
+            screen_y,
+            tile_size,
+            tile_size,
             color,
             fill, // filled
             1, // thickness (unused if filled)
@@ -186,7 +205,7 @@ public:
         );
     }
 
-    void draw_tile_mana(const Tile& tile, int x, int y, int tile_size) {
+    void draw_tile_mana(const Tile& tile, int screen_x, int screen_y, int tile_size) {
         if (!Grid::has_mana_glow(tile) || tile.mana_state == ManaState::None) {
             return;
         }
@@ -205,10 +224,10 @@ public:
         bool fill = true;
 
         Draw::rect(
-            x * tile_size + size / 2, // x
-            y * tile_size + size / 2, // y
-            size, // width
-            size, // height
+            screen_x + size / 2,
+            screen_y + size / 2,
+            size,
+            size,
             color,
             fill, // filled
             1, // thickness (unused if filled)
@@ -216,7 +235,7 @@ public:
         );
     }
 
-    void draw_tile_powered(const Tile& tile, int x, int y, int tile_size) {
+    void draw_tile_powered(const Tile& tile, int screen_x, int screen_y, int tile_size) {
         if (!Grid::has_power_glow(tile) || !tile.is_powered) {
             return;
         }
@@ -225,10 +244,10 @@ public:
         bool fill = false;
 
         Draw::rect(
-            x * tile_size, // x
-            y * tile_size, // y
-            tile_size, // width
-            tile_size, // height
+            screen_x,
+            screen_y,
+            tile_size,
+            tile_size,
             color,
             fill, // filled
             1, // thickness

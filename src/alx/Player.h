@@ -7,6 +7,8 @@ struct Player : public Entity {
     float speed = 128.0f;
     float vx = 0.0f;
     float vy = 0.0f;
+    float center_x = 0.0f;
+    float center_y = 0.0f;
 
     Player(float startX, float startY)
         : Entity(
@@ -14,7 +16,9 @@ struct Player : public Entity {
             RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
             true,                                           // Active
             "player"                                        // Tag for easy lookups
-          )
+          ),
+          center_x(startX + 12.0f),
+          center_y(startY + 24.0f)
     {
     }
 
@@ -27,14 +31,20 @@ struct Player : public Entity {
 
         update_movement(dt, grid);
         update_actions(dt, grid);
+
+        center_x = transform.x + (transform.width / 2.0f);
+        center_y = transform.y + (transform.height / 2.0f);
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha) {
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Camera& camera) {
         if (!active) return;
 
         // --- MAIN BODY ---
-        int draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
-        int draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
+        float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+
+        int draw_x = camera.to_screen_x(world_draw_x);
+        int draw_y = camera.to_screen_y(world_draw_y);
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
@@ -52,12 +62,11 @@ struct Player : public Entity {
         // --- TARGET box for interactions ---
         float size = transform.height / 4.0f;
 
-        // TODO: cx, cy need to be synced with `update_actions`, make shared method
-        float center_x = draw_x + (transform.width / 2.0f);
-        float center_y = draw_y + (transform.height / 1.25f);
+        float target_center_x = draw_x + (transform.width / 2.0f);
+        float target_center_y = draw_y + (transform.height / 1.25f);
 
-        float box_x = center_x - (size / 2.0f);
-        float box_y = center_y - (size / 2.0f);
+        float box_x = target_center_x - (size / 2.0f);
+        float box_y = target_center_y - (size / 2.0f);
 
         Draw::rect(
             (int)box_x,

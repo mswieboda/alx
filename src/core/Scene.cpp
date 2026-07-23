@@ -66,8 +66,11 @@ void Scene::draw_entities(std::vector<uint32_t>& screen_buffer, float alpha) {
     for (const auto& entity : entities) {
         if (!entity.active) continue;
 
-        float draw_x = Draw::interpolate(entity.transform_prev.x, entity.transform.x, alpha);
-        float draw_y = Draw::interpolate(entity.transform_prev.y, entity.transform.y, alpha);
+        float draw_world_x = Draw::interpolate(entity.transform_prev.x, entity.transform.x, alpha);
+        float draw_world_y = Draw::interpolate(entity.transform_prev.y, entity.transform.y, alpha);
+
+        int draw_x = camera.to_screen_x(draw_world_x);
+        int draw_y = camera.to_screen_y(draw_world_y);
 
         std::visit(overloaded {
             [&](const RectangleRender& visual_data) {

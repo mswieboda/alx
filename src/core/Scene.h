@@ -6,6 +6,7 @@
 #include <string>
 #include "Entity.h"
 #include "Draw.h"
+#include "Camera.h"
 
 class SceneManager; // Forward declaration
 
@@ -17,9 +18,13 @@ protected:
     mutable bool m_tag_map_dirty = true;
 
 public:
+    Camera camera;
     uint32_t background_color = 0xFF000000;
 
     virtual ~Scene() = default;
+
+    Camera& get_camera() { return camera; }
+    const Camera& get_camera() const { return camera; }
 
     // Core Lifecycle Hooks
     virtual void init(SceneManager& sm) = 0;
