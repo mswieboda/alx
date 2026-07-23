@@ -19,10 +19,17 @@ namespace Draw {
         void draw_rect_immediate(std::vector<uint32_t>& buf, int rx, int ry, int rw, int rh, uint32_t color, bool fill, int thickness) {
             int start_x = std::max(0, rx), end_x = std::min(Game::WIDTH, rx + rw);
             int start_y = std::max(0, ry), end_y = std::min(Game::HEIGHT, ry + rh);
+            uint32_t alpha = (color >> 24) & 0xFF;
+
             if (fill) {
                 for (int y = start_y; y < end_y; ++y) {
                     for (int x = start_x; x < end_x; ++x) {
-                        buf[y * Game::WIDTH + x] = color;
+                        uint32_t idx = y * Game::WIDTH + x;
+                        if (alpha == 0xFF) {
+                            buf[idx] = color;
+                        } else if (alpha > 0) {
+                            buf[idx] = blend_pixel(buf[idx], color);
+                        }
                     }
                 }
             } else {
@@ -33,7 +40,12 @@ namespace Draw {
                         int dx = x - rx;
                         int dy = y - ry;
                         if (dx < t || dx >= rw - t || dy < t || dy >= rh - t) {
-                            buf[y * Game::WIDTH + x] = color;
+                            uint32_t idx = y * Game::WIDTH + x;
+                            if (alpha == 0xFF) {
+                                buf[idx] = color;
+                            } else if (alpha > 0) {
+                                buf[idx] = blend_pixel(buf[idx], color);
+                            }
                         }
                     }
                 }

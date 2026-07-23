@@ -29,6 +29,7 @@ struct Tile {
     ManaState mana_state = ManaState::None;
     bool is_powered = false;
     uint8_t process_timer = 0;
+    uint8_t mana_ttl = 0;
 };
 
 class Grid {
@@ -86,11 +87,15 @@ public:
         if (tile.type == TileType::Floor || tile.type == TileType::Empty) {
             tile.type = type;
         } else if (tile.type == type) {
-            // Pick it back up if clicking the same thing
+            // Block picking up a pipe if it currently contains live mana!
+            if (tile.mana_state != ManaState::None) {
+                return;
+            }
             tile.type = TileType::Floor;
             tile.mana_state = ManaState::None;
             tile.is_powered = false;
             tile.process_timer = 0;
+            tile.mana_ttl = 0;
         }
     }
 
@@ -98,6 +103,7 @@ public:
         std::vector<ManaState> next_mana_states(m_tiles.size(), ManaState::None);
         std::vector<bool> next_powered(m_tiles.size(), false);
         std::vector<uint8_t> next_process_timers(m_tiles.size(), 0);
+        std::vector<uint8_t> next_mana_ttl(m_tiles.size(), 0);
 
         std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
         std::vector<int> light_dist = compute_distance_field(TileType::Refiner);
@@ -119,7 +125,7 @@ public:
 
                         uint8_t progress = current.process_timer + 1;
                         if (progress >= 3) {
-                            push_light_mana_forward(x, y, next_mana_states, next_powered);
+                            push_light_mana_forward(x, y, next_mana_states, next_powered, next_mana_ttl);
                             progress = 0;
                         }
                         next_process_timers[idx] = progress;
@@ -138,17 +144,54 @@ public:
             }
         }
 
-        // --- PASS 2: Sequential Pipe Propagation ---
+        // --- PASS 2: Sequential Pipe Propagation & Dead-End Overflow/Decay ---
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
                 const Tile& current = m_tiles[idx];
 
                 if (current.type == TileType::Pipe) {
-                    ManaState flow = get_valid_flow_source(x, y, dark_dist, light_dist);
-                    if (flow != ManaState::None) {
-                        next_mana_states[idx] = flow;
+                    FlowInfo flow = get_valid_flow_source(x, y, dark_dist, light_dist);
+
+                    if (flow.state != ManaState::None) {
+                        next_mana_states[idx] = flow.state;
                         next_powered[idx] = true;
+                        next_mana_ttl[idx] = flow.ttl;
+
+                        // Check if Dark mana flows into a pipe with NO DOWNSTREAM CONNECTION, NO ADJACENT SEEP, and AT MOST 1 PIPE NEIGHBOR!
+                        if (flow.state == ManaState::Dark) {
+                            bool has_downstream = has_downstream_connection(x, y, ManaState::Dark, dark_dist, light_dist);
+                            if (!has_downstream && !has_adjacent_seep(x, y) && count_adjacent_pipes(x, y) <= 1) {
+                                // Dark Mana Overflow: Pipe bursts and transforms into a new Seep node!
+                                m_tiles[idx].type = TileType::Seep;
+                                next_mana_states[idx] = ManaState::Dark;
+                                next_powered[idx] = true;
+                            }
+                        }
+                    } else if (current.type == TileType::Pipe && current.mana_state != ManaState::None) {
+                        // Dead-end holding & decay for Light mana
+                        bool has_downstream = has_downstream_connection(x, y, current.mana_state, dark_dist, light_dist);
+
+                        if (!has_downstream) {
+                            if (current.mana_state == ManaState::Dark && !has_adjacent_seep(x, y) && count_adjacent_pipes(x, y) <= 1) {
+                                // Dark Mana Overflow: Pipe bursts and transforms into a new Seep node!
+                                m_tiles[idx].type = TileType::Seep;
+                                next_mana_states[idx] = ManaState::Dark;
+                                next_powered[idx] = true;
+                            } else if (current.mana_state == ManaState::Light) {
+                                // Light Mana TTL Decay (6 ticks max before dissolving)
+                                if (current.mana_ttl > 1) {
+                                    next_mana_states[idx] = ManaState::Light;
+                                    next_powered[idx] = true;
+                                    next_mana_ttl[idx] = current.mana_ttl - 1;
+                                } else {
+                                    // Expire / Dissipate
+                                    next_mana_states[idx] = ManaState::None;
+                                    next_powered[idx] = false;
+                                    next_mana_ttl[idx] = 0;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -159,10 +202,16 @@ public:
             m_tiles[i].mana_state = next_mana_states[i];
             m_tiles[i].is_powered = next_powered[i];
             m_tiles[i].process_timer = next_process_timers[i];
+            m_tiles[i].mana_ttl = next_mana_ttl[i];
         }
     }
 
 private:
+    struct FlowInfo {
+        ManaState state = ManaState::None;
+        uint8_t ttl = 0;
+    };
+
     std::vector<int> compute_distance_field(TileType sourceType) const {
         std::vector<int> dist(m_tiles.size(), 9999);
         std::queue<int> q;
@@ -225,7 +274,75 @@ private:
         return false;
     }
 
-    ManaState get_valid_flow_source(int x, int y, const std::vector<int>& dark_dist, const std::vector<int>& light_dist) const {
+    int count_adjacent_pipes(int x, int y) const {
+        int count = 0;
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                if (get_tile(nx, ny).type == TileType::Pipe) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    bool has_adjacent_seep(int x, int y) const {
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+
+            if (is_in_bounds(nx, ny)) {
+                if (get_tile(nx, ny).type == TileType::Seep) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool has_downstream_connection(int x, int y, ManaState state, const std::vector<int>& dark_dist, const std::vector<int>& light_dist) const {
+        int idx = y * m_width + x;
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        if (state == ManaState::Dark) {
+            int my_d = dark_dist[idx];
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (is_in_bounds(nx, ny)) {
+                    const Tile& n = get_tile(nx, ny);
+                    int n_idx = ny * m_width + nx;
+                    if (n.type == TileType::Refiner) return true;
+                    if (n.type == TileType::Pipe && dark_dist[n_idx] > my_d && dark_dist[n_idx] < 9000) return true;
+                }
+            }
+        } else if (state == ManaState::Light) {
+            int my_d = light_dist[idx];
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (is_in_bounds(nx, ny)) {
+                    const Tile& n = get_tile(nx, ny);
+                    int n_idx = ny * m_width + nx;
+                    if (n.type == TileType::LightSpire) return true;
+                    if (n.type == TileType::Pipe && light_dist[n_idx] > my_d && light_dist[n_idx] < 9000) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    FlowInfo get_valid_flow_source(int x, int y, const std::vector<int>& dark_dist, const std::vector<int>& light_dist) const {
         int idx = y * m_width + x;
         int my_dark_d = dark_dist[idx];
         int my_light_d = light_dist[idx];
@@ -243,18 +360,21 @@ private:
 
                 if (neighbor.is_powered && neighbor.mana_state != ManaState::None) {
                     if (neighbor.mana_state == ManaState::Dark && dark_dist[n_idx] < my_dark_d) {
-                        return ManaState::Dark;
+                        return { ManaState::Dark, 0 };
                     }
                     if (neighbor.mana_state == ManaState::Light && light_dist[n_idx] < my_light_d) {
-                        return ManaState::Light;
+                        uint8_t new_ttl = (neighbor.mana_ttl > 0) ? (neighbor.mana_ttl - 1) : 0;
+                        if (new_ttl > 0) {
+                            return { ManaState::Light, new_ttl };
+                        }
                     }
                 }
             }
         }
-        return ManaState::None;
+        return { ManaState::None, 0 };
     }
 
-    void push_light_mana_forward(int refiner_x, int refiner_y, std::vector<ManaState>& next_mana_states, std::vector<bool>& next_powered) {
+    void push_light_mana_forward(int refiner_x, int refiner_y, std::vector<ManaState>& next_mana_states, std::vector<bool>& next_powered, std::vector<uint8_t>& next_mana_ttl) {
         int dx[] = { 0, 0, -1, 1 };
         int dy[] = { -1, 1, 0, 0 };
 
@@ -269,6 +389,7 @@ private:
                     if (next_mana_states[n_idx] == ManaState::None) {
                         next_mana_states[n_idx] = ManaState::Light;
                         next_powered[n_idx] = true;
+                        next_mana_ttl[n_idx] = 6;
                         break;
                     }
                 }

@@ -155,7 +155,11 @@ public:
         uint32_t color = 0xFF6600FF; // Dark mana glow
 
         if (tile.mana_state == ManaState::Light) {
-            color = 0xFFFFFFFF; // pure white light
+            uint32_t alpha = 0xFF;
+            if (tile.mana_ttl > 0 && tile.mana_ttl <= 6) {
+                alpha = (tile.mana_ttl * 255) / 6;
+            }
+            color = (alpha << 24) | 0x00FFFFFF; // Fading white light glow
         }
 
         int size = tile_size / 2;
