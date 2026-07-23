@@ -271,23 +271,58 @@ public:
 
             if (tile.mana_state == ManaState::Dark) {
                 uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
+                int hub_x = screen_x + tile_size / 2;
+                int hub_y = screen_y + tile_size / 2;
 
-                if (tile.move_dx != 0 || tile.move_dy != 0) {
-                    // Moving Dark Mana packet: render as a directional liquid slug along the movement axis
-                    if (tile.move_dy != 0) {
-                        // Vertical liquid slug (4x16px)
-                        int stream_w = 4;
-                        int stream_h = 16;
-                        int offset_x = (tile_size - stream_w) / 2; // 14
-                        int offset_y = (tile_size - stream_h) / 2; // 8
-                        Draw::rect(render_x + offset_x, render_y + offset_y, stream_w, stream_h, liquid_color, true, 1, 1);
-                    } else if (tile.move_dx != 0) {
-                        // Horizontal liquid slug (16x4px)
-                        int stream_w = 16;
-                        int stream_h = 4;
-                        int offset_x = (tile_size - stream_w) / 2; // 8
-                        int offset_y = (tile_size - stream_h) / 2; // 14
-                        Draw::rect(render_x + offset_x, render_y + offset_y, stream_w, stream_h, liquid_color, true, 1, 1);
+                int in_dx = tile.move_dx;
+                int in_dy = tile.move_dy;
+
+                int out_dx = 0, out_dy = 0;
+                m_grid.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
+                if (out_dx == 0 && out_dy == 0) {
+                    out_dx = in_dx;
+                    out_dy = in_dy;
+                }
+
+                if (in_dx != 0 || in_dy != 0 || out_dx != 0 || out_dy != 0) {
+                    float slug_len = 24.0f;
+                    float s_head = (progress - 0.5f) * tile_size;
+                    float s_tail = s_head - slug_len;
+
+                    // Incoming segment (s <= 0, clamped to corner hub)
+                    float in_start = std::min(0.0f, s_tail);
+                    float in_end   = std::min(0.0f, s_head);
+                    float in_len   = in_end - in_start;
+
+                    if (in_len > 0.0f) {
+                        int len = static_cast<int>(in_len);
+                        if (in_dy == -1) { // Coming from South (moving Up)
+                            Draw::rect(hub_x - 2, static_cast<int>(hub_y - in_end), 4, len, liquid_color, true, 1, 1);
+                        } else if (in_dy == 1) { // Coming from North (moving Down)
+                            Draw::rect(hub_x - 2, static_cast<int>(hub_y + in_start), 4, len, liquid_color, true, 1, 1);
+                        } else if (in_dx == 1) { // Coming from West (moving Right)
+                            Draw::rect(static_cast<int>(hub_x + in_start), hub_y - 2, len, 4, liquid_color, true, 1, 1);
+                        } else if (in_dx == -1) { // Coming from East (moving Left)
+                            Draw::rect(static_cast<int>(hub_x - in_end), hub_y - 2, len, 4, liquid_color, true, 1, 1);
+                        }
+                    }
+
+                    // Outgoing segment (s >= 0, clamped from corner hub)
+                    float out_start = std::max(0.0f, s_tail);
+                    float out_end   = std::max(0.0f, s_head);
+                    float out_len   = out_end - out_start;
+
+                    if (out_len > 0.0f) {
+                        int len = static_cast<int>(out_len);
+                        if (out_dy == -1) { // Heading North / Up
+                            Draw::rect(hub_x - 2, static_cast<int>(hub_y - out_end), 4, len, liquid_color, true, 1, 1);
+                        } else if (out_dy == 1) { // Heading South / Down
+                            Draw::rect(hub_x - 2, static_cast<int>(hub_y + out_start), 4, len, liquid_color, true, 1, 1);
+                        } else if (out_dx == 1) { // Heading East / Right
+                            Draw::rect(static_cast<int>(hub_x + out_start), hub_y - 2, len, 4, liquid_color, true, 1, 1);
+                        } else if (out_dx == -1) { // Heading West / Left
+                            Draw::rect(static_cast<int>(hub_x - out_end), hub_y - 2, len, 4, liquid_color, true, 1, 1);
+                        }
                     }
                 } else {
                     // Stationary / backed-up Dark Mana pipe: fill connected pipe stubs

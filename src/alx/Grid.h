@@ -36,6 +36,8 @@ struct Tile {
     uint16_t reserve_count = 50;
     int8_t move_dx = 0;
     int8_t move_dy = 0;
+    int8_t out_dx = 0;
+    int8_t out_dy = 0;
 };
 
 class Grid {
@@ -154,6 +156,35 @@ public:
         return false;
     }
 
+    void get_downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const {
+        out_dx = 0;
+        out_dy = 0;
+        if (!is_in_bounds(x, y)) return;
+
+        int idx = y * m_width + x;
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        if (state == ManaState::Dark) {
+            std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
+            int my_d = dark_dist[idx];
+            int best_d = my_d;
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (is_in_bounds(nx, ny)) {
+                    int n_idx = ny * m_width + nx;
+                    const Tile& n = m_tiles[n_idx];
+                    if ((n.type == TileType::Pipe || n.type == TileType::Refiner) && dark_dist[n_idx] > best_d && dark_dist[n_idx] < 9000) {
+                        best_d = dark_dist[n_idx];
+                        out_dx = dx[i];
+                        out_dy = dy[i];
+                    }
+                }
+            }
+        }
+    }
+
     void tick_simulation() {
         std::vector<ManaState> next_mana_states(m_tiles.size(), ManaState::None);
         std::vector<bool> next_powered(m_tiles.size(), false);
@@ -163,6 +194,8 @@ public:
         std::vector<uint16_t> next_reserve_counts(m_tiles.size(), 50);
         std::vector<int8_t> next_move_dx(m_tiles.size(), 0);
         std::vector<int8_t> next_move_dy(m_tiles.size(), 0);
+        std::vector<int8_t> next_out_dx(m_tiles.size(), 0);
+        std::vector<int8_t> next_out_dy(m_tiles.size(), 0);
 
         // Initialize next-state buffers with current tile state
         for (size_t i = 0; i < m_tiles.size(); ++i) {
@@ -174,6 +207,8 @@ public:
             next_reserve_counts[i] = m_tiles[i].reserve_count;
             next_move_dx[i] = m_tiles[i].move_dx;
             next_move_dy[i] = m_tiles[i].move_dy;
+            next_out_dx[i] = m_tiles[i].out_dx;
+            next_out_dy[i] = m_tiles[i].out_dy;
         }
 
         std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
@@ -214,6 +249,8 @@ public:
                     next_mana_ttl[idx] = 0;
                     next_move_dx[idx] = 0;
                     next_move_dy[idx] = 0;
+                    next_out_dx[idx] = 0;
+                    next_out_dy[idx] = 0;
                     continue;
                 }
             }
@@ -223,6 +260,10 @@ public:
             if (downstream_idx != -1) {
                 int downstream_x = downstream_idx % m_width;
                 int downstream_y = downstream_idx / m_width;
+
+                // Record outgoing vector on current tile
+                next_out_dx[idx] = static_cast<int8_t>(downstream_x - x);
+                next_out_dy[idx] = static_cast<int8_t>(downstream_y - y);
 
                 // Downstream pipe is open: move packet forward 1 step & record movement vector
                 next_mana_states[downstream_idx] = current.mana_state;
@@ -243,6 +284,8 @@ public:
                 next_mana_ttl[idx] = (current.mana_state == ManaState::Light) ? (current.mana_ttl - 1) : current.mana_ttl;
                 next_move_dx[idx] = 0;
                 next_move_dy[idx] = 0;
+                next_out_dx[idx] = 0;
+                next_out_dy[idx] = 0;
 
                 // Check Dark Mana Overflow on dead-ends
                 if (current.mana_state == ManaState::Dark) {
@@ -384,6 +427,8 @@ public:
             m_tiles[i].reserve_count = next_reserve_counts[i];
             m_tiles[i].move_dx = next_move_dx[i];
             m_tiles[i].move_dy = next_move_dy[i];
+            m_tiles[i].out_dx = next_out_dx[i];
+            m_tiles[i].out_dy = next_out_dy[i];
         }
     }
 
