@@ -285,7 +285,13 @@ public:
 
                 // Only animate if the packet actually moved this tick
                 if (in_dx != 0 || in_dy != 0) {
-                    // Determine if out direction is known; fall back to entry direction (straight)
+                    // Determine exit direction for rendering:
+                    // On first arrival at a corner, out_dx/out_dy may still be 0
+                    // because simulation sets them on the source tile, not destination.
+                    // Query the distance field as a rendering-only fallback.
+                    if (out_dx == 0 && out_dy == 0) {
+                        m_grid.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
+                    }
                     if (out_dx == 0 && out_dy == 0) {
                         out_dx = in_dx;
                         out_dy = in_dy;
