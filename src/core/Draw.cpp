@@ -203,6 +203,21 @@ namespace Draw {
         return std::string_view(g_string_pool.data() + start_idx, static_cast<size_t>(needed));
     }
 
+    int text_width(std::string_view text, int scale, const FontData* font) {
+        const FontData* f = font ? font : &Font::DEFAULT_BLANK;
+        if (scale < 1) scale = 1;
+        int width = 0;
+        for (char c : text) {
+            uint8_t ascii = static_cast<unsigned char>(c);
+            if (c == ' ') {
+                width += (f->spacing - 2) * scale;
+            } else if (ascii < 128) {
+                width += f->spacing * scale;
+            }
+        }
+        return width;
+    }
+
     void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font) {
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
         int sort_y = 0;

@@ -68,7 +68,7 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(MoveLeft)]      = { MFB_KB_KEY_A, MFB_KB_KEY_LEFT };
     s_bindings[static_cast<size_t>(MoveRight)]     = { MFB_KB_KEY_D, MFB_KB_KEY_RIGHT };
 
-    s_bindings[static_cast<size_t>(Tool)]          = { MFB_KB_KEY_J, MFB_KB_KEY_E, MFB_KB_KEY_SPACE };
+    s_bindings[static_cast<size_t>(Tool)]          = { MFB_KB_KEY_J };
     s_bindings[static_cast<size_t>(Cancel)]        = { MFB_KB_KEY_K, MFB_KB_KEY_X };
     s_bindings[static_cast<size_t>(CycleLeft)]     = { MFB_KB_KEY_Q };
     s_bindings[static_cast<size_t>(CycleRight)]    = { MFB_KB_KEY_E };

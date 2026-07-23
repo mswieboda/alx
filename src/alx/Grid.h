@@ -93,23 +93,13 @@ public:
         return type == TileType::Pipe || type == TileType::Refiner || type == TileType::LightSpire;
     }
 
-    // Expanded toggle or specific placement method
+    // Placement method for empty/floor tiles
     void place_tile(int tx, int ty, TileType type) {
         if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) return;
 
         Tile& tile = get_tile(tx, ty);
         if (tile.type == TileType::Floor || tile.type == TileType::Empty) {
             tile.type = type;
-        } else if (tile.type == type) {
-            // Block picking up a pipe if it currently contains live mana!
-            if (tile.mana_state != ManaState::None) {
-                return;
-            }
-            tile.type = TileType::Floor;
-            tile.mana_state = ManaState::None;
-            tile.is_powered = false;
-            tile.process_timer = 0;
-            tile.mana_ttl = 0;
         }
     }
 
@@ -129,19 +119,6 @@ public:
                 Log::info("Not enough alloy!");
                 return false;
             }
-        } else if (is_buildable_type(tile.type)) {
-            // Demolish target tile if it matches build_type or any buildable object without active mana
-            if (tile.mana_state != ManaState::None) {
-                return false; // Cannot demolish active mana flow with E
-            }
-            int cost = get_tile_cost(tile.type);
-            inout_alloy += cost;
-            tile.type = TileType::Floor;
-            tile.mana_state = ManaState::None;
-            tile.is_powered = false;
-            tile.process_timer = 0;
-            tile.mana_ttl = 0;
-            return true;
         }
         return false;
     }

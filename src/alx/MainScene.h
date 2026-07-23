@@ -119,10 +119,19 @@ public:
             selected_name = "LightSpire";
         }
 
-        // Line 1: ALLOY & BUILD Status
+        // Line 1: ALLOY (left) & BUILD Status (right-aligned to far right of screen)
         Draw::text(
             6, 4,
-            Draw::fmt("ALLOY: %d  |  BUILD: %s (%d)", m_player.get_cursed_alloy(), selected_name, cost),
+            Draw::fmt("ALLOY: %d", m_player.get_cursed_alloy()),
+            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+        );
+
+        std::string_view build_str = Draw::fmt("BUILD: %s (%d)", selected_name, cost);
+        int build_width = Draw::text_width(build_str, 1, &Assets::Fonts::mini);
+        int screen_width = m_grid.get_width() * m_grid.get_tile_size();
+        Draw::text(
+            screen_width - 6 - build_width, 4,
+            build_str,
             0xFF00CCCC, 1, 100, &Assets::Fonts::mini
         );
 

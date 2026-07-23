@@ -59,6 +59,8 @@ namespace Draw {
     // Frame string arena: formats text directly into frame scratch pool and returns frame-valid std::string_view
     std::string_view fmt(const char* format, ...) __attribute__((format(printf, 1, 2)));
 
+    int text_width(std::string_view text, int scale = 1, const FontData* font = &Font::DEFAULT_BLANK);
+
     // Submit actions to the frame queue
     void text(int x, int y, std::string_view text, uint32_t color,
               int scale = 1, int z_index = 1,
