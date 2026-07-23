@@ -34,6 +34,8 @@ struct Tile {
     uint8_t mana_ttl = 0;
     uint8_t overpressure_timer = 0;
     uint16_t reserve_count = 50;
+    int8_t move_dx = 0;
+    int8_t move_dy = 0;
 };
 
 class Grid {
@@ -159,6 +161,8 @@ public:
         std::vector<uint8_t> next_mana_ttl(m_tiles.size(), 0);
         std::vector<uint8_t> next_overpressure_timers(m_tiles.size(), 0);
         std::vector<uint16_t> next_reserve_counts(m_tiles.size(), 50);
+        std::vector<int8_t> next_move_dx(m_tiles.size(), 0);
+        std::vector<int8_t> next_move_dy(m_tiles.size(), 0);
 
         // Initialize next-state buffers with current tile state
         for (size_t i = 0; i < m_tiles.size(); ++i) {
@@ -168,6 +172,8 @@ public:
             next_mana_ttl[i] = m_tiles[i].mana_ttl;
             next_overpressure_timers[i] = m_tiles[i].overpressure_timer;
             next_reserve_counts[i] = m_tiles[i].reserve_count;
+            next_move_dx[i] = m_tiles[i].move_dx;
+            next_move_dy[i] = m_tiles[i].move_dy;
         }
 
         std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
@@ -206,6 +212,8 @@ public:
                     next_mana_states[idx] = ManaState::None;
                     next_powered[idx] = false;
                     next_mana_ttl[idx] = 0;
+                    next_move_dx[idx] = 0;
+                    next_move_dy[idx] = 0;
                     continue;
                 }
             }
@@ -213,19 +221,28 @@ public:
             int downstream_idx = find_downstream_pipe_neighbor(x, y, current.mana_state, dark_dist, light_dist, next_mana_states);
 
             if (downstream_idx != -1) {
-                // Downstream pipe is open: move packet forward 1 step & decrement TTL
+                int downstream_x = downstream_idx % m_width;
+                int downstream_y = downstream_idx / m_width;
+
+                // Downstream pipe is open: move packet forward 1 step & record movement vector
                 next_mana_states[downstream_idx] = current.mana_state;
                 next_powered[downstream_idx] = true;
                 next_mana_ttl[downstream_idx] = (current.mana_state == ManaState::Light) ? (current.mana_ttl - 1) : current.mana_ttl;
+                next_move_dx[downstream_idx] = static_cast<int8_t>(downstream_x - x);
+                next_move_dy[downstream_idx] = static_cast<int8_t>(downstream_y - y);
 
                 // Vacate current pipe tile
                 next_mana_states[idx] = ManaState::None;
                 next_powered[idx] = false;
+                next_move_dx[idx] = 0;
+                next_move_dy[idx] = 0;
             } else {
-                // Downstream pipe is full or busy: PACKET WAITS IN PLACE (Back-pressure) & decrements TTL if Light Mana
+                // Downstream pipe is full or busy: PACKET WAITS IN PLACE (Back-pressure) & resets movement vector
                 next_mana_states[idx] = current.mana_state;
                 next_powered[idx] = true;
                 next_mana_ttl[idx] = (current.mana_state == ManaState::Light) ? (current.mana_ttl - 1) : current.mana_ttl;
+                next_move_dx[idx] = 0;
+                next_move_dy[idx] = 0;
 
                 // Check Dark Mana Overflow on dead-ends
                 if (current.mana_state == ManaState::Dark) {
@@ -253,9 +270,14 @@ public:
                     int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_mana_states);
 
                     if (open_pipe_idx != -1) {
-                        // Drain Dark Mana packet into open pipe
+                        int open_x = open_pipe_idx % m_width;
+                        int open_y = open_pipe_idx / m_width;
+
+                        // Drain Dark Mana packet into open pipe & set movement vector from Seep
                         next_mana_states[open_pipe_idx] = ManaState::Dark;
                         next_powered[open_pipe_idx] = true;
+                        next_move_dx[open_pipe_idx] = static_cast<int8_t>(open_x - x);
+                        next_move_dy[open_pipe_idx] = static_cast<int8_t>(open_y - y);
                         next_overpressure_timers[idx] = 0;
                     } else {
                         // Line backed up or no open pipe: accumulate overpressure
@@ -279,9 +301,14 @@ public:
                             // On tick 3: try to output 1 Light Mana packet
                             int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_mana_states);
                             if (out_pipe_idx != -1) {
+                                int out_x = out_pipe_idx % m_width;
+                                int out_y = out_pipe_idx / m_width;
+
                                 next_mana_states[out_pipe_idx] = ManaState::Light;
                                 next_powered[out_pipe_idx] = true;
                                 next_mana_ttl[out_pipe_idx] = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
+                                next_move_dx[out_pipe_idx] = static_cast<int8_t>(out_x - x);
+                                next_move_dy[out_pipe_idx] = static_cast<int8_t>(out_y - y);
                                 progress = 0; // Completed cycle!
                             } else {
                                 // Output blocked: stall on completion until output clears
@@ -296,6 +323,8 @@ public:
                             // Absorb Dark Mana packet from input pipe into Refiner
                             next_mana_states[in_pipe_idx] = ManaState::None;
                             next_powered[in_pipe_idx] = false;
+                            next_move_dx[in_pipe_idx] = 0;
+                            next_move_dy[in_pipe_idx] = 0;
 
                             next_powered[idx] = true;
                             next_mana_states[idx] = ManaState::Dark;
@@ -329,6 +358,8 @@ public:
                             next_mana_states[in_pipe_idx] = ManaState::None;
                             next_powered[in_pipe_idx] = false;
                             next_mana_ttl[in_pipe_idx] = 0;
+                            next_move_dx[in_pipe_idx] = 0;
+                            next_move_dy[in_pipe_idx] = 0;
 
                             next_powered[idx] = true;
                             next_mana_states[idx] = ManaState::Light;
@@ -351,6 +382,8 @@ public:
             m_tiles[i].mana_ttl = next_mana_ttl[i];
             m_tiles[i].overpressure_timer = next_overpressure_timers[i];
             m_tiles[i].reserve_count = next_reserve_counts[i];
+            m_tiles[i].move_dx = next_move_dx[i];
+            m_tiles[i].move_dy = next_move_dy[i];
         }
     }
 

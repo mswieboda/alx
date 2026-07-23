@@ -108,7 +108,8 @@ public:
 
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha) override {
-        draw_tiles(screen_buffer);
+        float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
+        draw_tiles(screen_buffer, sub_tick_progress);
         m_player.draw(screen_buffer, alpha, camera);
         draw_hud();
     }
@@ -163,7 +164,7 @@ public:
         return (t.type == TileType::Seep) || (t.type == TileType::Refiner) || (t.type == TileType::Pipe && t.mana_state == ManaState::Dark);
     }
 
-    void draw_tiles(std::vector<uint32_t>& screen_buffer) {
+    void draw_tiles(std::vector<uint32_t>& screen_buffer, float progress) {
         int tile_size = m_grid.get_tile_size();
 
         int min_tx = std::max(0, static_cast<int>(camera.get_x()) / tile_size);
@@ -178,7 +179,7 @@ public:
                 int screen_y = camera.to_screen_y(y * tile_size);
 
                 draw_tile_bg(tile, x, y, screen_x, screen_y, tile_size);
-                draw_tile_mana(tile, x, y, screen_x, screen_y, tile_size);
+                draw_tile_mana(tile, x, y, screen_x, screen_y, tile_size, progress);
                 draw_tile_powered(tile, screen_x, screen_y, tile_size);
             }
         }
@@ -242,33 +243,72 @@ public:
         );
     }
 
-    void draw_tile_mana(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size) {
+    bool is_node_tile(int gx, int gy) const {
+        if (!m_grid.is_in_bounds(gx, gy)) return false;
+        TileType t = m_grid.get_tile(gx, gy).type;
+        return t == TileType::Seep || t == TileType::Refiner || t == TileType::LightSpire;
+    }
+
+    void draw_tile_mana(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size, float progress) {
         if (!Grid::has_mana_glow(tile) || tile.mana_state == ManaState::None) {
             return;
         }
 
         if (tile.type == TileType::Pipe) {
+            int src_gx = gx - tile.move_dx;
+            int src_gy = gy - tile.move_dy;
+
+            int travel_dist = tile_size;
+            if (is_node_tile(src_gx, src_gy)) {
+                travel_dist = tile_size / 2;
+            }
+
+            int anim_offset_x = static_cast<int>(-tile.move_dx * (1.0f - progress) * travel_dist);
+            int anim_offset_y = static_cast<int>(-tile.move_dy * (1.0f - progress) * travel_dist);
+
+            int render_x = screen_x + anim_offset_x;
+            int render_y = screen_y + anim_offset_y;
+
             if (tile.mana_state == ManaState::Dark) {
                 uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
-                int stream_w = 4;
-                int offset = (tile_size - stream_w) / 2; // 14
-                int stub_len = offset; // 14
 
-                // Liquid core hub
-                Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                if (tile.move_dx != 0 || tile.move_dy != 0) {
+                    // Moving Dark Mana packet: render as a directional liquid slug along the movement axis
+                    if (tile.move_dy != 0) {
+                        // Vertical liquid slug (4x16px)
+                        int stream_w = 4;
+                        int stream_h = 16;
+                        int offset_x = (tile_size - stream_w) / 2; // 14
+                        int offset_y = (tile_size - stream_h) / 2; // 8
+                        Draw::rect(render_x + offset_x, render_y + offset_y, stream_w, stream_h, liquid_color, true, 1, 1);
+                    } else if (tile.move_dx != 0) {
+                        // Horizontal liquid slug (16x4px)
+                        int stream_w = 16;
+                        int stream_h = 4;
+                        int offset_x = (tile_size - stream_w) / 2; // 8
+                        int offset_y = (tile_size - stream_h) / 2; // 14
+                        Draw::rect(render_x + offset_x, render_y + offset_y, stream_w, stream_h, liquid_color, true, 1, 1);
+                    }
+                } else {
+                    // Stationary / backed-up Dark Mana pipe: fill connected pipe stubs
+                    int stream_w = 4;
+                    int offset = (tile_size - stream_w) / 2; // 14
+                    int stub_len = offset; // 14
 
-                // Liquid streams along connected pipe stubs
-                if (is_connectable_tile(gx, gy - 1)) {
-                    Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
-                }
-                if (is_connectable_tile(gx, gy + 1)) {
-                    Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
-                }
-                if (is_connectable_tile(gx - 1, gy)) {
-                    Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
-                }
-                if (is_connectable_tile(gx + 1, gy)) {
-                    Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                    Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+
+                    if (is_connectable_tile(gx, gy - 1)) {
+                        Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
+                    }
+                    if (is_connectable_tile(gx, gy + 1)) {
+                        Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
+                    }
+                    if (is_connectable_tile(gx - 1, gy)) {
+                        Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                    }
+                    if (is_connectable_tile(gx + 1, gy)) {
+                        Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                    }
                 }
             } else if (tile.mana_state == ManaState::Light) {
                 // Radiant Light Mana Orb / Diamond Pulse
@@ -281,10 +321,13 @@ public:
                 int orb_size = 10;
                 int offset = (tile_size - orb_size) / 2; // 11
 
+                int orb_x = screen_x + offset + anim_offset_x;
+                int orb_y = screen_y + offset + anim_offset_y;
+
                 // Outer cyan aura
-                Draw::rect(screen_x + offset, screen_y + offset, orb_size, orb_size, aura_color, true, 1, 1);
+                Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, 1);
                 // Inner white core
-                Draw::rect(screen_x + offset + 2, screen_y + offset + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
+                Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
             }
             return;
         }
