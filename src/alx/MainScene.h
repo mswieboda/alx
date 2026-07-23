@@ -15,6 +15,7 @@ private:
     alx::Player m_player;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
+    bool m_paused = false;
 
 public:
     MainScene() :
@@ -44,25 +45,48 @@ public:
             }
         }
 
-        // Drop a Twilight Seep resource node in the center
-        Tile& seep_tile = m_grid.get_tile(width / 2, height / 2);
+        // Drop a Twilight Seep resource node
+        Tile& seep_tile = m_grid.get_tile(10, 7);
         seep_tile.type = TileType::Seep;
         seep_tile.mana_state = ManaState::Dark;
 
-        // Drop a Refiner node near the center
-        Tile& refiner_tile = m_grid.get_tile(width / 2 - 5, height / 2 - 3);
+        // Drop a Refiner node
+        Tile& refiner_tile = m_grid.get_tile(5, 4);
         refiner_tile.type = TileType::Refiner;
-        // seepTile.mana_state = ManaState::Dark;
+
+        // Drop a LightSpire node
+        // Tile& spire_tile = m_grid.get_tile(1, 2);
+        // spire_tile.type = TileType::LightSpire;
+
+        // Place initial test pipes (matching debug layout)
+        std::vector<std::pair<int, int>> pipes = {
+            // Input pipeline (Seep to Refiner)
+            {1, 3}, {1, 4}, {2, 4}, {3, 4}, {4, 4},
+            // Output pipeline (Refiner to LightSpire)
+            {6, 4}, {6, 5}, {6, 6}, {6, 7}, {6, 8}, {6, 9},
+            {7, 9}, {8, 9}, {8, 8}, {8, 7}
+        };
+
+        for (auto [px, py] : pipes) {
+            m_grid.get_tile(px, py).type = TileType::Pipe;
+        }
     }
 
     void update(SceneManager& sm, float dt) override {
+        if (Input::is_key_just_pressed(MFB_KB_KEY_SPACE)) {
+            m_paused = !m_paused;
+        }
+
         update_tick_simulation(dt);
+
 
         // --- PLAYER ---
         m_player.update(dt, m_grid);
     }
 
     void update_tick_simulation(float dt) {
+        if (m_paused) return;
+
         m_sim_timer += dt;
 
         if (m_sim_timer >= SIM_TICK_RATE) {
@@ -100,8 +124,8 @@ public:
 
         if (tile.type == TileType::Wall) {
             color = 0xFF1C1C24; // Deep charcoal wall
-        } else if (tile.type == TileType::Seep) {
-            color = 0xFF00FF66; // Sickly-green mana glow for the seep!
+        } else if (tile.type == TileType::Seep || tile.type == TileType::LightSpire) {
+            color = 0xFF00FF66; // Sickly-green mana glow for seep/spire!
         } else if (tile.type == TileType::Pipe) {
             color = 0xFF00CCCC; // Pipe, cyan for now?
         } else if (tile.type == TileType::Refiner) {

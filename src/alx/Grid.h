@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <queue>
 
 namespace alx {
 
@@ -27,6 +28,7 @@ struct Tile {
     TileType type = TileType::Empty;
     ManaState mana_state = ManaState::None;
     bool is_powered = false;
+    uint8_t process_timer = 0;
 };
 
 class Grid {
@@ -88,78 +90,123 @@ public:
             tile.type = TileType::Floor;
             tile.mana_state = ManaState::None;
             tile.is_powered = false;
+            tile.process_timer = 0;
         }
     }
 
     void tick_simulation() {
         std::vector<ManaState> next_mana_states(m_tiles.size(), ManaState::None);
         std::vector<bool> next_powered(m_tiles.size(), false);
+        std::vector<uint8_t> next_process_timers(m_tiles.size(), 0);
 
-        // Preserve fixed sources
-        // Seeps produce Dark mana, Refiners process it, Spires consume Light mana)
+        std::vector<int> dark_dist = compute_distance_field(TileType::Seep);
+        std::vector<int> light_dist = compute_distance_field(TileType::Refiner);
+
+        // --- PASS 1: Evaluate fixed sources (Seeps, Refiners, and Spires) ---
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
                 const Tile& current = m_tiles[idx];
 
-                // Seeps always output Dark mana
                 if (current.type == TileType::Seep) {
                     next_mana_states[idx] = ManaState::Dark;
                     next_powered[idx] = true;
-                    continue;
-                } else if (current.type == TileType::Refiner) {
-                    // A refiner powers on and processes if it receives Dark mana from an adjacent pipe/seep
-                    // TODO: do only Pipes in future, not anything with Dark mana (like Seep)
-                    bool has_dark_input = has_active_neighbor_with_state(x, y, ManaState::Dark);
-
-                    if (has_dark_input) {
+                }
+                else if (current.type == TileType::Refiner) {
+                    if (has_active_neighbor_with_state(x, y, ManaState::Dark)) {
                         next_powered[idx] = true;
                         next_mana_states[idx] = ManaState::Dark;
 
-                        // --- REFINER OUTPUT LOGIC ---
-                        // Try to push Light mana into an adjacent empty/pipe tile
-                        push_light_mana_to_neighbor(x, y);
+                        uint8_t progress = current.process_timer + 1;
+                        if (progress >= 3) {
+                            push_light_mana_forward(x, y, next_mana_states, next_powered);
+                            progress = 0;
+                        }
+                        next_process_timers[idx] = progress;
                     } else {
                         next_powered[idx] = false;
                         next_mana_states[idx] = ManaState::None;
+                        next_process_timers[idx] = 0;
                     }
-                } else if (current.type == TileType::LightSpire) {
-                    // Spire powers on if it receives Light mana
-                    bool has_light_input = has_active_neighbor_with_state(x, y, ManaState::Light);
-                    next_powered[idx] = has_light_input;
-                    next_mana_states[idx] = has_light_input ? ManaState::Light : ManaState::None;
+                }
+                else if (current.type == TileType::LightSpire) {
+                    if (has_active_neighbor_with_state(x, y, ManaState::Light)) {
+                        next_powered[idx] = true;
+                        next_mana_states[idx] = ManaState::Light;
+                    }
                 }
             }
         }
 
-        // Second Pass: Mana Pipe Propagation (respecting fluid type separation)
+        // --- PASS 2: Sequential Pipe Propagation ---
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
                 const Tile& current = m_tiles[idx];
 
                 if (current.type == TileType::Pipe) {
-                    // Check what kind of fluid-yielding neighbor is nearby
-                    ManaState incoming_fluid = get_compatible_upstream_fluid(x, y);
-                    if (incoming_fluid != ManaState::None) {
-                        next_mana_states[idx] = incoming_fluid;
+                    ManaState flow = get_valid_flow_source(x, y, dark_dist, light_dist);
+                    if (flow != ManaState::None) {
+                        next_mana_states[idx] = flow;
                         next_powered[idx] = true;
-                    } else {
-                        next_mana_states[idx] = ManaState::None;
-                        next_powered[idx] = false;
                     }
                 }
             }
         }
 
-        // Commit changes back to grid
+        // Commit buffer states back to the grid
         for (size_t i = 0; i < m_tiles.size(); ++i) {
             m_tiles[i].mana_state = next_mana_states[i];
             m_tiles[i].is_powered = next_powered[i];
+            m_tiles[i].process_timer = next_process_timers[i];
         }
     }
 
 private:
+    std::vector<int> compute_distance_field(TileType sourceType) const {
+        std::vector<int> dist(m_tiles.size(), 9999);
+        std::queue<int> q;
+
+        for (int y = 0; y < m_height; ++y) {
+            for (int x = 0; x < m_width; ++x) {
+                int idx = y * m_width + x;
+                if (m_tiles[idx].type == sourceType) {
+                    dist[idx] = 0;
+                    q.push(idx);
+                }
+            }
+        }
+
+        int dx[] = { 0, 0, -1, 1 };
+        int dy[] = { -1, 1, 0, 0 };
+
+        while (!q.empty()) {
+            int curr = q.front();
+            q.pop();
+
+            int cx = curr % m_width;
+            int cy = curr / m_width;
+            int curr_dist = dist[curr];
+
+            for (int i = 0; i < 4; ++i) {
+                int nx = cx + dx[i];
+                int ny = cy + dy[i];
+
+                if (is_in_bounds(nx, ny)) {
+                    int n_idx = ny * m_width + nx;
+                    if (m_tiles[n_idx].type == TileType::Pipe) {
+                        if (dist[n_idx] > curr_dist + 1) {
+                            dist[n_idx] = curr_dist + 1;
+                            q.push(n_idx);
+                        }
+                    }
+                }
+            }
+        }
+
+        return dist;
+    }
+
     bool has_active_neighbor_with_state(int x, int y, ManaState target_state) const {
         int dx[] = { 0, 0, -1, 1 };
         int dy[] = { -1, 1, 0, 0 };
@@ -175,11 +222,14 @@ private:
                 }
             }
         }
-
         return false;
     }
 
-    ManaState get_compatible_upstream_fluid(int x, int y) const {
+    ManaState get_valid_flow_source(int x, int y, const std::vector<int>& dark_dist, const std::vector<int>& light_dist) const {
+        int idx = y * m_width + x;
+        int my_dark_d = dark_dist[idx];
+        int my_light_d = light_dist[idx];
+
         int dx[] = { 0, 0, -1, 1 };
         int dy[] = { -1, 1, 0, 0 };
 
@@ -189,35 +239,38 @@ private:
 
             if (is_in_bounds(nx, ny)) {
                 const Tile& neighbor = get_tile(nx, ny);
+                int n_idx = ny * m_width + nx;
+
                 if (neighbor.is_powered && neighbor.mana_state != ManaState::None) {
-                    // A pipe adopts the fluid state of its powered neighbor
-                    return neighbor.mana_state;
+                    if (neighbor.mana_state == ManaState::Dark && dark_dist[n_idx] < my_dark_d) {
+                        return ManaState::Dark;
+                    }
+                    if (neighbor.mana_state == ManaState::Light && light_dist[n_idx] < my_light_d) {
+                        return ManaState::Light;
+                    }
                 }
             }
         }
-
         return ManaState::None;
     }
 
-    void push_light_mana_to_neighbor(int refiner_x, int refiner_y) {
+    void push_light_mana_forward(int refiner_x, int refiner_y, std::vector<ManaState>& next_mana_states, std::vector<bool>& next_powered) {
         int dx[] = { 0, 0, -1, 1 };
         int dy[] = { -1, 1, 0, 0 };
 
-        // Find an adjacent pipe or empty-ish tile to inject purified Light mana into
         for (int i = 0; i < 4; ++i) {
             int nx = refiner_x + dx[i];
             int ny = refiner_y + dy[i];
 
             if (is_in_bounds(nx, ny)) {
-                Tile& neighbor = get_tile(nx, ny);
-
-                // If it's a pipe carrying nothing or already carrying light, inject light
-                if (neighbor.type == TileType::Pipe &&
-                    (neighbor.mana_state == ManaState::None || neighbor.mana_state == ManaState::Light)
-                ) {
-                    neighbor.mana_state = ManaState::Light;
-                    neighbor.is_powered = true;
-                    break; // Output to one valid adjacent pipe per tick
+                const Tile& neighbor = get_tile(nx, ny);
+                if (neighbor.type == TileType::Pipe) {
+                    int n_idx = ny * m_width + nx;
+                    if (next_mana_states[n_idx] == ManaState::None) {
+                        next_mana_states[n_idx] = ManaState::Light;
+                        next_powered[n_idx] = true;
+                        break;
+                    }
                 }
             }
         }
