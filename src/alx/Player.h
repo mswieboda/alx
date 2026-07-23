@@ -73,7 +73,13 @@ struct Player : public Entity {
         );
     }
 
+    int get_cursed_alloy() const { return m_cursed_alloy; }
+    TileType get_selected_build_type() const { return m_selected_build_type; }
+
 private:
+    int m_cursed_alloy = 5;
+    TileType m_selected_build_type = TileType::Pipe;
+
     void update_movement(float dt, const Grid& grid) {
         float dx = 0.0f;
         float dy = 0.0f;
@@ -106,21 +112,37 @@ private:
     }
 
     void update_actions(float dt, Grid& grid) {
-        // Check for interaction key (e.g., 'E')
+        // TAB cycles active build type (Pipe -> Refiner -> LightSpire -> Pipe)
+        if (Input::is_key_just_pressed(MFB_KB_KEY_TAB)) {
+            if (m_selected_build_type == TileType::Pipe) {
+                m_selected_build_type = TileType::Refiner;
+            } else if (m_selected_build_type == TileType::Refiner) {
+                m_selected_build_type = TileType::LightSpire;
+            } else {
+                m_selected_build_type = TileType::Pipe;
+            }
+        }
+
+        // Key 5: Debug cheat +10 alloy
+        if (Input::is_key_just_pressed(MFB_KB_KEY_5)) {
+            m_cursed_alloy += 10;
+        }
+
+        // Calculate target tile index in front/center of player
+        float center_x = transform.x + (transform.width / 2.0f);
+        float center_y = transform.y + (transform.height / 1.25f);
+        int tile_size = grid.get_tile_size();
+        int target_tx = static_cast<int>(center_x) / tile_size;
+        int target_ty = static_cast<int>(center_y) / tile_size;
+
+        // Key E: Build currently selected tile type or demolish idle tile of same type
         if (Input::is_key_just_pressed(MFB_KB_KEY_E)) {
-            // Calculate the center point of the player's bounding box
-            float center_x = transform.x + (transform.width / 2.0f);
-            float center_y = transform.y + (transform.height / 1.25f);
+            grid.try_place_tile(target_tx, target_ty, m_selected_build_type, m_cursed_alloy);
+        }
 
-            // Convert world space coordinates to grid tile indices
-            // TODO: maybe make this a helper in Grid.h or something
-            int tile_size = grid.get_tile_size();
-            int target_tx = static_cast<int>(center_x) / tile_size;
-            int target_ty = static_cast<int>(center_y) / tile_size;
-
-            // Tell the grid to toggle the pipe at that location
-            // TODO: check for player inventory, if they have pipes available, etc
-            grid.place_tile(target_tx, target_ty, TileType::Pipe);
+        // Key X: Drain active mana or destroy idle buildable tile with refund
+        if (Input::is_key_just_pressed(MFB_KB_KEY_X)) {
+            grid.try_drain_or_destroy_tile(target_tx, target_ty, m_cursed_alloy);
         }
     }
 

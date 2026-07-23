@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cstdio>
+#include <cstdarg>
 #include "../Game.h"
 #include "Draw.h"
 #include "Font.h"
@@ -9,6 +11,7 @@ namespace Draw {
     // NOTE: these are private, and invisible to public consumers
     namespace {
         std::vector<Command> g_queue;
+        std::vector<char> g_string_pool;
         YSortMode g_y_sort_mode = YSortMode::TopY;
         const uint32_t* g_palette = nullptr;
 
@@ -177,6 +180,29 @@ namespace Draw {
         g_palette = palette;
     }
 
+    std::string_view fmt(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+
+        va_list args_copy;
+        va_copy(args_copy, args);
+        int needed = std::vsnprintf(nullptr, 0, format, args_copy);
+        va_end(args_copy);
+
+        if (needed <= 0) {
+            va_end(args);
+            return {};
+        }
+
+        size_t start_idx = g_string_pool.size();
+        g_string_pool.resize(start_idx + needed + 1);
+
+        std::vsnprintf(g_string_pool.data() + start_idx, needed + 1, format, args);
+        va_end(args);
+
+        return std::string_view(g_string_pool.data() + start_idx, static_cast<size_t>(needed));
+    }
+
     void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font) {
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
         int sort_y = 0;
@@ -271,8 +297,9 @@ namespace Draw {
             }, cmd.data);
         }
 
-        // Reset the vector size back to zero for the next frame,
-        // but preserve the capacity so we don't trigger heap re-allocations
+        // Reset queue and string pool sizes back to zero for the next frame,
+        // but preserve capacity to avoid heap re-allocations
         g_queue.clear();
+        g_string_pool.clear();
     }
 }

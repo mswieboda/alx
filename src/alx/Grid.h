@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <queue>
+#include "core/Log.h"
 
 namespace alx {
 
@@ -79,6 +80,19 @@ public:
     int get_height() const { return m_height; }
     int get_tile_size() const { return m_tile_size; }
 
+    static int get_tile_cost(TileType type) {
+        switch (type) {
+            case TileType::Pipe: return 1;
+            case TileType::Refiner: return 5;
+            case TileType::LightSpire: return 10;
+            default: return 0;
+        }
+    }
+
+    static bool is_buildable_type(TileType type) {
+        return type == TileType::Pipe || type == TileType::Refiner || type == TileType::LightSpire;
+    }
+
     // Expanded toggle or specific placement method
     void place_tile(int tx, int ty, TileType type) {
         if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) return;
@@ -97,6 +111,65 @@ public:
             tile.process_timer = 0;
             tile.mana_ttl = 0;
         }
+    }
+
+    bool try_place_tile(int tx, int ty, TileType build_type, int& inout_alloy) {
+        if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) return false;
+        if (!is_buildable_type(build_type)) return false;
+
+        Tile& tile = get_tile(tx, ty);
+
+        if (tile.type == TileType::Floor || tile.type == TileType::Empty) {
+            int cost = get_tile_cost(build_type);
+            if (inout_alloy >= cost) {
+                inout_alloy -= cost;
+                tile.type = build_type;
+                return true;
+            } else {
+                Log::info("Not enough alloy!");
+                return false;
+            }
+        } else if (is_buildable_type(tile.type)) {
+            // Demolish target tile if it matches build_type or any buildable object without active mana
+            if (tile.mana_state != ManaState::None) {
+                return false; // Cannot demolish active mana flow with E
+            }
+            int cost = get_tile_cost(tile.type);
+            inout_alloy += cost;
+            tile.type = TileType::Floor;
+            tile.mana_state = ManaState::None;
+            tile.is_powered = false;
+            tile.process_timer = 0;
+            tile.mana_ttl = 0;
+            return true;
+        }
+        return false;
+    }
+
+    bool try_drain_or_destroy_tile(int tx, int ty, int& inout_alloy) {
+        if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) return false;
+
+        Tile& tile = get_tile(tx, ty);
+
+        if (tile.mana_state != ManaState::None) {
+            // Clear / drain active mana
+            tile.mana_state = ManaState::None;
+            tile.is_powered = false;
+            tile.process_timer = 0;
+            tile.mana_ttl = 0;
+            return true;
+        } else if (is_buildable_type(tile.type)) {
+            // Destroy tile back to floor and refund alloy cost
+            int cost = get_tile_cost(tile.type);
+            inout_alloy += cost;
+            tile.type = TileType::Floor;
+            tile.mana_state = ManaState::None;
+            tile.is_powered = false;
+            tile.process_timer = 0;
+            tile.mana_ttl = 0;
+            return true;
+        }
+        return false;
     }
 
     void tick_simulation() {

@@ -4,6 +4,7 @@
 #include "core/Draw.h"
 #include "core/Scene.h"
 #include "core/Input.h"
+#include "assets/Fonts.h"
 #include "Grid.h"
 #include "Player.h"
 
@@ -100,8 +101,36 @@ public:
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha) override {
         draw_tiles(screen_buffer);
-
         m_player.draw(screen_buffer, alpha);
+        draw_hud();
+    }
+
+    void draw_hud() {
+        // Draw top HUD background bar (height 34px for 2-line display)
+        Draw::rect(0, 0, m_grid.get_width() * m_grid.get_tile_size(), 34, 0xCC101018, true, 1, 99);
+
+        // Build status string
+        const char* selected_name = "Pipe";
+        int cost = Grid::get_tile_cost(m_player.get_selected_build_type());
+        if (m_player.get_selected_build_type() == TileType::Refiner) {
+            selected_name = "Refiner";
+        } else if (m_player.get_selected_build_type() == TileType::LightSpire) {
+            selected_name = "LightSpire";
+        }
+
+        // Line 1: ALLOY & BUILD Status
+        Draw::text(
+            6, 4,
+            Draw::fmt("ALLOY: %d  |  BUILD: %s (%d)", m_player.get_cursed_alloy(), selected_name, cost),
+            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+        );
+
+        // Line 2: Concise Controls Legend
+        Draw::text(
+            6, 18,
+            "[TAB] Cycle  [E] Build  [X] Clear/Refund  [5] +10",
+            0xFF003333, 1, 100, &Assets::Fonts::mini
+        );
     }
 
     void draw_tiles(std::vector<uint32_t>& screen_buffer) {
