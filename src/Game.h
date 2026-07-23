@@ -12,6 +12,8 @@ namespace Game {
     // NOTE: disable this in a true released game so ESC doesn't quit so easily
     inline constexpr bool QUIT_ON_ESC = true;
 
-    // You can add other game-wide constants here later
-    // e.g., constexpr float GRAVITY = 9.8f;
+    // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
+    inline constexpr uint8_t REFINER_TICKS_REQUIRED = 3;
+    inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
+    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 9;
 }

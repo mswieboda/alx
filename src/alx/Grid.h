@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <queue>
 #include "core/Log.h"
+#include "Game.h"
 
 namespace alx {
 
@@ -53,7 +54,7 @@ public:
     }
 
     static bool has_power_glow(const Tile& tile) {
-        return tile.type == TileType::Refiner;
+        return tile.type == TileType::Refiner || tile.type == TileType::LightSpire;
     }
 
     bool is_in_bounds(int x, int y) const {
@@ -174,7 +175,7 @@ public:
                         next_mana_states[idx] = ManaState::Dark;
 
                         uint8_t progress = current.process_timer + 1;
-                        if (progress >= 3) {
+                        if (progress >= Game::REFINER_TICKS_REQUIRED) {
                             push_light_mana_forward(x, y, next_mana_states, next_powered, next_mana_ttl);
                             progress = 0;
                         }
@@ -189,6 +190,17 @@ public:
                     if (has_active_neighbor_with_state(x, y, ManaState::Light)) {
                         next_powered[idx] = true;
                         next_mana_states[idx] = ManaState::Light;
+
+                        uint8_t progress = current.process_timer + 1;
+                        if (progress >= Game::LIGHT_SPIRE_TICKS_REQUIRED) {
+                            Log::info("LightSpire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
+                            progress = 0;
+                        }
+                        next_process_timers[idx] = progress;
+                    } else {
+                        next_powered[idx] = false;
+                        next_mana_states[idx] = ManaState::None;
+                        next_process_timers[idx] = current.process_timer;
                     }
                 }
             }
@@ -439,7 +451,7 @@ private:
                     if (next_mana_states[n_idx] == ManaState::None) {
                         next_mana_states[n_idx] = ManaState::Light;
                         next_powered[n_idx] = true;
-                        next_mana_ttl[n_idx] = 6;
+                        next_mana_ttl[n_idx] = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
                         break;
                     }
                 }

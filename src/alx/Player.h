@@ -119,8 +119,8 @@ private:
     }
 
     void update_actions(float dt, Grid& grid) {
-        // Cycle active build type (CycleRight or CycleLeft or Map/Tab)
-        if (Action::is_just_pressed(Action::CycleRight) || Action::is_just_pressed(Action::Map)) {
+        // Cycle active build type
+        if (Action::is_just_pressed(Action::CycleRight)) {
             if (m_selected_build_type == TileType::Pipe) {
                 m_selected_build_type = TileType::Refiner;
             } else if (m_selected_build_type == TileType::Refiner) {
