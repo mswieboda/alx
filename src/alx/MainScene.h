@@ -324,29 +324,32 @@ public:
                             }
                         }
                     } else {
-                        // --- Corner L-bend: contracting incoming + expanding outgoing ---
-                        // Incoming arm: full length at progress=0, shrinks to hub at progress=1
-                        // Outgoing arm: zero length at progress=0, grows to full at progress=1
-                        int in_len = static_cast<int>(half * (1.0f - progress));
-                        int out_len = static_cast<int>(half * progress);
+                        // --- Corner L-bend: slug head flows along L-path ---
+                        // L-path: entry edge → hub center (half) → exit edge (half) = tile_size total
+                        // Head position along L-path: 0 at progress=0, tile_size at progress=1
+                        float head_s = progress * tile_size;
+                        int in_len = static_cast<int>(std::min(static_cast<float>(half), head_s));
+                        int out_len = static_cast<int>(std::max(0.0f, head_s - half));
 
-                        // Always draw the hub center square
-                        Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
+                        // Draw hub center square once head reaches it (progress >= 0.5)
+                        if (head_s >= half) {
+                            Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
+                        }
 
-                        // Incoming arm (from tile edge toward hub center, contracting)
+                        // Incoming arm (grows from entry edge toward hub center)
                         if (in_len > 0) {
                             if (in_dy != 0) {
-                                // Vertical incoming
-                                int y0 = (in_dy == 1) ? (hub_y - in_len) : hub_y;
+                                // Vertical incoming: anchor at entry edge
+                                int y0 = (in_dy == 1) ? (hub_y - half) : (hub_y + half - in_len);
                                 Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, 1);
                             } else {
-                                // Horizontal incoming
-                                int x0 = (in_dx == 1) ? (hub_x - in_len) : hub_x;
+                                // Horizontal incoming: anchor at entry edge
+                                int x0 = (in_dx == 1) ? (hub_x - half) : (hub_x + half - in_len);
                                 Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, 1);
                             }
                         }
 
-                        // Outgoing arm (from hub center toward tile edge, expanding)
+                        // Outgoing arm (from hub center toward exit edge, expanding)
                         if (out_len > 0) {
                             if (out_dy != 0) {
                                 // Vertical outgoing
