@@ -1,7 +1,5 @@
 #pragma once
-#include <MiniFB.h>
-#include "core/Entity.h"
-#include "Grid.h"
+#include "alx/Action.h"
 
 namespace alx {
 
@@ -84,10 +82,10 @@ private:
         float dx = 0.0f;
         float dy = 0.0f;
 
-        if (Input::is_key_pressed(MFB_KB_KEY_W) || Input::is_key_pressed(MFB_KB_KEY_UP))    dy -= 1.0f;
-        if (Input::is_key_pressed(MFB_KB_KEY_S) || Input::is_key_pressed(MFB_KB_KEY_DOWN))  dy += 1.0f;
-        if (Input::is_key_pressed(MFB_KB_KEY_A) || Input::is_key_pressed(MFB_KB_KEY_LEFT))  dx -= 1.0f;
-        if (Input::is_key_pressed(MFB_KB_KEY_D) || Input::is_key_pressed(MFB_KB_KEY_RIGHT)) dx += 1.0f;
+        if (Action::is_pressed(Action::MoveUp))    dy -= 1.0f;
+        if (Action::is_pressed(Action::MoveDown))  dy += 1.0f;
+        if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
+        if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
         // Normalize diagonal movement so player doesn't move faster diagonally
         if (dx != 0.0f && dy != 0.0f) {
@@ -112,8 +110,8 @@ private:
     }
 
     void update_actions(float dt, Grid& grid) {
-        // TAB cycles active build type (Pipe -> Refiner -> LightSpire -> Pipe)
-        if (Input::is_key_just_pressed(MFB_KB_KEY_TAB)) {
+        // Cycle active build type (CycleRight or CycleLeft or Map/Tab)
+        if (Action::is_just_pressed(Action::CycleRight) || Action::is_just_pressed(Action::Map)) {
             if (m_selected_build_type == TileType::Pipe) {
                 m_selected_build_type = TileType::Refiner;
             } else if (m_selected_build_type == TileType::Refiner) {
@@ -121,10 +119,18 @@ private:
             } else {
                 m_selected_build_type = TileType::Pipe;
             }
+        } else if (Action::is_just_pressed(Action::CycleLeft)) {
+            if (m_selected_build_type == TileType::Pipe) {
+                m_selected_build_type = TileType::LightSpire;
+            } else if (m_selected_build_type == TileType::LightSpire) {
+                m_selected_build_type = TileType::Refiner;
+            } else {
+                m_selected_build_type = TileType::Pipe;
+            }
         }
 
-        // Key 5: Debug cheat +10 alloy
-        if (Input::is_key_just_pressed(MFB_KB_KEY_5)) {
+        // Key 5 / Action DebugResource: Debug cheat +10 alloy
+        if (Action::is_just_pressed(Action::DebugResource)) {
             m_cursed_alloy += 10;
         }
 
@@ -135,13 +141,13 @@ private:
         int target_tx = static_cast<int>(center_x) / tile_size;
         int target_ty = static_cast<int>(center_y) / tile_size;
 
-        // Key E: Build currently selected tile type or demolish idle tile of same type
-        if (Input::is_key_just_pressed(MFB_KB_KEY_E)) {
+        // Button A / Action Tool: Build currently selected tile type
+        if (Action::is_just_pressed(Action::Tool)) {
             grid.try_place_tile(target_tx, target_ty, m_selected_build_type, m_cursed_alloy);
         }
 
-        // Key X: Drain active mana or destroy idle buildable tile with refund
-        if (Input::is_key_just_pressed(MFB_KB_KEY_X)) {
+        // Button B / Action Cancel: Drain active mana or destroy idle buildable tile with refund
+        if (Action::is_just_pressed(Action::Cancel)) {
             grid.try_drain_or_destroy_tile(target_tx, target_ty, m_cursed_alloy);
         }
     }

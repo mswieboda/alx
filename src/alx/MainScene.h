@@ -7,13 +7,14 @@
 #include "assets/Fonts.h"
 #include "Grid.h"
 #include "Player.h"
+#include "Action.h"
 
 namespace alx {
 
 class MainScene : public Scene {
 private:
     Grid m_grid{20, 15, 32};
-    alx::Player m_player;
+    Player m_player;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
@@ -74,7 +75,7 @@ public:
     }
 
     void update(SceneManager& sm, float dt) override {
-        if (Input::is_key_just_pressed(MFB_KB_KEY_SPACE)) {
+        if (Action::is_just_pressed(Action::Menu)) {
             m_paused = !m_paused;
         }
 
@@ -128,7 +129,7 @@ public:
         // Line 2: Concise Controls Legend
         Draw::text(
             6, 18,
-            "[TAB] Cycle  [E] Build  [X] Clear/Refund  [5] +10",
+            "[J] Build  [K] Clear  [Q/E] Cycle  [Enter] Menu",
             0xFF003333, 1, 100, &Assets::Fonts::mini
         );
     }
