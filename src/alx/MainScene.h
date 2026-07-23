@@ -273,75 +273,102 @@ public:
                 uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
                 int hub_x = screen_x + tile_size / 2;
                 int hub_y = screen_y + tile_size / 2;
+                int half = tile_size / 2; // 16 — distance from hub center to tile edge
+                int stream_w = 4;
+                int offset = (tile_size - stream_w) / 2; // 14
 
+                // Use tile's stored movement vectors (zeroed by simulation on backpressure)
                 int in_dx = tile.move_dx;
                 int in_dy = tile.move_dy;
+                int out_dx = tile.out_dx;
+                int out_dy = tile.out_dy;
 
-                int out_dx = 0, out_dy = 0;
-                m_grid.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
-                if (out_dx == 0 && out_dy == 0) {
-                    out_dx = in_dx;
-                    out_dy = in_dy;
-                }
-
-                if (in_dx != 0 || in_dy != 0 || out_dx != 0 || out_dy != 0) {
-                    float slug_len = 24.0f;
-                    float s_head = (progress - 0.5f) * tile_size;
-                    float s_tail = s_head - slug_len;
-
-                    // Incoming segment (s <= 0, clamped to corner hub)
-                    float in_start = std::min(0.0f, s_tail);
-                    float in_end   = std::min(0.0f, s_head);
-                    float in_len   = in_end - in_start;
-
-                    if (in_len > 0.0f) {
-                        int len = static_cast<int>(in_len);
-                        if (in_dy == -1) { // Coming from South (moving Up)
-                            Draw::rect(hub_x - 2, static_cast<int>(hub_y - in_end), 4, len, liquid_color, true, 1, 1);
-                        } else if (in_dy == 1) { // Coming from North (moving Down)
-                            Draw::rect(hub_x - 2, static_cast<int>(hub_y + in_start), 4, len, liquid_color, true, 1, 1);
-                        } else if (in_dx == 1) { // Coming from West (moving Right)
-                            Draw::rect(static_cast<int>(hub_x + in_start), hub_y - 2, len, 4, liquid_color, true, 1, 1);
-                        } else if (in_dx == -1) { // Coming from East (moving Left)
-                            Draw::rect(static_cast<int>(hub_x - in_end), hub_y - 2, len, 4, liquid_color, true, 1, 1);
-                        }
+                // Only animate if the packet actually moved this tick
+                if (in_dx != 0 || in_dy != 0) {
+                    // Determine if out direction is known; fall back to entry direction (straight)
+                    if (out_dx == 0 && out_dy == 0) {
+                        out_dx = in_dx;
+                        out_dy = in_dy;
                     }
 
-                    // Outgoing segment (s >= 0, clamped from corner hub)
-                    float out_start = std::max(0.0f, s_tail);
-                    float out_end   = std::max(0.0f, s_head);
-                    float out_len   = out_end - out_start;
+                    bool is_corner = (in_dx != out_dx || in_dy != out_dy);
 
-                    if (out_len > 0.0f) {
-                        int len = static_cast<int>(out_len);
-                        if (out_dy == -1) { // Heading North / Up
-                            Draw::rect(hub_x - 2, static_cast<int>(hub_y - out_end), 4, len, liquid_color, true, 1, 1);
-                        } else if (out_dy == 1) { // Heading South / Down
-                            Draw::rect(hub_x - 2, static_cast<int>(hub_y + out_start), 4, len, liquid_color, true, 1, 1);
-                        } else if (out_dx == 1) { // Heading East / Right
-                            Draw::rect(static_cast<int>(hub_x + out_start), hub_y - 2, len, 4, liquid_color, true, 1, 1);
-                        } else if (out_dx == -1) { // Heading West / Left
-                            Draw::rect(static_cast<int>(hub_x - out_end), hub_y - 2, len, 4, liquid_color, true, 1, 1);
+                    if (!is_corner) {
+                        // --- Straight pipe: full tile-length slug sliding along entry direction ---
+                        // The slug spans the full tile width and glides from previous position.
+                        // anim_offset already computed above handles the slide.
+                        if (in_dx != 0) {
+                            // Horizontal movement
+                            Draw::rect(render_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                            // Fill full horizontal extent of pipe within this tile
+                            if (is_connectable_tile(gx - 1, gy) || in_dx == 1) {
+                                Draw::rect(render_x, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                            }
+                            if (is_connectable_tile(gx + 1, gy) || in_dx == -1) {
+                                Draw::rect(render_x + offset + stream_w, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                            }
+                        } else {
+                            // Vertical movement
+                            Draw::rect(screen_x + offset, render_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                            if (is_connectable_tile(gx, gy - 1) || in_dy == 1) {
+                                Draw::rect(screen_x + offset, render_y, stream_w, offset, liquid_color, true, 1, 1);
+                            }
+                            if (is_connectable_tile(gx, gy + 1) || in_dy == -1) {
+                                Draw::rect(screen_x + offset, render_y + offset + stream_w, stream_w, offset, liquid_color, true, 1, 1);
+                            }
+                        }
+                    } else {
+                        // --- Corner L-bend: contracting incoming + expanding outgoing ---
+                        // Incoming arm: full length at progress=0, shrinks to hub at progress=1
+                        // Outgoing arm: zero length at progress=0, grows to full at progress=1
+                        int in_len = static_cast<int>(half * (1.0f - progress));
+                        int out_len = static_cast<int>(half * progress);
+
+                        // Always draw the hub center square
+                        Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
+
+                        // Incoming arm (from tile edge toward hub center, contracting)
+                        if (in_len > 0) {
+                            if (in_dy != 0) {
+                                // Vertical incoming
+                                int y0 = (in_dy == 1) ? (hub_y - in_len) : hub_y;
+                                Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, 1);
+                            } else {
+                                // Horizontal incoming
+                                int x0 = (in_dx == 1) ? (hub_x - in_len) : hub_x;
+                                Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, 1);
+                            }
+                        }
+
+                        // Outgoing arm (from hub center toward tile edge, expanding)
+                        if (out_len > 0) {
+                            if (out_dy != 0) {
+                                // Vertical outgoing
+                                int y0 = (out_dy == 1) ? hub_y : (hub_y - out_len);
+                                Draw::rect(hub_x - stream_w / 2, y0, stream_w, out_len, liquid_color, true, 1, 1);
+                            } else {
+                                // Horizontal outgoing
+                                int x0 = (out_dx == 1) ? hub_x : (hub_x - out_len);
+                                Draw::rect(x0, hub_y - stream_w / 2, out_len, stream_w, liquid_color, true, 1, 1);
+                            }
                         }
                     }
                 } else {
                     // Stationary / backed-up Dark Mana pipe: fill connected pipe stubs
-                    int stream_w = 4;
-                    int offset = (tile_size - stream_w) / 2; // 14
                     int stub_len = offset; // 14
 
                     Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
 
-                    if (is_connectable_tile(gx, gy - 1)) {
+                    if (connects_dark_mana(gx, gy - 1)) {
                         Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
                     }
-                    if (is_connectable_tile(gx, gy + 1)) {
+                    if (connects_dark_mana(gx, gy + 1)) {
                         Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
                     }
-                    if (is_connectable_tile(gx - 1, gy)) {
+                    if (connects_dark_mana(gx - 1, gy)) {
                         Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
                     }
-                    if (is_connectable_tile(gx + 1, gy)) {
+                    if (connects_dark_mana(gx + 1, gy)) {
                         Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
                     }
                 }
