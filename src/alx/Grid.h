@@ -200,22 +200,32 @@ public:
             int y = pipe_node.y;
             const Tile& current = m_tiles[idx];
 
+            if (current.mana_state == ManaState::Light) {
+                if (current.mana_ttl <= 1) {
+                    // Light Mana TTL expired: dissipate packet completely
+                    next_mana_states[idx] = ManaState::None;
+                    next_powered[idx] = false;
+                    next_mana_ttl[idx] = 0;
+                    continue;
+                }
+            }
+
             int downstream_idx = find_downstream_pipe_neighbor(x, y, current.mana_state, dark_dist, light_dist, next_mana_states);
 
             if (downstream_idx != -1) {
-                // Downstream pipe is open: move packet forward 1 step
+                // Downstream pipe is open: move packet forward 1 step & decrement TTL
                 next_mana_states[downstream_idx] = current.mana_state;
                 next_powered[downstream_idx] = true;
-                next_mana_ttl[downstream_idx] = (current.mana_state == ManaState::Light && current.mana_ttl > 1) ? (current.mana_ttl - 1) : current.mana_ttl;
+                next_mana_ttl[downstream_idx] = (current.mana_state == ManaState::Light) ? (current.mana_ttl - 1) : current.mana_ttl;
 
                 // Vacate current pipe tile
                 next_mana_states[idx] = ManaState::None;
                 next_powered[idx] = false;
             } else {
-                // Downstream pipe is full or busy: PACKET WAITS IN PLACE (Back-pressure)
+                // Downstream pipe is full or busy: PACKET WAITS IN PLACE (Back-pressure) & decrements TTL if Light Mana
                 next_mana_states[idx] = current.mana_state;
                 next_powered[idx] = true;
-                next_mana_ttl[idx] = current.mana_ttl;
+                next_mana_ttl[idx] = (current.mana_state == ManaState::Light) ? (current.mana_ttl - 1) : current.mana_ttl;
 
                 // Check Dark Mana Overflow on dead-ends
                 if (current.mana_state == ManaState::Dark) {

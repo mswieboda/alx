@@ -151,6 +151,18 @@ public:
         );
     }
 
+    bool is_connectable_tile(int gx, int gy) const {
+        if (!m_grid.is_in_bounds(gx, gy)) return false;
+        TileType t = m_grid.get_tile(gx, gy).type;
+        return t == TileType::Pipe || t == TileType::Seep || t == TileType::Refiner || t == TileType::LightSpire;
+    }
+
+    bool connects_dark_mana(int gx, int gy) const {
+        if (!m_grid.is_in_bounds(gx, gy)) return false;
+        Tile t = m_grid.get_tile(gx, gy);
+        return (t.type == TileType::Seep) || (t.type == TileType::Refiner) || (t.type == TileType::Pipe && t.mana_state == ManaState::Dark);
+    }
+
     void draw_tiles(std::vector<uint32_t>& screen_buffer) {
         int tile_size = m_grid.get_tile_size();
 
@@ -165,14 +177,43 @@ public:
                 int screen_x = camera.to_screen_x(x * tile_size);
                 int screen_y = camera.to_screen_y(y * tile_size);
 
-                draw_tile_bg(tile, screen_x, screen_y, tile_size);
-                draw_tile_mana(tile, screen_x, screen_y, tile_size);
+                draw_tile_bg(tile, x, y, screen_x, screen_y, tile_size);
+                draw_tile_mana(tile, x, y, screen_x, screen_y, tile_size);
                 draw_tile_powered(tile, screen_x, screen_y, tile_size);
             }
         }
     }
 
-    void draw_tile_bg(const Tile& tile, int screen_x, int screen_y, int tile_size) {
+    void draw_tile_bg(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size) {
+        if (tile.type == TileType::Pipe) {
+            uint32_t pipe_color = 0xFF4A4A60; // Cool metallic conduit pipe casing
+
+            // Render procedural skinny pipe (6px width centered in 32px tile)
+            int hub_size = 8;
+            int offset = (tile_size - hub_size) / 2; // 12
+            int stub_len = offset; // 12
+
+            Draw::rect(screen_x + offset, screen_y + offset, hub_size, hub_size, pipe_color, true, 1, 0);
+
+            // North stub
+            if (is_connectable_tile(gx, gy - 1)) {
+                Draw::rect(screen_x + offset, screen_y, hub_size, stub_len, pipe_color, true, 1, 0);
+            }
+            // South stub
+            if (is_connectable_tile(gx, gy + 1)) {
+                Draw::rect(screen_x + offset, screen_y + offset + hub_size, hub_size, stub_len, pipe_color, true, 1, 0);
+            }
+            // West stub
+            if (is_connectable_tile(gx - 1, gy)) {
+                Draw::rect(screen_x, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, 0);
+            }
+            // East stub
+            if (is_connectable_tile(gx + 1, gy)) {
+                Draw::rect(screen_x + offset + hub_size, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, 0);
+            }
+            return;
+        }
+
         // Choose color based on TileType
         uint32_t color = 0xFF2A2A38; // Default Floor (desaturated dark purple-grey)
         bool fill = true;
@@ -181,16 +222,12 @@ public:
             color = 0xFF1C1C24; // Deep charcoal wall
         } else if (tile.type == TileType::Seep || tile.type == TileType::LightSpire) {
             color = 0xFF00FF66; // Sickly-green mana glow for seep/spire!
-        } else if (tile.type == TileType::Pipe) {
-            color = 0xFF00CCCC; // Pipe, cyan for now?
         } else if (tile.type == TileType::Refiner) {
             color = 0xFF301C66; // Refiner, purplish for now?
         } else if (tile.type == TileType::Floor) {
-            // Floor is a lined grid for now
-            fill = false;
+            fill = false; // Lined grid
         } else {
-            // Empty
-            color = 0x00FF00FF; // transparent, whatever the scene background is
+            color = 0x00FF00FF; // transparent
         }
 
         Draw::rect(
@@ -199,39 +236,75 @@ public:
             tile_size,
             tile_size,
             color,
-            fill, // filled
-            1, // thickness (unused if filled)
-            0 // z-index
+            fill,
+            1,
+            0
         );
     }
 
-    void draw_tile_mana(const Tile& tile, int screen_x, int screen_y, int tile_size) {
+    void draw_tile_mana(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size) {
         if (!Grid::has_mana_glow(tile) || tile.mana_state == ManaState::None) {
             return;
         }
 
-        uint32_t color = 0xFF6600FF; // Dark mana glow
+        if (tile.type == TileType::Pipe) {
+            if (tile.mana_state == ManaState::Dark) {
+                uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
+                int stream_w = 4;
+                int offset = (tile_size - stream_w) / 2; // 14
+                int stub_len = offset; // 14
 
-        if (tile.mana_state == ManaState::Light) {
-            uint32_t alpha = 0xFF;
-            if (tile.mana_ttl > 0 && tile.mana_ttl <= 6) {
-                alpha = (tile.mana_ttl * 255) / 6;
+                // Liquid core hub
+                Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+
+                // Liquid streams along connected pipe stubs
+                if (is_connectable_tile(gx, gy - 1)) {
+                    Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
+                }
+                if (is_connectable_tile(gx, gy + 1)) {
+                    Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
+                }
+                if (is_connectable_tile(gx - 1, gy)) {
+                    Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                }
+                if (is_connectable_tile(gx + 1, gy)) {
+                    Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                }
+            } else if (tile.mana_state == ManaState::Light) {
+                // Radiant Light Mana Orb / Diamond Pulse
+                uint32_t alpha = (tile.mana_ttl * 255) / Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
+                if (alpha > 255) alpha = 255;
+
+                uint32_t aura_color = (alpha << 24) | 0x0000FFFF;  // Cyan aura
+                uint32_t core_color = (alpha << 24) | 0x00FFFFFF;  // Radiant white core
+
+                int orb_size = 10;
+                int offset = (tile_size - orb_size) / 2; // 11
+
+                // Outer cyan aura
+                Draw::rect(screen_x + offset, screen_y + offset, orb_size, orb_size, aura_color, true, 1, 1);
+                // Inner white core
+                Draw::rect(screen_x + offset + 2, screen_y + offset + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
             }
-            color = (alpha << 24) | 0x00FFFFFF; // Fading white light glow
+            return;
+        }
+
+        // Generic mana glow for Seep / Refiner / Spire centers
+        uint32_t color = 0xFF6600FF;
+        if (tile.mana_state == ManaState::Light) {
+            color = 0xFF00FFFF;
         }
 
         int size = tile_size / 2;
-        bool fill = true;
-
         Draw::rect(
             screen_x + size / 2,
             screen_y + size / 2,
             size,
             size,
             color,
-            fill, // filled
-            1, // thickness (unused if filled)
-            0 // z-index
+            true,
+            1,
+            1
         );
     }
 
