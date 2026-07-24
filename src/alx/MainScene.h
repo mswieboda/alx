@@ -255,151 +255,7 @@ public:
         }
 
         if (tile.type == TileType::Pipe) {
-            int src_gx = gx - tile.move_dx;
-            int src_gy = gy - tile.move_dy;
-
-            int travel_dist = tile_size;
-            if (is_node_tile(src_gx, src_gy)) {
-                travel_dist = tile_size / 2;
-            }
-
-            int anim_offset_x = static_cast<int>(-tile.move_dx * (1.0f - progress) * travel_dist);
-            int anim_offset_y = static_cast<int>(-tile.move_dy * (1.0f - progress) * travel_dist);
-
-            int render_x = screen_x + anim_offset_x;
-            int render_y = screen_y + anim_offset_y;
-
-            if (tile.mana_state == ManaState::Dark) {
-                uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
-                int hub_x = screen_x + tile_size / 2;
-                int hub_y = screen_y + tile_size / 2;
-                int half = tile_size / 2; // 16 — distance from hub center to tile edge
-                int stream_w = 4;
-                int offset = (tile_size - stream_w) / 2; // 14
-
-                // Use tile's stored movement vectors (zeroed by simulation on backpressure)
-                int in_dx = tile.move_dx;
-                int in_dy = tile.move_dy;
-                int out_dx = tile.out_dx;
-                int out_dy = tile.out_dy;
-
-                // Only animate if the packet actually moved this tick
-                if (in_dx != 0 || in_dy != 0) {
-                    // Determine exit direction for rendering:
-                    // On first arrival at a corner, out_dx/out_dy may still be 0
-                    // because simulation sets them on the source tile, not destination.
-                    // Query the distance field as a rendering-only fallback.
-                    if (out_dx == 0 && out_dy == 0) {
-                        m_grid.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
-                    }
-                    if (out_dx == 0 && out_dy == 0) {
-                        out_dx = in_dx;
-                        out_dy = in_dy;
-                    }
-
-                    bool is_corner = (in_dx != out_dx || in_dy != out_dy);
-
-                    if (!is_corner) {
-                        // --- Straight pipe: full tile-length slug sliding along entry direction ---
-                        // The slug spans the full tile width and glides from previous position.
-                        // anim_offset already computed above handles the slide.
-                        if (in_dx != 0) {
-                            // Horizontal movement
-                            Draw::rect(render_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
-                            // Fill full horizontal extent of pipe within this tile
-                            if (is_connectable_tile(gx - 1, gy) || in_dx == 1) {
-                                Draw::rect(render_x, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
-                            }
-                            if (is_connectable_tile(gx + 1, gy) || in_dx == -1) {
-                                Draw::rect(render_x + offset + stream_w, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
-                            }
-                        } else {
-                            // Vertical movement
-                            Draw::rect(screen_x + offset, render_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
-                            if (is_connectable_tile(gx, gy - 1) || in_dy == 1) {
-                                Draw::rect(screen_x + offset, render_y, stream_w, offset, liquid_color, true, 1, 1);
-                            }
-                            if (is_connectable_tile(gx, gy + 1) || in_dy == -1) {
-                                Draw::rect(screen_x + offset, render_y + offset + stream_w, stream_w, offset, liquid_color, true, 1, 1);
-                            }
-                        }
-                    } else {
-                        // --- Corner L-bend: slug head flows along L-path ---
-                        // L-path: entry edge → hub center (half) → exit edge (half) = tile_size total
-                        // Head position along L-path: 0 at progress=0, tile_size at progress=1
-                        float head_s = progress * tile_size;
-                        int in_len = static_cast<int>(std::min(static_cast<float>(half), head_s));
-                        int out_len = static_cast<int>(std::max(0.0f, head_s - half));
-
-                        // Draw hub center square once head reaches it (progress >= 0.5)
-                        if (head_s >= half) {
-                            Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
-                        }
-
-                        // Incoming arm (grows from entry edge toward hub center)
-                        if (in_len > 0) {
-                            if (in_dy != 0) {
-                                // Vertical incoming: anchor at entry edge
-                                int y0 = (in_dy == 1) ? (hub_y - half) : (hub_y + half - in_len);
-                                Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, 1);
-                            } else {
-                                // Horizontal incoming: anchor at entry edge
-                                int x0 = (in_dx == 1) ? (hub_x - half) : (hub_x + half - in_len);
-                                Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, 1);
-                            }
-                        }
-
-                        // Outgoing arm (from hub center toward exit edge, expanding)
-                        if (out_len > 0) {
-                            if (out_dy != 0) {
-                                // Vertical outgoing
-                                int y0 = (out_dy == 1) ? hub_y : (hub_y - out_len);
-                                Draw::rect(hub_x - stream_w / 2, y0, stream_w, out_len, liquid_color, true, 1, 1);
-                            } else {
-                                // Horizontal outgoing
-                                int x0 = (out_dx == 1) ? hub_x : (hub_x - out_len);
-                                Draw::rect(x0, hub_y - stream_w / 2, out_len, stream_w, liquid_color, true, 1, 1);
-                            }
-                        }
-                    }
-                } else {
-                    // Stationary / backed-up Dark Mana pipe: fill connected pipe stubs
-                    int stub_len = offset; // 14
-
-                    Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
-
-                    if (connects_dark_mana(gx, gy - 1)) {
-                        Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
-                    }
-                    if (connects_dark_mana(gx, gy + 1)) {
-                        Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
-                    }
-                    if (connects_dark_mana(gx - 1, gy)) {
-                        Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
-                    }
-                    if (connects_dark_mana(gx + 1, gy)) {
-                        Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
-                    }
-                }
-            } else if (tile.mana_state == ManaState::Light) {
-                // Radiant Light Mana Orb / Diamond Pulse
-                uint32_t alpha = (tile.mana_ttl * 255) / Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
-                if (alpha > 255) alpha = 255;
-
-                uint32_t aura_color = (alpha << 24) | 0x0000FFFF;  // Cyan aura
-                uint32_t core_color = (alpha << 24) | 0x00FFFFFF;  // Radiant white core
-
-                int orb_size = 10;
-                int offset = (tile_size - orb_size) / 2; // 11
-
-                int orb_x = screen_x + offset + anim_offset_x;
-                int orb_y = screen_y + offset + anim_offset_y;
-
-                // Outer cyan aura
-                Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, 1);
-                // Inner white core
-                Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
-            }
+            draw_tile_pipe_mana(tile, gx, gy, screen_x, screen_y, tile_size, progress);
             return;
         }
 
@@ -420,6 +276,162 @@ public:
             1,
             1
         );
+    }
+
+    void draw_tile_pipe_mana(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size, float progress) {
+        int src_gx = gx - tile.move_dx;
+        int src_gy = gy - tile.move_dy;
+
+        int travel_dist = tile_size;
+        if (is_node_tile(src_gx, src_gy)) {
+            travel_dist = tile_size / 2;
+        }
+
+        int anim_offset_x = static_cast<int>(-tile.move_dx * (1.0f - progress) * travel_dist);
+        int anim_offset_y = static_cast<int>(-tile.move_dy * (1.0f - progress) * travel_dist);
+
+        int render_x = screen_x + anim_offset_x;
+        int render_y = screen_y + anim_offset_y;
+
+        if (tile.mana_state == ManaState::Dark) {
+            draw_tile_pipe_dark_mana(tile, gx, gy, render_x, render_y, screen_x, screen_y, tile_size, progress);
+        } else if (tile.mana_state == ManaState::Light) {
+            draw_tile_pipe_light_mana(tile, anim_offset_x, anim_offset_y, screen_x, screen_y, tile_size);
+        }
+    }
+
+    void draw_tile_pipe_dark_mana(const Tile& tile, int gx, int gy, int render_x, int render_y, int screen_x, int screen_y, int tile_size, float progress) {
+        uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
+        int hub_x = screen_x + tile_size / 2;
+        int hub_y = screen_y + tile_size / 2;
+        int half = tile_size / 2; // 16 — distance from hub center to tile edge
+        int stream_w = 4;
+        int offset = (tile_size - stream_w) / 2; // 14
+
+        // Use tile's stored movement vectors (zeroed by simulation on backpressure)
+        int in_dx = tile.move_dx;
+        int in_dy = tile.move_dy;
+        int out_dx = tile.out_dx;
+        int out_dy = tile.out_dy;
+
+        // Only animate if the packet actually moved this tick
+        if (in_dx != 0 || in_dy != 0) {
+            // Determine exit direction for rendering:
+            // On first arrival at a corner, out_dx/out_dy may still be 0
+            // because simulation sets them on the source tile, not destination.
+            // Query the distance field as a rendering-only fallback.
+            if (out_dx == 0 && out_dy == 0) {
+                m_grid.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
+            }
+            if (out_dx == 0 && out_dy == 0) {
+                out_dx = in_dx;
+                out_dy = in_dy;
+            }
+
+            bool is_corner = (in_dx != out_dx || in_dy != out_dy);
+
+            if (!is_corner) {
+                // --- Straight pipe: full tile-length slug sliding along entry direction ---
+                // The slug spans the full tile width and glides from previous position.
+                // anim_offset already computed above handles the slide.
+                if (in_dx != 0) {
+                    // Horizontal movement
+                    Draw::rect(render_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                    // Fill full horizontal extent of pipe within this tile
+                    if (is_connectable_tile(gx - 1, gy) || in_dx == 1) {
+                        Draw::rect(render_x, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                    }
+                    if (is_connectable_tile(gx + 1, gy) || in_dx == -1) {
+                        Draw::rect(render_x + offset + stream_w, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                    }
+                } else {
+                    // Vertical movement
+                    Draw::rect(screen_x + offset, render_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                    if (is_connectable_tile(gx, gy - 1) || in_dy == 1) {
+                        Draw::rect(screen_x + offset, render_y, stream_w, offset, liquid_color, true, 1, 1);
+                    }
+                    if (is_connectable_tile(gx, gy + 1) || in_dy == -1) {
+                        Draw::rect(screen_x + offset, render_y + offset + stream_w, stream_w, offset, liquid_color, true, 1, 1);
+                    }
+                }
+            } else {
+                // --- Corner L-bend: slug head flows along L-path ---
+                // L-path: entry edge → hub center (half) → exit edge (half) = tile_size total
+                // Head position along L-path: 0 at progress=0, tile_size at progress=1
+                float head_s = progress * tile_size;
+                int in_len = static_cast<int>(std::min(static_cast<float>(half), head_s));
+                int out_len = static_cast<int>(std::max(0.0f, head_s - half));
+
+                // Draw hub center square once head reaches it (progress >= 0.5)
+                if (head_s >= half) {
+                    Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
+                }
+
+                // Incoming arm (grows from entry edge toward hub center)
+                if (in_len > 0) {
+                    if (in_dy != 0) {
+                        // Vertical incoming: anchor at entry edge
+                        int y0 = (in_dy == 1) ? (hub_y - half) : (hub_y + half - in_len);
+                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, 1);
+                    } else {
+                        // Horizontal incoming: anchor at entry edge
+                        int x0 = (in_dx == 1) ? (hub_x - half) : (hub_x + half - in_len);
+                        Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, 1);
+                    }
+                }
+
+                // Outgoing arm (from hub center toward exit edge, expanding)
+                if (out_len > 0) {
+                    if (out_dy != 0) {
+                        // Vertical outgoing
+                        int y0 = (out_dy == 1) ? hub_y : (hub_y - out_len);
+                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, out_len, liquid_color, true, 1, 1);
+                    } else {
+                        // Horizontal outgoing
+                        int x0 = (out_dx == 1) ? hub_x : (hub_x - out_len);
+                        Draw::rect(x0, hub_y - stream_w / 2, out_len, stream_w, liquid_color, true, 1, 1);
+                    }
+                }
+            }
+        } else {
+            // Stationary / backed-up Dark Mana pipe: fill connected pipe stubs
+            int stub_len = offset; // 14
+
+            Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+
+            if (connects_dark_mana(gx, gy - 1)) {
+                Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
+            }
+            if (connects_dark_mana(gx, gy + 1)) {
+                Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
+            }
+            if (connects_dark_mana(gx - 1, gy)) {
+                Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+            }
+            if (connects_dark_mana(gx + 1, gy)) {
+                Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+            }
+        }
+    }
+
+    void draw_tile_pipe_light_mana(const Tile& tile, int anim_offset_x, int anim_offset_y, int screen_x, int screen_y, int tile_size) {
+        // Radiant Light Mana Orb / Diamond Pulse
+        uint32_t alpha = (tile.mana_ttl * 255) / Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
+        if (alpha > 255) alpha = 255;
+
+        uint32_t aura_color = (alpha << 24) | 0x0000FFFF;  // Cyan aura
+        uint32_t core_color = (alpha << 24) | 0x00FFFFFF;  // Radiant white core
+
+        int orb_size = 10;
+        int offset = (tile_size - orb_size) / 2; // 11
+
+        int orb_x = screen_x + offset + anim_offset_x;
+        int orb_y = screen_y + offset + anim_offset_y;
+
+        // Outer cyan aura
+        Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, 1);
+        // Inner white core
+        Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
     }
 
     void draw_tile_powered(const Tile& tile, int screen_x, int screen_y, int tile_size) {
