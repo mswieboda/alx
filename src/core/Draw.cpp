@@ -9,9 +9,16 @@
 namespace Draw {
     // NOTE: these are private, and invisible to public consumers
     namespace {
+        // queue of draw commands
         std::vector<Command> g_queue;
+
+        // pool of shared strings
         std::vector<char> g_string_pool;
+
+        // current Y sort mode
         YSortMode g_y_sort_mode = YSortMode::TopY;
+
+        // global reused palette between images/sprites
         const uint32_t* g_palette = nullptr;
 
         inline uint32_t blend_pixel(uint32_t dest, uint32_t src) {

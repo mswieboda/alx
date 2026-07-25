@@ -45,15 +45,16 @@ void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scen
 // --- DRAW --- where drawing happens
 void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager, std::vector<uint32_t>& pixel_buffer) {
     float alpha = frame_time.get_alpha();
+
     scene_manager.draw(pixel_buffer, alpha);
 
-    window.present(pixel_buffer);
+    window.present(pixel_buffer, Game::WIDTH, Game::HEIGHT);
 }
 
 // --- MAIN --- init window, frame timing management, pixel buffer, scene manager
 // game loop - poll events, updates, draw
 int main() {
-    GameWindow game_window(Game::TITLE.data(), Game::WIDTH, Game::HEIGHT);
+    GameWindow game_window(Game::TITLE.data(), Game::WIDTH * 2, Game::HEIGHT * 2, Game::WIDTH, Game::HEIGHT);
     FrameTime frame_time(Game::TARGET_FPS);
 
     if (!Audio::init()) {

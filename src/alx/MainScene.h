@@ -51,7 +51,7 @@ public:
 
         if (level_id == 1) {
             m_grid = Grid(40, 25);
-            m_player = Player(300, 300);
+            m_player = Player(9 * m_grid.get_tile_size(), 9 * m_grid.get_tile_size());
             m_twilight_level = 0.75f;
 
             // Populate Level 1 coordinates

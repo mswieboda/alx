@@ -4,12 +4,12 @@
 namespace alx {
 
 struct Player : public Entity {
-    float speed = 128.0f;
-    int wand_radius = 256;
+    float speed = 64.0f;
+    int wand_radius = 128;
 
     Player(float x = 128.0f, float y = 128.0f)
         : Entity(
-            Transform{ x, y, 24, 48, 10 }, // Transform (x, y, w, h, z_index)
+            Transform{ x, y, 12, 24, 10 }, // Transform (x, y, w, h, z_index)
             RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
             true,                                           // Active
             "player"                                        // Tag for easy lookups
