@@ -5,22 +5,20 @@ namespace alx {
 
 struct Player : public Entity {
     float speed = 128.0f;
-    float vx = 0.0f;
-    float vy = 0.0f;
-    float center_x = 0.0f;
-    float center_y = 0.0f;
+    int wand_radius = 256;
 
-    Player(float startX = 128.0f, float startY = 128.0f)
+    Player(float x = 128.0f, float y = 128.0f)
         : Entity(
-            Transform{ startX, startY, 24, 48, 10 }, // Transform (x, y, w, h, z_index)
+            Transform{ x, y, 24, 48, 10 }, // Transform (x, y, w, h, z_index)
             RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
             true,                                           // Active
             "player"                                        // Tag for easy lookups
-          ),
-          center_x(startX + 12.0f),
-          center_y(startY + 24.0f)
+          )
     {
     }
+
+    float center_x() const { return transform.x + (transform.width / 2.0f); }
+    float center_y() const { return transform.y + (transform.height / 2.0f); }
 
     void sync_prev_transforms() {
         transform_prev = transform;
@@ -31,9 +29,6 @@ struct Player : public Entity {
 
         update_movement(dt, grid);
         update_actions(dt, grid);
-
-        center_x = transform.x + (transform.width / 2.0f);
-        center_y = transform.y + (transform.height / 2.0f);
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Camera& camera) {

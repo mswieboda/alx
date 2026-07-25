@@ -8,8 +8,9 @@ struct Camera {
     float y = 0.0f;
 
     // Optional target tracking (pointers to world coordinates, e.g. player center_x, center_y)
-    const float* target_x = nullptr;
-    const float* target_y = nullptr;
+    float target_x = 0.0f;
+    float target_y = 0.0f;
+    bool has_target = false;
 
     // Optional boundary limits
     float limit_left   = 0.0f;
@@ -18,14 +19,14 @@ struct Camera {
     float limit_bottom = 0.0f;
     bool  has_limits   = false;
 
-    void follow(const float* tx, const float* ty) {
-        target_x = tx;
-        target_y = ty;
+    void follow(float target_center_x, float target_center_y) {
+        target_x = target_center_x;
+        target_y = target_center_y;
+        has_target = true;
     }
 
     void clear_target() {
-        target_x = nullptr;
-        target_y = nullptr;
+        has_target = false;
     }
 
     void set_limits(float left, float top, float right, float bottom) {
@@ -43,13 +44,13 @@ struct Camera {
     void update(float viewport_width = static_cast<float>(Game::WIDTH),
                 float viewport_height = static_cast<float>(Game::HEIGHT))
     {
-        // 1. If target pointers are set, center viewport on target
-        if (target_x && target_y) {
-            x = (*target_x) - (viewport_width / 2.0f);
-            y = (*target_y) - (viewport_height / 2.0f);
+        // center viewport on target
+        if (has_target) {
+            x = target_x - (viewport_width / 2.0f);
+            y = target_y - (viewport_height / 2.0f);
         }
 
-        // 2. If limits are enabled, clamp viewport position inside limits
+        // clamp viewport position inside limits
         if (has_limits) {
             float max_x = std::max(limit_left, limit_right - viewport_width);
             float max_y = std::max(limit_top, limit_bottom - viewport_height);

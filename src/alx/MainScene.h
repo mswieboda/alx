@@ -35,17 +35,13 @@ public:
             m_twilight_pixel_buffer.resize(Game::WIDTH * Game::HEIGHT);
         }
 
-        // --- CAMERA ---
-        // Target tracking
-        camera.follow(&m_player.center_x, &m_player.center_y);
-
         // --- LEVEL ---
         load_level(m_current_level_id);
     }
 
     void load_level(int level_id) {
         m_current_level_id = level_id;
-        m_twilight_level = 0.75f; // Reset darkness for new room
+        m_twilight_level = 0.9f; // Reset darkness for new room
 
         // temp data for specific initial level spawns
         std::vector<std::pair<int, int>> seeps;
@@ -56,7 +52,7 @@ public:
         if (level_id == 1) {
             m_grid = Grid(40, 25);
             m_player = Player(300, 300);
-            m_twilight_level = 0.5f;
+            m_twilight_level = 0.75f;
 
             // Populate Level 1 coordinates
             seeps.push_back({15, 12});
@@ -148,6 +144,7 @@ public:
         }
 
         // --- CAMERA ---
+        camera.follow(m_player.center_x(), m_player.center_y());
         camera.update();
     }
 
@@ -179,54 +176,62 @@ public:
     void draw_twilight(std::vector<uint32_t>& pixel_buffer) {
         if (m_twilight_level <= 0.0f) return;
 
+        int w = Game::WIDTH;
+        int h = Game::HEIGHT;
         uint32_t twilight_rgb = 0x001a0a2a; // Deep moody purple
-        uint8_t alpha_byte = static_cast<uint8_t>(m_twilight_level * 255.0f);
-        uint32_t twilight_color = (static_cast<uint32_t>(alpha_byte) << 24) | twilight_rgb;
 
+        // Base full-screen twilight tint
+        uint8_t base_alpha = static_cast<uint8_t>(m_twilight_level * 255.0f);
+        uint32_t twilight_color = (static_cast<uint32_t>(base_alpha) << 24) | twilight_rgb;
+
+        // Fast flood fill for whole screen
         std::fill(m_twilight_pixel_buffer.begin(), m_twilight_pixel_buffer.end(), twilight_color);
 
-        // Pointer & byte size to pass into your command or draw call
+        // Player screen-space coordinates
+        float player_screen_x = (m_player.center_x()) - camera.x;
+        float player_screen_y = (m_player.center_y()) - camera.y;
+        float radius = m_player.wand_radius;
+        float radius_sq = radius * radius;
+
+        // Compute tight screen-space bounding box
+        int min_x = std::clamp(static_cast<int>(player_screen_x - radius), 0, w);
+        int max_x = std::clamp(static_cast<int>(player_screen_x + radius) + 1, 0, w);
+        int min_y = std::clamp(static_cast<int>(player_screen_y - radius), 0, h);
+        int max_y = std::clamp(static_cast<int>(player_screen_y + radius) + 1, 0, h);
+
+        // Loop ONLY within the player's light radius bounding box
+        for (int y = min_y; y < max_y; ++y) {
+            float dy = static_cast<float>(y) - player_screen_y;
+            float dy_sq = dy * dy; // Compute dy^2 once per row!
+
+            for (int x = min_x; x < max_x; ++x) {
+                float dx = static_cast<float>(x) - player_screen_x;
+                float dist_sq = dx * dx + dy_sq;
+
+                // Fast squared-distance check (no sqrt needed to discard outer pixels!)
+                if (dist_sq < radius_sq) {
+                    float dist = std::sqrt(dist_sq); // Only call sqrt for pixels INSIDE the circle
+                    float factor = dist / radius; // 0.0 at center, 1.0 at edge
+
+                    float local_alpha = m_twilight_level * factor;
+                    uint8_t alpha_byte = static_cast<uint8_t>(local_alpha * 255.0f);
+                    int idx = y * w + x;
+
+                    m_twilight_pixel_buffer[idx] = (static_cast<uint32_t>(alpha_byte) << 24) | twilight_rgb;
+                }
+            }
+        }
+
+        // Submit to render command queue
         const uint32_t* pixel_data = m_twilight_pixel_buffer.data();
         uint32_t pixel_data_size = static_cast<uint32_t>(m_twilight_pixel_buffer.size() * sizeof(uint32_t));
 
         Draw::blend_pixels(
             0, 0,
             pixel_data, pixel_data_size,
-            Game::WIDTH, Game::HEIGHT,
-            100 // z-index
+            w, h,
+            100 // High Z-Index for screen overlay
         );
-
-        // Convert world position of player to screen-space coordinates using the camera
-        // TODO: what is 0.8f here???
-        // float player_screen_x = (m_player.x + 8.0f) - camera.x;
-        // float player_screen_y = (m_player.y + 8.0f) - camera.y;
-
-        // for (int y = 0; y < h; ++y) {
-        //     for (int x = 0; x < w; ++x) {
-        //         int idx = y * w + x;
-
-        //         // Distance from pixel to player on screen
-        //         // float dx = static_cast<float>(x) - player_screen_x;
-        //         // float dy = static_cast<float>(y) - player_screen_y;
-        //         // float dist = std::sqrt(dx * dx + dy * dy);
-
-        //         // Calculate local alpha factor
-        //         float local_alpha_factor = m_twilight_level;
-        //         // TODO: we don't have m_wand_radius yet
-        //         // if (dist < m_wand_radius) {
-        //         //     float factor = dist / m_wand_radius; // 0 at player center, 1 at edge
-        //         //     local_alpha_factor *= factor;      // Taper off twilight inside wand aura
-        //         // }
-
-        //         // Convert float factor into a byte alpha (0 to 255)
-        //         uint8_t alpha_byte = static_cast<uint8_t>(local_alpha_factor * 255.0f);
-        //         uint32_t twilight_src = (alpha_byte << 24) | twilight_rgb;
-
-        //         // Blend with your existing pixel buffer color
-        //         // pixel_buffer[idx] = Draw::blend_pixel(pixel_buffer[idx], twilight_src);
-        //         // Draw::blend(w, h, twilight_src);
-        //     }
-        // }
     }
 
     void draw_hud() {
