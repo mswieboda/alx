@@ -13,17 +13,18 @@ namespace alx {
 
 class MainScene : public Scene {
 private:
-    Grid m_grid{40, 25, 32};
+    Grid m_grid;
     Player m_player;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
 
-public:
-    MainScene() :
-        m_player(300, 300) // initial x, y
-    {}
+    // Level-specific progress stats
+    float m_twilight_level = 0.8f;
+    float m_wand_radius = 56.0f;
+    int m_current_level_id = 1;
 
+public:
     void init(SceneManager& sm) override {
         background_color = 0xFF131313; // very dark gray
 
@@ -31,15 +32,46 @@ public:
         // Target tracking
         camera.follow(&m_player.center_x, &m_player.center_y);
 
-        // Map boundary limits
-        int tile_size = m_grid.get_tile_size();
-        int bound_width = m_grid.get_width() * tile_size;
-        int bound_height = (m_grid.get_height() * tile_size);
+        // --- LEVEL ---
+        load_level(m_current_level_id);
+    }
 
-        camera.set_limits(0, 0, bound_width, bound_height);
+    void load_level(int level_id) {
+        m_current_level_id = level_id;
+        m_twilight_level = 0.8f; // Reset darkness for new room
 
-        // --- Tiles ---
-        // Load the room data when the scene officially starts
+        // temp data for specific initial level spawns
+        std::vector<std::pair<int, int>> seeps;
+        std::vector<std::pair<int, int>> refiners;
+        std::vector<std::pair<int, int>> spires;
+        std::vector<std::pair<int, int>> pipes;
+
+        if (level_id == 1) {
+            m_grid = Grid(40, 25);
+            m_player = Player(300, 300);
+
+            // Populate Level 1 coordinates
+            seeps.push_back({15, 12});
+            refiners.push_back({10, 8});
+
+            // Input pipeline (Seep to Refiner)
+            pipes = {
+                {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11}
+            };
+        }
+
+        update_camera_map_boundary();
+
+        load_tiles(seeps, refiners, spires, pipes);
+    }
+
+    void load_tiles(
+        const std::vector<std::pair<int, int>>& seeps,
+        const std::vector<std::pair<int, int>>& refiners,
+        const std::vector<std::pair<int, int>>& spires,
+        const std::vector<std::pair<int, int>>& pipes
+    ) {
+        // --- Base Grid Initialization (Walls & Floors) ---
         int width = m_grid.get_width();
         int height = m_grid.get_height();
 
@@ -48,10 +80,8 @@ public:
                 Tile& tile = m_grid.get_tile(x, y);
 
                 if (x == 0 || x == width - 1 || y == 0 || y == height - 1) {
-                    // Set borders as empty
                     tile.type = TileType::Empty;
                 } else if (x == 1 || x == width - 2 || y == 1 || y == height - 2) {
-                    // Set inner borders as walls
                     tile.type = TileType::Wall;
                 } else {
                     tile.type = TileType::Floor;
@@ -59,24 +89,36 @@ public:
             }
         }
 
-        // Drop a Twilight Seep resource node
-        Tile& seep_tile = m_grid.get_tile(15, 12);
-        seep_tile.type = TileType::Seep;
-        seep_tile.mana_state = ManaState::Dark;
-
-        // Drop a Refiner node
-        Tile& refiner_tile = m_grid.get_tile(10, 8);
-        refiner_tile.type = TileType::Refiner;
-
-        // Place initial test pipes
-        std::vector<std::pair<int, int>> pipes = {
-            // Input pipeline (Seep to Refiner)
-            {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11}
-        };
-
-        for (auto [px, py] : pipes) {
-            m_grid.get_tile(px, py).type = TileType::Pipe;
+        // --- Apply initial level spawns ---
+        // Seeps
+        for (auto [x, y] : seeps) {
+            Tile& tile = m_grid.get_tile(x, y);
+            tile.type = TileType::Seep;
+            tile.mana_state = ManaState::Dark;
         }
+
+        // Refiners
+        for (auto [x, y] : refiners) {
+            m_grid.get_tile(x, y).type = TileType::Refiner;
+        }
+
+        // Light Spires
+        for (auto [x, y] : spires) {
+            m_grid.get_tile(x, y).type = TileType::LightSpire;
+        }
+
+        // Pipes
+        for (auto [x, y] : pipes) {
+            m_grid.get_tile(x, y).type = TileType::Pipe;
+        }
+    }
+
+    void update_camera_map_boundary() {
+        int tile_size = m_grid.get_tile_size();
+        int bound_width = m_grid.get_width() * tile_size;
+        int bound_height = (m_grid.get_height() * tile_size);
+
+        camera.set_limits(0, 0, bound_width, bound_height);
     }
 
     void update(SceneManager& sm, float dt) override {

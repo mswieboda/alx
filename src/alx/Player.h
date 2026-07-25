@@ -10,7 +10,7 @@ struct Player : public Entity {
     float center_x = 0.0f;
     float center_y = 0.0f;
 
-    Player(float startX, float startY)
+    Player(float startX = 128.0f, float startY = 128.0f)
         : Entity(
             Transform{ startX, startY, 24, 48, 10 }, // Transform (x, y, w, h, z_index)
             RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
