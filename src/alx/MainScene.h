@@ -38,7 +38,7 @@ public:
 
     void load_level(int level_id) {
         m_current_level_id = level_id;
-        m_twilight_level = 0.8f; // Reset darkness for new room
+        m_twilight_level = 0.75f; // Reset darkness for new room
 
         // temp data for specific initial level spawns
         std::vector<std::pair<int, int>> seeps;
@@ -49,6 +49,7 @@ public:
         if (level_id == 1) {
             m_grid = Grid(40, 25);
             m_player = Player(300, 300);
+            m_twilight_level = 0.5f;
 
             // Populate Level 1 coordinates
             seeps.push_back({15, 12});
@@ -149,11 +150,21 @@ public:
     }
 
     // Direct primitive rendering loop for the grid
-    void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha) override {
+    void draw_custom(std::vector<uint32_t>& pixel_buffer, float alpha) override {
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
-        draw_tiles(screen_buffer, sub_tick_progress);
-        m_player.draw(screen_buffer, alpha, camera);
+
+        draw_tiles(pixel_buffer, sub_tick_progress);
+        m_player.draw(pixel_buffer, alpha, camera);
+
+        draw_twilight(pixel_buffer);
+
         draw_hud();
+    }
+
+    void draw_twilight(std::vector<uint32_t>& pixel_buffer) {
+        if (m_twilight_level > 0.0f) {
+
+        }
     }
 
     void draw_hud() {
@@ -171,13 +182,24 @@ public:
             selected_name = "LightSpire";
         }
 
-        // Line 1: ALLOY (left) & BUILD Status (right-aligned to far right of screen)
+        // Line 1: (left) ALLOY
         Draw::text(
             6, 4,
             Draw::fmt("ALLOY: %d", m_player.get_cursed_alloy()),
             0xFF00CCCC, 1, 100, &Assets::Fonts::mini
         );
 
+        // Line 1: (center) TWILIGHT percentage
+        int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
+        std::string_view twilight_str = Draw::fmt("TWILIGHT: %d%%", twilight_pct);
+        int twilight_width = Draw::text_width(twilight_str, 1, &Assets::Fonts::mini);
+        Draw::text(
+            screen_width / 2 - twilight_width / 2, 4,
+            twilight_str,
+            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+        );
+
+        // Line 1: (right) BUILD Status
         std::string_view build_str = Draw::fmt("BUILD: %s (%d)", selected_name, cost);
         int build_width = Draw::text_width(build_str, 1, &Assets::Fonts::mini);
         Draw::text(
@@ -206,7 +228,7 @@ public:
         return (t.type == TileType::Seep) || (t.type == TileType::Refiner) || (t.type == TileType::Pipe && t.mana_state == ManaState::Dark);
     }
 
-    void draw_tiles(std::vector<uint32_t>& screen_buffer, float progress) {
+    void draw_tiles(std::vector<uint32_t>& pixel_buffer, float progress) {
         int tile_size = m_grid.get_tile_size();
 
         int min_tx = std::max(0, static_cast<int>(camera.get_x()) / tile_size);
