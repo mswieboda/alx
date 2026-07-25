@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <string>
 #include <vector>
 #include "core/Draw.h"
@@ -18,6 +19,7 @@ private:
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
+    std::vector<uint32_t> m_twilight_pixel_buffer;
 
     // Level-specific progress stats
     float m_twilight_level = 0.8f;
@@ -27,6 +29,11 @@ private:
 public:
     void init(SceneManager& sm) override {
         background_color = 0xFF131313; // very dark gray
+
+        // Ensure twilight vector capacity matches screen size (only allocates once at start)
+        if (m_twilight_pixel_buffer.size() != static_cast<size_t>(Game::WIDTH * Game::HEIGHT)) {
+            m_twilight_pixel_buffer.resize(Game::WIDTH * Game::HEIGHT);
+        }
 
         // --- CAMERA ---
         // Target tracking
@@ -132,6 +139,14 @@ public:
         // --- PLAYER ---
         m_player.update(dt, m_grid);
 
+        if (Action::is_pressed(Action::DebugTwUp)) {
+            m_twilight_level += dt * 1;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 1.0f);
+        } else if (Action::is_pressed(Action::DebugTwDown)) {
+            m_twilight_level -= dt * 1;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 1.0f);
+        }
+
         // --- CAMERA ---
         camera.update();
     }
@@ -162,9 +177,56 @@ public:
     }
 
     void draw_twilight(std::vector<uint32_t>& pixel_buffer) {
-        if (m_twilight_level > 0.0f) {
+        if (m_twilight_level <= 0.0f) return;
 
-        }
+        uint32_t twilight_rgb = 0x001a0a2a; // Deep moody purple
+        uint8_t alpha_byte = static_cast<uint8_t>(m_twilight_level * 255.0f);
+        uint32_t twilight_color = (static_cast<uint32_t>(alpha_byte) << 24) | twilight_rgb;
+
+        std::fill(m_twilight_pixel_buffer.begin(), m_twilight_pixel_buffer.end(), twilight_color);
+
+        // Pointer & byte size to pass into your command or draw call
+        const uint32_t* pixel_data = m_twilight_pixel_buffer.data();
+        uint32_t pixel_data_size = static_cast<uint32_t>(m_twilight_pixel_buffer.size() * sizeof(uint32_t));
+
+        Draw::blend_pixels(
+            0, 0,
+            pixel_data, pixel_data_size,
+            Game::WIDTH, Game::HEIGHT,
+            100 // z-index
+        );
+
+        // Convert world position of player to screen-space coordinates using the camera
+        // TODO: what is 0.8f here???
+        // float player_screen_x = (m_player.x + 8.0f) - camera.x;
+        // float player_screen_y = (m_player.y + 8.0f) - camera.y;
+
+        // for (int y = 0; y < h; ++y) {
+        //     for (int x = 0; x < w; ++x) {
+        //         int idx = y * w + x;
+
+        //         // Distance from pixel to player on screen
+        //         // float dx = static_cast<float>(x) - player_screen_x;
+        //         // float dy = static_cast<float>(y) - player_screen_y;
+        //         // float dist = std::sqrt(dx * dx + dy * dy);
+
+        //         // Calculate local alpha factor
+        //         float local_alpha_factor = m_twilight_level;
+        //         // TODO: we don't have m_wand_radius yet
+        //         // if (dist < m_wand_radius) {
+        //         //     float factor = dist / m_wand_radius; // 0 at player center, 1 at edge
+        //         //     local_alpha_factor *= factor;      // Taper off twilight inside wand aura
+        //         // }
+
+        //         // Convert float factor into a byte alpha (0 to 255)
+        //         uint8_t alpha_byte = static_cast<uint8_t>(local_alpha_factor * 255.0f);
+        //         uint32_t twilight_src = (alpha_byte << 24) | twilight_rgb;
+
+        //         // Blend with your existing pixel buffer color
+        //         // pixel_buffer[idx] = Draw::blend_pixel(pixel_buffer[idx], twilight_src);
+        //         // Draw::blend(w, h, twilight_src);
+        //     }
+        // }
     }
 
     void draw_hud() {

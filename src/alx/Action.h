@@ -18,6 +18,8 @@ namespace Action {
         Menu,           // Enter: Menu / Pause
         Map,            // Tab: Map
         DebugResource,  // 5: Temporary debug cheat +10 alloy
+        DebugTwUp, // plus key
+        DebugTwDown, // minus key
         Count
     };
 

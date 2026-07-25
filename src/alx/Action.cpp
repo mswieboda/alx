@@ -75,6 +75,8 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(Menu)]          = { MFB_KB_KEY_ENTER };
     s_bindings[static_cast<size_t>(Map)]           = { MFB_KB_KEY_TAB };
     s_bindings[static_cast<size_t>(DebugResource)] = { MFB_KB_KEY_5 };
+    s_bindings[static_cast<size_t>(DebugTwUp)] = { MFB_KB_KEY_EQUAL };
+    s_bindings[static_cast<size_t>(DebugTwDown)] = { MFB_KB_KEY_MINUS };
 }
 
 void bind_key(Type type, int key) {

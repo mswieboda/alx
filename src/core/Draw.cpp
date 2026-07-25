@@ -187,6 +187,35 @@ namespace Draw {
                 }
             }
         }
+
+        void draw_blend_immediate(
+            std::vector<uint32_t>& pixel_buffer,
+            int x, int y,
+            const uint32_t* pixel_data,
+            uint32_t pixel_data_size,
+            int width, int height
+        ) {
+            for (int row = 0; row < height; ++row) {
+                for (int col = 0; col < width; ++col) {
+                    int tx = x + col;
+                    int ty = y + row;
+
+                    if (tx >= 0 && tx < Game::WIDTH && ty >= 0 && ty < Game::HEIGHT) {
+                        int src_idx = row * width + col;
+
+                        if (src_idx * sizeof(uint32_t) >= pixel_data_size) continue;
+
+                        uint32_t color = pixel_data[src_idx];
+
+                        // Blending, skipping pure transparency (0x00XXXXXX)
+                        if ((color & 0xFF000000) != 0x00000000) {
+                            uint32_t dest_idx = ty * Game::WIDTH + tx;
+                            pixel_buffer[dest_idx] = blend_pixel(pixel_buffer[dest_idx], color);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     void set_y_sort_mode(YSortMode mode) {
@@ -292,6 +321,24 @@ namespace Draw {
         });
     }
 
+    void blend_pixels(
+        int screen_x, int screen_y,
+        const uint32_t* pixel_data, uint32_t pixel_data_size,
+        int width, int height,
+        int z_index
+    ) {
+        int sort_y = 0;
+        if (g_y_sort_mode == YSortMode::TopY) {
+            sort_y = screen_y;
+        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
+            sort_y = screen_y + height;
+        }
+        g_queue.push_back({
+            screen_x, screen_y, z_index, sort_y,
+            BlendPixelsData{ pixel_data, pixel_data_size, width, height }
+        });
+    }
+
     void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color) {
         clear_screen(buffer, background_color);
 
@@ -328,6 +375,16 @@ namespace Draw {
                         arg.src_y,
                         arg.src_w,
                         arg.src_h
+                    );
+                }
+                else if constexpr (std::is_same_v<T, BlendPixelsData>) {
+                    draw_blend_immediate(
+                        buffer,
+                        cmd.x, cmd.y,
+                        arg.pixel_data,
+                        arg.pixel_data_size,
+                        arg.width,
+                        arg.height
                     );
                 }
             }, cmd.data);

@@ -8,7 +8,7 @@
 
 namespace Draw {
 
-    // --- 1. DATA PAYLOADS ---
+    // --- COMMAND VARIANTS ---
     struct TextData {
         std::string_view text;
         uint32_t color;
@@ -35,13 +35,20 @@ namespace Draw {
         int src_h;
     };
 
-    // --- 2. UNIFIED PACKET ---
+    struct BlendPixelsData {
+        const uint32_t* pixel_data; // can contain with transparent 0x00 gaps
+        uint32_t pixel_data_size;
+        int width;
+        int height;
+    };
+
+    // --- COMMAND ---
     struct Command {
         int x;
         int y;
         int z_index;
         int sort_y;
-        std::variant<TextData, RectData, SpriteData> data;
+        std::variant<TextData, RectData, SpriteData, BlendPixelsData> data;
     };
 
     // --- 3. PUBLIC PIPELINE INTERFACE ---
@@ -72,6 +79,12 @@ namespace Draw {
         const uint8_t* sheet_pixels, uint32_t sheet_pixels_size,
         int sheet_width, int sheet_height,
         int src_x, int src_y, int src_w, int src_h,
+        int z_index = 1
+    );
+    void blend_pixels(
+        int screen_x, int screen_y,
+        const uint32_t* pixel_data, uint32_t pixel_data_size,
+        int width, int height,
         int z_index = 1
     );
 
