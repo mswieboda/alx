@@ -1,4 +1,4 @@
-# Master 16x16 Pixel Font Definition File
+# Master 8x8 Pixel Font Definition File
 # Format: Each character maps to its ASCII character representation, using '.' for empty and '#' for filled pixels.
 # Unmirrored (converted from right-to-left layout to standard left-to-right).
 

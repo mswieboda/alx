@@ -63,9 +63,9 @@ $(MUSIC_STAMP): $(MUSIC_SRCS) $(ASSETS_SCRIPTS)
 	@touch $(MUSIC_STAMP)
 
 # Individual manual shortcuts if you ever want them explicitly
-fonts: $(FONT_STAMP)
-images: $(IMAGE_STAMP)
-music: $(MUSIC_STAMP)
+fonts: clean-fonts $(FONT_STAMP)
+images: clean-images $(IMAGE_STAMP)
+music: clean-music $(MUSIC_STAMP)
 
 build: assets
 	@echo "--- Compiling [$(NAME) | Mode: $(BUILD)] ---"

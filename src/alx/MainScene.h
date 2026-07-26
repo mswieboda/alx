@@ -108,7 +108,7 @@ public:
 
         // Light Spires
         for (auto [x, y] : spires) {
-            m_grid.get_tile(x, y).type = TileType::LightSpire;
+            m_grid.get_tile(x, y).type = TileType::Spire;
         }
 
         // Pipes
@@ -237,71 +237,53 @@ public:
     void draw_hud() {
         int screen_width = Game::WIDTH;
 
-        // Draw top HUD background bar (height 34px for 2-line display)
-        Draw::rect(0, 0, screen_width, 34, 0xAA101019, true, 1, 99);
-
         // Build status string
-        const char* selected_name = "Pipe";
+        const char* selected_name = "pipe";
         int cost = Grid::get_tile_cost(m_player.get_selected_build_type());
         if (m_player.get_selected_build_type() == TileType::Refiner) {
-            selected_name = "Refiner";
-        } else if (m_player.get_selected_build_type() == TileType::LightSpire) {
-            selected_name = "LightSpire";
+            selected_name = "refiner";
+        } else if (m_player.get_selected_build_type() == TileType::Spire) {
+            selected_name = "spire";
         }
 
-        const FontData& font = Assets::Fonts::alt_8x8;
+        const FontData& font = Assets::Fonts::fant_8;
+        const int line_h_padding = 4;
 
         // Line 1: (left) ALLOY
         Draw::text(
-            6, 0,
-            Draw::fmt("ALLOY: %d", m_player.get_cursed_alloy()),
+            6, line_h_padding,
+            Draw::fmt("alloy: %d", m_player.get_cursed_alloy()),
             0xFF00CCCC, 1, 100, &font
         );
 
         // Line 1: (center) TWILIGHT percentage
         int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
-        std::string_view twilight_str = Draw::fmt("TWILIGHT: %d%%", twilight_pct);
+        std::string_view twilight_str = Draw::fmt("tw: %d%%", twilight_pct);
         int twilight_width = Draw::text_width(twilight_str, 1, &font);
         Draw::text(
-            screen_width / 2 - twilight_width / 2, 0,
+            screen_width / 2 - twilight_width / 2, line_h_padding,
             twilight_str,
             0xFF00CCCC, 1, 100, &font
         );
 
         // Line 1: (right) BUILD Status
-        std::string_view build_str = Draw::fmt("BUILD: %s (%d)", selected_name, cost);
+        std::string_view build_str = Draw::fmt("%s (%d)", selected_name, cost);
         int build_width = Draw::text_width(build_str, 1, &font);
         Draw::text(
-            screen_width - 6 - build_width, 0,
+            screen_width - 6 - build_width, line_h_padding,
             build_str,
             0xFF00CCCC, 1, 100, &font
         );
 
-        // Line 2: Concise Controls Legend
-        Draw::text(
-            6, font.size,
-            "[J] Build  [K] Clear  [Q/E] Cycle  [Enter] Menu",
-            0xFF003333, 1, 100, &font
-        );
-
-        // Line 3: ASCII test output
-        Draw::text(
-            6, font.size + font.size,
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-            0xFF003333, 1, 100, &font
-        );
-        // Line 4: ASCII test output
-        Draw::text(
-            6, font.size + font.size + font.size,
-            "BDEagjybcdefghijklmnopqrstuvwxyz",
-            0xFF003333, 1, 100, &font
-        );
+        // Draw top HUD background bar (1-line display)
+        const int rect_height = line_h_padding + font.size + line_h_padding;
+        Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, 99);
     }
 
     bool is_connectable_tile(int gx, int gy) const {
         if (!m_grid.is_in_bounds(gx, gy)) return false;
         TileType t = m_grid.get_tile(gx, gy).type;
-        return t == TileType::Pipe || t == TileType::Seep || t == TileType::Refiner || t == TileType::LightSpire;
+        return t == TileType::Pipe || t == TileType::Seep || t == TileType::Refiner || t == TileType::Spire;
     }
 
     bool connects_dark_mana(int gx, int gy) const {
@@ -367,7 +349,7 @@ public:
 
         if (tile.type == TileType::Wall) {
             color = 0xFF1C1C24; // Deep charcoal wall
-        } else if (tile.type == TileType::Seep || tile.type == TileType::LightSpire) {
+        } else if (tile.type == TileType::Seep || tile.type == TileType::Spire) {
             color = 0xFF00FF66; // Sickly-green mana glow for seep/spire!
         } else if (tile.type == TileType::Refiner) {
             color = 0xFF301C66; // Refiner, purplish for now?
@@ -392,7 +374,7 @@ public:
     bool is_node_tile(int gx, int gy) const {
         if (!m_grid.is_in_bounds(gx, gy)) return false;
         TileType t = m_grid.get_tile(gx, gy).type;
-        return t == TileType::Seep || t == TileType::Refiner || t == TileType::LightSpire;
+        return t == TileType::Seep || t == TileType::Refiner || t == TileType::Spire;
     }
 
     void draw_tile_mana(const Tile& tile, int gx, int gy, int screen_x, int screen_y, int tile_size, float progress) {

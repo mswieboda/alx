@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Project Overview
-*Aetherlux* (`alx`) is a GBA-aesthetic 2D top-down action-adventure and micro-automation survival crafting game built in C++ with software rendering (`minifb`). Players explore room grids, gather Cursed Alloy, and build mana-conduit infrastructure (Pipes, Refiners, LightSpires) to refine dark twilight mana into stable light energy.
+*Aetherlux* (`alx`) is a GBA-aesthetic 2D top-down action-adventure and micro-automation survival crafting game built in C++ with software rendering (`minifb`). Players explore room grids, gather Cursed Alloy, and build mana-conduit infrastructure (Pipes, Refiners, Spires) to refine dark twilight mana into stable light energy.
 
 ---
 

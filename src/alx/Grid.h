@@ -16,7 +16,7 @@ enum class TileType : uint8_t {
     Seep,       // Produces dark mana, and releases twilight into room
     Pipe,       // Player-laid infrastructure pipe
     Refiner,    // Converts dark mana into light mana
-    LightSpire  // Converts light mana into light to fight room twilight
+    Spire  // Converts light mana into light to fight room twilight
 };
 
 // State for pipes or nodes to handle power/mana routing logic later
@@ -63,7 +63,7 @@ public:
     }
 
     static bool has_power_glow(const Tile& tile) {
-        return tile.type == TileType::Refiner || tile.type == TileType::LightSpire;
+        return tile.type == TileType::Refiner || tile.type == TileType::Spire;
     }
 
     bool is_in_bounds(int x, int y) const {
@@ -94,13 +94,13 @@ public:
         switch (type) {
             case TileType::Pipe: return 1;
             case TileType::Refiner: return 5;
-            case TileType::LightSpire: return 10;
+            case TileType::Spire: return 10;
             default: return 0;
         }
     }
 
     static bool is_buildable_type(TileType type) {
-        return type == TileType::Pipe || type == TileType::Refiner || type == TileType::LightSpire;
+        return type == TileType::Pipe || type == TileType::Refiner || type == TileType::Spire;
     }
 
     // Placement method for empty/floor tiles
@@ -302,7 +302,7 @@ public:
             }
         }
 
-        // --- PASS 2: Node Processing (Seeps, Refiners, and LightSpires) ---
+        // --- PASS 2: Node Processing (Seeps, Refiners, and Spires) ---
         for (int y = 0; y < m_height; ++y) {
             for (int x = 0; x < m_width; ++x) {
                 int idx = y * m_width + x;
@@ -382,7 +382,7 @@ public:
                         }
                     }
                 }
-                else if (current.type == TileType::LightSpire) {
+                else if (current.type == TileType::Spire) {
                     if (current.process_timer > 0) {
                         // Currently digesting (3-tick cycle)
                         next_powered[idx] = true;
@@ -390,7 +390,7 @@ public:
 
                         uint8_t progress = current.process_timer + 1;
                         if (progress >= Game::LIGHT_SPIRE_TICKS_REQUIRED) {
-                            Log::info("LightSpire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
+                            Log::info("Spire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
                             progress = 0;
                             next_powered[idx] = false;
                             next_mana_states[idx] = ManaState::None;
@@ -400,7 +400,7 @@ public:
                         // Idle: check if an adjacent input pipe has Light Mana to absorb
                         int in_pipe_idx = find_active_input_pipe_from_next(x, y, ManaState::Light, next_mana_states, next_powered);
                         if (in_pipe_idx != -1) {
-                            // Absorb Light Mana packet from input pipe into LightSpire
+                            // Absorb Light Mana packet from input pipe into Spire
                             next_mana_states[in_pipe_idx] = ManaState::None;
                             next_powered[in_pipe_idx] = false;
                             next_mana_ttl[in_pipe_idx] = 0;
@@ -659,7 +659,7 @@ private:
                 if (is_in_bounds(nx, ny)) {
                     const Tile& n = get_tile(nx, ny);
                     int n_idx = ny * m_width + nx;
-                    if (n.type == TileType::LightSpire) return true;
+                    if (n.type == TileType::Spire) return true;
                     if (n.type == TileType::Pipe && light_dist[n_idx] > my_d && light_dist[n_idx] < 9000) return true;
                 }
             }

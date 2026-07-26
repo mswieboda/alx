@@ -119,14 +119,14 @@ private:
             if (m_selected_build_type == TileType::Pipe) {
                 m_selected_build_type = TileType::Refiner;
             } else if (m_selected_build_type == TileType::Refiner) {
-                m_selected_build_type = TileType::LightSpire;
+                m_selected_build_type = TileType::Spire;
             } else {
                 m_selected_build_type = TileType::Pipe;
             }
         } else if (Action::is_just_pressed(Action::CycleLeft)) {
             if (m_selected_build_type == TileType::Pipe) {
-                m_selected_build_type = TileType::LightSpire;
-            } else if (m_selected_build_type == TileType::LightSpire) {
+                m_selected_build_type = TileType::Spire;
+            } else if (m_selected_build_type == TileType::Spire) {
                 m_selected_build_type = TileType::Refiner;
             } else {
                 m_selected_build_type = TileType::Pipe;
