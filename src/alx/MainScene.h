@@ -180,7 +180,7 @@ public:
             m_sim_timer = 0.0f;
 
             // --- GRID ---
-            SimResults sim_res = m_grid.tick_simulation(); // Advance factory items/fluid by one step
+            SimResults sim_res = m_grid.sim_tick(); // Advance factory items/fluid by one step
             if (sim_res.spires_converted > 0) {
                 m_twilight_level -= TWILIGHT_DECREASE_PER_MANA * sim_res.spires_converted;
                 m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
