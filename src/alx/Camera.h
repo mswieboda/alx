@@ -19,6 +19,10 @@ struct Camera : public core::Camera {
     }
 
     bool is_player_movement_locked() const {
+        return m_is_panning_active;
+    }
+
+    bool is_scouting_or_decaying() const {
         return m_is_panning_active || m_pan_offset_x != 0.0f || m_pan_offset_y != 0.0f || m_zoom_progress > 0.0f;
     }
 
@@ -112,8 +116,8 @@ private:
         m_pan_offset_y += (m_target_pan_y - m_pan_offset_y) * pan_t;
 
         if (!is_panning_held) {
-            if (std::abs(m_pan_offset_x) < 1.0f) m_pan_offset_x = 0.0f;
-            if (std::abs(m_pan_offset_y) < 1.0f) m_pan_offset_y = 0.0f;
+            if (std::abs(m_pan_offset_x) < 0.5f) m_pan_offset_x = 0.0f;
+            if (std::abs(m_pan_offset_y) < 0.5f) m_pan_offset_y = 0.0f;
         }
     }
 
@@ -142,13 +146,11 @@ private:
     }
 
     void sync_core_camera() {
-        bool is_panning_or_decaying = m_is_panning_active || m_pan_offset_x != 0.0f || m_pan_offset_y != 0.0f || m_zoom_progress > 0.0f;
-
         if (has_target) {
             float half_vw = (static_cast<float>(Game::WIDTH) / 2.0f) / zoom;
             float half_vh = (static_cast<float>(Game::HEIGHT) / 2.0f) / zoom;
 
-            if (is_panning_or_decaying) {
+            if (is_scouting_or_decaying()) {
                 if (!m_has_ever_wasd_panned) {
                     float center_x = m_pan_anchor_x;
                     float center_y = m_pan_anchor_y;
