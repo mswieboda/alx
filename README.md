@@ -448,3 +448,16 @@ For game jam submissions, grab the compiled release binary at `build/Release/alx
 ## 👤 Contributors
 
 - [Matt Swieboda](https://github.com/mswieboda) - creator and maintainer
+
+## Attributions
+
+### Fonts
+
+from https://github.com/ercanersoy/PSF-Fonts
+- alt_8.psf
+- fant_8.psf
+
+> PSF Fonts from `console-data` package of `Debian`
+> licensed under GNU GPL v2
+
+(TBD true correct license requirements)
