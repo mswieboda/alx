@@ -62,10 +62,10 @@ bool Network::place_fixture(GridPos pos, FixtureType type) {
     fix.mana_state = ManaState::None;
     fix.process_timer = 0;
     fix.mana_ttl = 0;
-    fix.flags = 0;
+    fix.is_powered = false;
 
     if (type == FixtureType::Seep) {
-        fix.set_powered(true);
+        fix.is_powered = true;
         fix.mana_state = ManaState::Dark;
     }
 
@@ -236,7 +236,7 @@ int Network::find_active_input_pipe(int x, int y, ManaState target_state) const 
         if (in_bounds(nx, ny)) {
             int n_idx = ny * m_width + nx;
             const Fixture& neighbor = m_fixtures[n_idx];
-            if (neighbor.type == FixtureType::Pipe && neighbor.is_powered() && neighbor.mana_state == target_state) {
+            if (neighbor.type == FixtureType::Pipe && neighbor.is_powered && neighbor.mana_state == target_state) {
                 return n_idx;
             }
         }
@@ -299,11 +299,11 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Dark);
                     if (in_pipe_idx != -1) {
                         next_fixtures[in_pipe_idx].mana_state = ManaState::None;
-                        next_fixtures[in_pipe_idx].set_powered(false);
+                        next_fixtures[in_pipe_idx].is_powered = false;
                         next_fixtures[in_pipe_idx].move_dx = 0;
                         next_fixtures[in_pipe_idx].move_dy = 0;
 
-                        next_fixtures[idx].set_powered(true);
+                        next_fixtures[idx].is_powered = true;
                         next_fixtures[idx].mana_state = ManaState::Dark;
                         next_fixtures[idx].process_timer = 1;
                     }
@@ -314,12 +314,12 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Light);
                     if (in_pipe_idx != -1) {
                         next_fixtures[in_pipe_idx].mana_state = ManaState::None;
-                        next_fixtures[in_pipe_idx].set_powered(false);
+                        next_fixtures[in_pipe_idx].is_powered = false;
                         next_fixtures[in_pipe_idx].mana_ttl = 0;
                         next_fixtures[in_pipe_idx].move_dx = 0;
                         next_fixtures[in_pipe_idx].move_dy = 0;
 
-                        next_fixtures[idx].set_powered(true);
+                        next_fixtures[idx].is_powered = true;
                         next_fixtures[idx].mana_state = ManaState::Light;
                         next_fixtures[idx].process_timer = 1;
                     }
@@ -342,7 +342,7 @@ void Network::sim_pipe_flow(
         for (int x = 0; x < m_width; ++x) {
             int idx = y * m_width + x;
             const Fixture& current = m_fixtures[idx];
-            if (current.type == FixtureType::Pipe && current.is_powered() && current.mana_state != ManaState::None) {
+            if (current.type == FixtureType::Pipe && current.is_powered && current.mana_state != ManaState::None) {
                 int d = (current.mana_state == ManaState::Dark) ? dark_dist[idx] : light_dist[idx];
                 active_pipes.push_back({ x, y, idx, d });
             }
@@ -368,7 +368,7 @@ void Network::sim_pipe_flow(
         if (curr_state == ManaState::Light) {
             if (curr_ttl <= 1) {
                 next_fixtures[idx].mana_state = ManaState::None;
-                next_fixtures[idx].set_powered(false);
+                next_fixtures[idx].is_powered = false;
                 next_fixtures[idx].mana_ttl = 0;
                 next_fixtures[idx].move_dx = 0;
                 next_fixtures[idx].move_dy = 0;
@@ -388,18 +388,18 @@ void Network::sim_pipe_flow(
             next_fixtures[idx].out_dy = static_cast<int8_t>(downstream_y - y);
 
             next_fixtures[downstream_idx].mana_state = curr_state;
-            next_fixtures[downstream_idx].set_powered(true);
+            next_fixtures[downstream_idx].is_powered = true;
             next_fixtures[downstream_idx].mana_ttl = (curr_state == ManaState::Light) ? (curr_ttl - 1) : curr_ttl;
             next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
             next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
 
             next_fixtures[idx].mana_state = ManaState::None;
-            next_fixtures[idx].set_powered(false);
+            next_fixtures[idx].is_powered = false;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
         } else {
             next_fixtures[idx].mana_state = curr_state;
-            next_fixtures[idx].set_powered(true);
+            next_fixtures[idx].is_powered = true;
             next_fixtures[idx].mana_ttl = (curr_state == ManaState::Light) ? (curr_ttl - 1) : curr_ttl;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
@@ -417,7 +417,7 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
 
             if (current.type == FixtureType::Seep) {
                 next_fixtures[idx].mana_state = ManaState::Dark;
-                next_fixtures[idx].set_powered(true);
+                next_fixtures[idx].is_powered = true;
 
                 int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures);
                 if (open_pipe_idx != -1) {
@@ -425,14 +425,14 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                     int open_y = open_pipe_idx / m_width;
 
                     next_fixtures[open_pipe_idx].mana_state = ManaState::Dark;
-                    next_fixtures[open_pipe_idx].set_powered(true);
+                    next_fixtures[open_pipe_idx].is_powered = true;
                     next_fixtures[open_pipe_idx].move_dx = static_cast<int8_t>(open_x - x);
                     next_fixtures[open_pipe_idx].move_dy = static_cast<int8_t>(open_y - y);
                 }
             }
             else if (current.type == FixtureType::Refiner) {
                 if (next_fixtures[idx].process_timer > 0) {
-                    next_fixtures[idx].set_powered(true);
+                    next_fixtures[idx].is_powered = true;
                     next_fixtures[idx].mana_state = ManaState::Dark;
 
                     uint8_t progress = next_fixtures[idx].process_timer + 1;
@@ -443,12 +443,12 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                             int out_y = out_pipe_idx / m_width;
 
                             next_fixtures[out_pipe_idx].mana_state = ManaState::Light;
-                            next_fixtures[out_pipe_idx].set_powered(true);
+                            next_fixtures[out_pipe_idx].is_powered = true;
                             next_fixtures[out_pipe_idx].mana_ttl = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
                             next_fixtures[out_pipe_idx].move_dx = static_cast<int8_t>(out_x - x);
                             next_fixtures[out_pipe_idx].move_dy = static_cast<int8_t>(out_y - y);
                             progress = 0;
-                            next_fixtures[idx].set_powered(false);
+                            next_fixtures[idx].is_powered = false;
                             next_fixtures[idx].mana_state = ManaState::None;
                         } else {
                             progress = Game::REFINER_TICKS_REQUIRED;
@@ -456,13 +456,13 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                     }
                     next_fixtures[idx].process_timer = progress;
                 } else if (next_fixtures[idx].mana_state == ManaState::None) {
-                    next_fixtures[idx].set_powered(false);
+                    next_fixtures[idx].is_powered = false;
                     next_fixtures[idx].process_timer = 0;
                 }
             }
             else if (current.type == FixtureType::Spire) {
                 if (next_fixtures[idx].process_timer > 0) {
-                    next_fixtures[idx].set_powered(true);
+                    next_fixtures[idx].is_powered = true;
                     next_fixtures[idx].mana_state = ManaState::Light;
 
                     uint8_t progress = next_fixtures[idx].process_timer + 1;
@@ -471,12 +471,12 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                         results.spires_converted++;
 
                         progress = 0;
-                        next_fixtures[idx].set_powered(false);
+                        next_fixtures[idx].is_powered = false;
                         next_fixtures[idx].mana_state = ManaState::None;
                     }
                     next_fixtures[idx].process_timer = progress;
                 } else if (next_fixtures[idx].mana_state == ManaState::None) {
-                    next_fixtures[idx].set_powered(false);
+                    next_fixtures[idx].is_powered = false;
                     next_fixtures[idx].process_timer = 0;
                 }
             }

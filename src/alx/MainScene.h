@@ -553,7 +553,7 @@ public:
     }
 
     void draw_fixture_powered(const Fixture& fix, int screen_x, int screen_y, int tile_size) {
-        if (!fix.is_powered() || (fix.type != FixtureType::Refiner && fix.type != FixtureType::Spire)) {
+        if (!fix.is_powered || (fix.type != FixtureType::Refiner && fix.type != FixtureType::Spire)) {
             return;
         }
 
