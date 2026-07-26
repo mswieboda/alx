@@ -265,6 +265,7 @@ private:
         }
     }
 
+    // TODO: Refactor player movement collision to use a dedicated feet collision box/circle radius and radius-based fixture collisions in the future
     bool is_solid_box(float x, float y, float width, float height, const Tiles& tiles, const Network& network) const {
         int tile_size = tiles.get_tile_size();
 
@@ -273,10 +274,10 @@ private:
         int top    = static_cast<int>(y) / tile_size;
         int bottom = static_cast<int>(y + height - 0.01f) / tile_size;
 
-        return tiles.is_wall(left, top)     || network.is_solid(left, top) ||
-               tiles.is_wall(right, top)    || network.is_solid(right, top) ||
-               tiles.is_wall(left, bottom)  || network.is_solid(left, bottom) ||
-               tiles.is_wall(right, bottom) || network.is_solid(right, bottom);
+        return tiles.is_wall(left, top)     ||
+               tiles.is_wall(right, top)    ||
+               tiles.is_wall(left, bottom)  ||
+               tiles.is_wall(right, bottom);
     }
 };
 
