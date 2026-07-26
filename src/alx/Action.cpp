@@ -11,14 +11,16 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"move_down",      MoveDown},
     {"move_left",      MoveLeft},
     {"move_right",     MoveRight},
-    {"tool",           Tool},
-    {"attack",         Tool},
-    {"confirm",        Tool},
-    {"a",              Tool},
+    {"action",         ActionBtn},
+    {"tool",           ActionBtn},
+    {"attack",         ActionBtn},
+    {"confirm",        ActionBtn},
+    {"a",              ActionBtn},
     {"cancel",         Cancel},
     {"b",              Cancel},
-    {"cycle_left",     CycleLeft},
-    {"cycle_right",    CycleRight},
+    {"cycle",          Cycle},
+    {"cycle_right",    Cycle},
+    {"pan_mode",       PanMode},
     {"menu",           Menu},
     {"map",            Map},
     {"debug_resource", DebugResource}
@@ -38,10 +40,10 @@ std::string type_to_string(Type type) {
         case MoveDown:      return "move_down";
         case MoveLeft:      return "move_left";
         case MoveRight:     return "move_right";
-        case Tool:          return "tool";
+        case ActionBtn:     return "action";
         case Cancel:        return "cancel";
-        case CycleLeft:     return "cycle_left";
-        case CycleRight:    return "cycle_right";
+        case Cycle:         return "cycle";
+        case PanMode:       return "pan_mode";
         case Menu:          return "menu";
         case Map:           return "map";
         case DebugResource: return "debug_resource";
@@ -68,15 +70,15 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(MoveLeft)]      = { MFB_KB_KEY_A, MFB_KB_KEY_LEFT };
     s_bindings[static_cast<size_t>(MoveRight)]     = { MFB_KB_KEY_D, MFB_KB_KEY_RIGHT };
 
-    s_bindings[static_cast<size_t>(Tool)]          = { MFB_KB_KEY_J };
+    s_bindings[static_cast<size_t>(ActionBtn)]     = { MFB_KB_KEY_J, MFB_KB_KEY_Z };
     s_bindings[static_cast<size_t>(Cancel)]        = { MFB_KB_KEY_K, MFB_KB_KEY_X };
-    s_bindings[static_cast<size_t>(CycleLeft)]     = { MFB_KB_KEY_Q };
-    s_bindings[static_cast<size_t>(CycleRight)]    = { MFB_KB_KEY_E };
+    s_bindings[static_cast<size_t>(Cycle)]         = { MFB_KB_KEY_RIGHT_SHIFT, MFB_KB_KEY_E };
+    s_bindings[static_cast<size_t>(PanMode)]       = { MFB_KB_KEY_LEFT_SHIFT, MFB_KB_KEY_Q };
     s_bindings[static_cast<size_t>(Menu)]          = { MFB_KB_KEY_ENTER };
-    s_bindings[static_cast<size_t>(Map)]           = { MFB_KB_KEY_TAB };
+    s_bindings[static_cast<size_t>(Map)]           = { MFB_KB_KEY_TAB, MFB_KB_KEY_SPACE };
     s_bindings[static_cast<size_t>(DebugResource)] = { MFB_KB_KEY_5 };
-    s_bindings[static_cast<size_t>(DebugTwUp)] = { MFB_KB_KEY_EQUAL };
-    s_bindings[static_cast<size_t>(DebugTwDown)] = { MFB_KB_KEY_MINUS };
+    s_bindings[static_cast<size_t>(DebugTwUp)]     = { MFB_KB_KEY_EQUAL };
+    s_bindings[static_cast<size_t>(DebugTwDown)]   = { MFB_KB_KEY_MINUS };
 }
 
 void bind_key(Type type, int key) {

@@ -11,12 +11,12 @@ namespace Action {
         MoveDown,
         MoveLeft,
         MoveRight,
-        Tool,       // Button A (J / E / Space): Tool / Attack / Confirm
+        ActionBtn,  // Button A (J / Z): Action / Build / Attack / Confirm
         Cancel,     // Button B (K / X): Cancel / Drain / Demolish
-        CycleLeft,  // Q: Cycle left
-        CycleRight, // E: Cycle right
-        Menu,           // Enter: Menu / Pause
-        Map,            // Tab: Map
+        Cycle,      // E (R-Shoulder / RB): Cycle build type forward
+        PanMode,    // Left Shift / Right Shift / Q (L-Shoulder / LB): Hold to pan camera scouting
+        Menu,       // Enter (Start): Menu / Pause
+        Map,        // Tab / Space (Select): Map
         DebugResource,  // 5: Temporary debug cheat +10 alloy
         DebugTwUp, // plus key
         DebugTwDown, // minus key
