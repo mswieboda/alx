@@ -24,13 +24,16 @@ private:
     std::vector<Fixture> m_fixtures;
     std::vector<int32_t> m_active_indices;
 
-    static constexpr uint8_t STAGNANT_DECAY_THRESHOLD = 20; // Ticks before stagnant mana turns into twilight
+    // --- Private Distance & Helper Methods ---
+    std::vector<int> compute_distance_field(FixtureType sourceType) const;
+    int find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures) const;
+    int find_active_input_pipe(int x, int y, ManaState target_state) const;
+    int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& dark_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures) const;
 
     // --- Private Simulation Sub-Step Helpers ---
-    void sim_process_consumers(std::vector<Fixture>& next_fixtures, NetworkSimResults& results);
-    void sim_pipe_flow(std::vector<Fixture>& next_fixtures);
-    void sim_produce_sources(std::vector<Fixture>& next_fixtures);
-    void sim_stagnant_decay(std::vector<Fixture>& next_fixtures, NetworkSimResults& results);
+    void sim_consume(std::vector<Fixture>& next_fixtures);
+    void sim_pipe_flow(const std::vector<int>& dark_dist, const std::vector<int>& light_dist, std::vector<Fixture>& next_fixtures);
+    void sim_produce(NetworkSimResults& results, std::vector<Fixture>& next_fixtures);
 
 public:
     Network(int width = 20, int height = 15, int tile_size = Game::TILE_SIZE);
@@ -55,9 +58,9 @@ public:
     [[nodiscard]] bool is_solid(GridPos pos) const noexcept;
     [[nodiscard]] bool is_solid(int x, int y) const noexcept;
 
-    // --- Auto-Tiling Mask & Gradient Updates ---
+    // --- Auto-Tiling Mask & Downstream Query ---
     void update_neighbor_masks(GridPos pos);
-    void recalculate_flow_gradients();
+    void get_downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
 
     // --- Clean Top-Level Simulation Master Tick ---
     NetworkSimResults sim_tick();

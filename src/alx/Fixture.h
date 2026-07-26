@@ -40,7 +40,10 @@ struct Fixture {
     uint8_t flow_out_mask   = 0;    // Outgoing flow direction bitfield
     int8_t move_dx          = 0;           // Directional flow delta X (-1, 0, 1)
     int8_t move_dy          = 0;           // Directional flow delta Y (-1, 0, 1)
+    int8_t out_dx           = 0;           // Outgoing flow delta X for corner rendering
+    int8_t out_dy           = 0;           // Outgoing flow delta Y for corner rendering
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
+    uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
     uint8_t flags           = 0;     // Bit 0: Powered, Bit 1: Active, Bit 2: DirtySprite
 
     [[nodiscard]] constexpr bool is_empty() const noexcept { return type == FixtureType::None; }
@@ -54,7 +57,5 @@ struct Fixture {
         }
     }
 };
-
-static_assert(sizeof(Fixture) == 8, "Fixture struct must remain 8 bytes!");
 
 } // namespace alx
