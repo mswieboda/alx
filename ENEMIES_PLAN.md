@@ -29,12 +29,6 @@ This document outlines the detailed roadmap, technical specifications, and open 
 
 ## Phased Implementation Roadmap
 
-### Phase 1: Melee Swipe & Alloy Item Drops (Immediate)
-1. Add `facing_dx, facing_dy` tracking to `Player`.
-2. Implement `Enemy` 3 HP system and 2px knockback.
-3. Implement Melee Arc Swipe (16x8 px frontal hitbox, 0.15s active, 0.25s cooldown).
-4. Implement `AlloyItem` pickup struct/manager on static floor positions with walk-over collection.
-
 ### Phase 2: Directional Mana Spark Projectiles
 1. Implement Hold Charge Timer (0.5s) on `ActionBtn`.
 2. Spawn 4x4 directional projectile on charge completion.

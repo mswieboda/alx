@@ -6,11 +6,28 @@ namespace alx {
 
 struct Player : public Entity {
     // Integer pixels moved per physics tick
-    // (MUST be an integer: 1 = 1px/tick, 2 = 2px/tick for pixel-perfect sync without tick wobble)
     int pixels_per_tick = 1;
     float speed = static_cast<float>(pixels_per_tick * Game::TARGET_FPS);
     int wand_radius = 96;
     bool is_panning = false;
+
+    // Facing vector (default facing down)
+    float facing_dx = 0.0f;
+    float facing_dy = 1.0f;
+
+    // Attack timing constants
+    static constexpr float ATTACK_ACTIVE_DURATION = 0.15f;
+    static constexpr float ATTACK_COOLDOWN_DURATION = 0.25f;
+
+    float attack_active_timer = 0.0f;
+    float attack_cooldown_timer = 0.0f;
+
+    struct AttackHitbox {
+        float x = 0.0f;
+        float y = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
+    };
 
     Player(float x = 128.0f, float y = 128.0f)
         : Entity(
@@ -36,8 +53,42 @@ struct Player : public Entity {
         transform_prev = transform;
     }
 
+    bool is_attacking() const {
+        return attack_active_timer > 0.0f;
+    }
+
+    AttackHitbox get_attack_hitbox() const {
+        float cx = transform.x + (transform.width / 2.0f);
+        float cy = transform.y + (transform.height / 2.0f);
+
+        AttackHitbox hb;
+        if (std::abs(facing_dy) >= std::abs(facing_dx)) {
+            // Vertical facing: 16px wide perpendicular, 8px deep along facing
+            hb.width = 16.0f;
+            hb.height = 8.0f;
+            float offset_y = (facing_dy >= 0.0f) ? (transform.height / 2.0f + 4.0f) : -(transform.height / 2.0f + 4.0f);
+            hb.x = cx - 8.0f;
+            hb.y = cy + offset_y - 4.0f;
+        } else {
+            // Horizontal facing: 8px deep along facing, 16px wide perpendicular
+            hb.width = 8.0f;
+            hb.height = 16.0f;
+            float offset_x = (facing_dx >= 0.0f) ? (transform.width / 2.0f + 4.0f) : -(transform.width / 2.0f + 4.0f);
+            hb.x = cx + offset_x - 4.0f;
+            hb.y = cy - 8.0f;
+        }
+        return hb;
+    }
+
     void update(float dt, Grid& grid, const alx::Camera& camera) {
         sync_prev_transforms();
+
+        if (attack_active_timer > 0.0f) {
+            attack_active_timer -= dt;
+        }
+        if (attack_cooldown_timer > 0.0f) {
+            attack_cooldown_timer -= dt;
+        }
 
         update_movement(dt, grid, camera);
         update_actions(dt, grid);
@@ -65,6 +116,23 @@ struct Player : public Entity {
                 rect->fill,
                 rect->thickness,
                 transform.z_index
+            );
+        }
+
+        // --- ATTACK SWIPE VISUAL ---
+        if (is_attacking()) {
+            AttackHitbox hb = get_attack_hitbox();
+            int hx = camera.to_screen_x(hb.x);
+            int hy = camera.to_screen_y(hb.y);
+            int hw = std::max(1, static_cast<int>(std::round(hb.width * camera.get_zoom())));
+            int hh = std::max(1, static_cast<int>(std::round(hb.height * camera.get_zoom())));
+
+            Draw::rect(
+                hx, hy, hw, hh,
+                0xFF00FFFF, // Cyan attack arc flash
+                true,
+                1,
+                transform.z_index + 1
             );
         }
 
@@ -114,6 +182,12 @@ private:
         if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
+        // Update facing vector on non-zero movement
+        if (dx != 0.0f || dy != 0.0f) {
+            facing_dx = dx;
+            facing_dy = dy;
+        }
+
         // Normalize diagonal movement so player doesn't move faster diagonally
         if (dx != 0.0f && dy != 0.0f) {
             constexpr float inv_sqrt2 = 0.70710678118f; // 1 / sqrt(2)
@@ -137,6 +211,11 @@ private:
     }
 
     void update_actions(float dt, Grid& grid) {
+        // Attack action (Button A without R-Shoulder held)
+        if (Action::is_attack() && attack_cooldown_timer <= 0.0f) {
+            attack_active_timer = ATTACK_ACTIVE_DURATION;
+            attack_cooldown_timer = ATTACK_COOLDOWN_DURATION;
+        }
         // Cycle active build type (R-Shoulder + D / Right forward, R-Shoulder + A / Left backward)
         if (Action::is_cycle_right()) {
             if (m_selected_build_type == TileType::Pipe) {

@@ -12,6 +12,8 @@ struct EnemyConstants {
     static constexpr float DEFAULT_WIDTH = 16.0f;
     static constexpr float DEFAULT_HEIGHT = 16.0f;
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
+    static constexpr int DEFAULT_MAX_HP = 3;
+    static constexpr float KNOCKBACK_DIST = 2.0f;
 };
 
 struct Enemy {
@@ -20,9 +22,10 @@ struct Enemy {
     float width = EnemyConstants::DEFAULT_WIDTH;
     float height = EnemyConstants::DEFAULT_HEIGHT;
     uint32_t color = EnemyConstants::COLOR;
+    int hp = EnemyConstants::DEFAULT_MAX_HP;
 
-    Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR)
-        : x(px), y(py), width(w), height(h), color(col) {}
+    Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR, int max_hp = EnemyConstants::DEFAULT_MAX_HP)
+        : x(px), y(py), width(w), height(h), color(col), hp(max_hp) {}
 
     float center_x() const {
         return x + (width / 2.0f);
@@ -30,6 +33,16 @@ struct Enemy {
 
     float center_y() const {
         return y + (height / 2.0f);
+    }
+
+    void take_damage(int amount, float push_dx, float push_dy) {
+        hp -= amount;
+        x += push_dx * EnemyConstants::KNOCKBACK_DIST;
+        y += push_dy * EnemyConstants::KNOCKBACK_DIST;
+    }
+
+    bool is_dead() const {
+        return hp <= 0;
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) const {

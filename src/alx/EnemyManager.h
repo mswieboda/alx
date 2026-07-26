@@ -8,6 +8,7 @@
 #include "alx/Grid.h"
 #include "alx/Camera.h"
 #include "alx/Player.h"
+#include "alx/AlloyItem.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -29,14 +30,18 @@ struct SpawnerConstants {
 class EnemyManager {
 private:
     std::vector<Enemy> m_enemies;
+    std::vector<AlloyItem> m_alloy_items;
     float m_scan_timer = 0.0f;
     std::vector<size_t> m_cached_offscreen_indices;
+    bool m_attack_hit_registered = false;
 
 public:
     void clear() {
         m_enemies.clear();
+        m_alloy_items.clear();
         m_cached_offscreen_indices.clear();
         m_scan_timer = 0.0f;
+        m_attack_hit_registered = false;
     }
 
     void spawn_random_enemies(const Grid& grid, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f) {
@@ -102,27 +107,36 @@ public:
         }
 
         if (player) {
-            check_player_collisions(*player);
+            update_combat_and_loot(*player);
         }
     }
 
-    void check_player_collisions(Player& player) {
-        float px = player.transform.x;
-        float py = player.transform.y;
-        float pw = player.transform.width;
-        float ph = player.transform.height;
+    void update_combat_and_loot(Player& player) {
+        // --- 1. MELEE ATTACK SWIPE PROCESSOR ---
+        if (player.is_attacking()) {
+            if (!m_attack_hit_registered) {
+                m_attack_hit_registered = true;
+                Player::AttackHitbox hb = player.get_attack_hitbox();
 
+                for (auto& enemy : m_enemies) {
+                    bool hit = (hb.x < enemy.x + enemy.width &&
+                                hb.x + hb.width > enemy.x &&
+                                hb.y < enemy.y + enemy.height &&
+                                hb.y + hb.height > enemy.y);
+                    if (hit) {
+                        enemy.take_damage(1, player.facing_dx, player.facing_dy);
+                    }
+                }
+            }
+        } else {
+            m_attack_hit_registered = false;
+        }
+
+        // --- 2. ENEMY DEATH & LOOT DROP ---
         bool removed_any = false;
-
         for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
-            float ex = it->x;
-            float ey = it->y;
-            float ew = it->width;
-            float eh = it->height;
-
-            bool collided = (px < ex + ew && px + pw > ex && py < ey + eh && py + ph > ey);
-            if (collided) {
-                player.add_cursed_alloy(1);
+            if (it->is_dead()) {
+                m_alloy_items.emplace_back(it->center_x() - 4.0f, it->center_y() - 4.0f);
                 it = m_enemies.erase(it);
                 removed_any = true;
             } else {
@@ -133,9 +147,34 @@ public:
         if (removed_any) {
             update_threat_cache();
         }
+
+        // --- 3. ALLOY ITEM WALK-OVER COLLECTION ---
+        float px = player.transform.x;
+        float py = player.transform.y;
+        float pw = player.transform.width;
+        float ph = player.transform.height;
+
+        for (auto it = m_alloy_items.begin(); it != m_alloy_items.end(); ) {
+            if (it->active) {
+                bool collected = (px < it->x + it->width &&
+                                  px + pw > it->x &&
+                                  py < it->y + it->height &&
+                                  py + ph > it->y);
+                if (collected) {
+                    player.add_cursed_alloy(1);
+                    it = m_alloy_items.erase(it);
+                    continue;
+                }
+            }
+            ++it;
+        }
     }
 
     void draw_enemies(std::vector<uint32_t>& pixel_buffer, float alpha, const alx::Camera& camera) const {
+        for (const auto& item : m_alloy_items) {
+            item.draw(pixel_buffer, alpha, camera);
+        }
+
         for (const auto& enemy : m_enemies) {
             enemy.draw(pixel_buffer, alpha, camera);
         }
