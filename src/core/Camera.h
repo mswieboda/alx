@@ -22,6 +22,11 @@ struct Camera {
     float limit_bottom = 0.0f;
     bool  has_limits   = false;
 
+    // Optional deadzone tracking (inner viewport box where player movement does not shift the camera)
+    float deadzone_w = 0.5f * Game::WIDTH; // 30% of 320px width (6 tiles wide)
+    float deadzone_h = 0.5f * Game::HEIGHT; // 30% of 240px height (4.5 tiles high)
+    bool use_deadzone = true;
+
     void follow(float target_center_x, float target_center_y) {
         target_x = target_center_x;
         target_y = target_center_y;
@@ -44,13 +49,45 @@ struct Camera {
         has_limits = false;
     }
 
+    void set_deadzone(float width, float height) {
+        deadzone_w = width;
+        deadzone_h = height;
+        use_deadzone = true;
+    }
+
+    void clear_deadzone() {
+        use_deadzone = false;
+    }
+
     void update(float viewport_width = static_cast<float>(Game::WIDTH),
                 float viewport_height = static_cast<float>(Game::HEIGHT))
     {
-        // center viewport on target
+        // center viewport on target or apply deadzone boundary tracking
         if (has_target) {
-            x = target_x - (viewport_width / 2.0f);
-            y = target_y - (viewport_height / 2.0f);
+            if (use_deadzone) {
+                float half_vw = viewport_width / 2.0f;
+                float half_vh = viewport_height / 2.0f;
+                float half_dw = deadzone_w / 2.0f;
+                float half_dh = deadzone_h / 2.0f;
+
+                float target_rel_x = target_x - x - half_vw;
+                float target_rel_y = target_y - y - half_vh;
+
+                if (target_rel_x < -half_dw) {
+                    x = target_x - half_vw + half_dw;
+                } else if (target_rel_x > half_dw) {
+                    x = target_x - half_vw - half_dw;
+                }
+
+                if (target_rel_y < -half_dh) {
+                    y = target_y - half_vh + half_dh;
+                } else if (target_rel_y > half_dh) {
+                    y = target_y - half_vh - half_dh;
+                }
+            } else {
+                x = target_x - (viewport_width / 2.0f);
+                y = target_y - (viewport_height / 2.0f);
+            }
         }
 
         // clamp viewport position inside limits
