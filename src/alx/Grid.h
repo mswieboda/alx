@@ -40,6 +40,10 @@ struct Tile {
     int8_t out_dy = 0;
 };
 
+struct SimResults {
+    int spires_converted = 0;
+};
+
 class Grid {
 private:
     int m_width = 20;
@@ -188,7 +192,8 @@ public:
         }
     }
 
-    void tick_simulation() {
+    SimResults tick_simulation() {
+        SimResults results{};
         std::vector<ManaState> next_mana_states(m_tiles.size(), ManaState::None);
         std::vector<bool> next_powered(m_tiles.size(), false);
         std::vector<uint8_t> next_process_timers(m_tiles.size(), 0);
@@ -391,6 +396,8 @@ public:
                         uint8_t progress = current.process_timer + 1;
                         if (progress >= Game::LIGHT_SPIRE_TICKS_REQUIRED) {
                             Log::info("Spire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
+                            results.spires_converted++;
+
                             progress = 0;
                             next_powered[idx] = false;
                             next_mana_states[idx] = ManaState::None;
@@ -433,6 +440,8 @@ public:
             m_tiles[i].out_dx = next_out_dx[i];
             m_tiles[i].out_dy = next_out_dy[i];
         }
+
+        return results;
     }
 
 private:

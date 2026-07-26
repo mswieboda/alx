@@ -27,7 +27,7 @@ private:
     std::vector<uint32_t> m_twilight_pixel_buffer;
 
     // Level-specific progress stats
-    float m_twilight_level = 0.8f;
+    float m_twilight_level = 0.9f;
     float m_wand_radius = 56.0f;
     int m_current_level_id = 1;
 
@@ -166,7 +166,11 @@ public:
             m_sim_timer = 0.0f;
 
             // --- GRID ---
-            m_grid.tick_simulation(); // Advance factory items/fluid by one step
+            SimResults sim_res = m_grid.tick_simulation(); // Advance factory items/fluid by one step
+            if (sim_res.spires_converted > 0) {
+                m_twilight_level -= 0.06f * sim_res.spires_converted;
+                m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
+            }
         }
     }
 
