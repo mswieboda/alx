@@ -245,10 +245,11 @@ public:
 
         const FontData& font = Assets::Fonts::fant_8;
         const int line_h_padding = 4;
+        int ly = line_h_padding;
 
         // Line 1: (left) ALLOY
         Draw::text(
-            6, line_h_padding,
+            6, ly,
             Draw::fmt("alloy: %d", m_player.get_cursed_alloy()),
             0xFF00CCCC, 1, 100, &font
         );
@@ -258,7 +259,7 @@ public:
         std::string_view twilight_str = Draw::fmt("tw: %d%%", twilight_pct);
         int twilight_width = Draw::text_width(twilight_str, 1, &font);
         Draw::text(
-            screen_width / 2 - twilight_width / 2, line_h_padding,
+            screen_width / 2 - twilight_width / 2, ly,
             twilight_str,
             0xFF00CCCC, 1, 100, &font
         );
@@ -267,13 +268,16 @@ public:
         std::string_view build_str = Draw::fmt("%s (%d)", selected_name, cost);
         int build_width = Draw::text_width(build_str, 1, &font);
         Draw::text(
-            screen_width - 6 - build_width, line_h_padding,
+            screen_width - 6 - build_width, ly,
             build_str,
             0xFF00CCCC, 1, 100, &font
         );
 
+        // from line 1
+        ly += font.size;
+
         // Draw top HUD background bar (1-line display)
-        const int rect_height = line_h_padding + font.size + line_h_padding;
+        const int rect_height = ly + line_h_padding;
         Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, 99);
     }
 
