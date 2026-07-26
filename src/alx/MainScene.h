@@ -20,6 +20,8 @@ private:
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
+    float m_pan_offset_x = 0.0f;
+    float m_pan_offset_y = 0.0f;
 
     // Level-specific progress stats
     float m_twilight_level = 0.8f;
@@ -143,7 +145,45 @@ public:
             m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
         }
 
-        // --- CAMERA ---
+        // --- CAMERA PAN SCOUTING MODE (Phase 1.2) ---
+        float target_pan_x = 0.0f;
+        float target_pan_y = 0.0f;
+
+        if (m_player.is_panning) {
+            camera.start_panning();
+
+            float pdx = 0.0f;
+            float pdy = 0.0f;
+            if (Action::is_pressed(Action::MoveUp))    pdy -= 1.0f;
+            if (Action::is_pressed(Action::MoveDown))  pdy += 1.0f;
+            if (Action::is_pressed(Action::MoveLeft))  pdx -= 1.0f;
+            if (Action::is_pressed(Action::MoveRight)) pdx += 1.0f;
+
+            if (pdx != 0.0f && pdy != 0.0f) {
+                constexpr float inv_sqrt2 = 0.70710678118f;
+                pdx *= inv_sqrt2;
+                pdy *= inv_sqrt2;
+            }
+
+            constexpr float MAX_PAN_DIST = Game::TILE_SIZE * 12.0f; // 12 tiles max scouting range
+            target_pan_x = pdx * MAX_PAN_DIST;
+            target_pan_y = pdy * MAX_PAN_DIST;
+        }
+
+        // Smoothly interpolate pan offsets toward target
+        float pan_speed = 2.0f;
+        float pan_t = 1.0f - std::exp(-pan_speed * dt);
+        m_pan_offset_x += (target_pan_x - m_pan_offset_x) * pan_t;
+        m_pan_offset_y += (target_pan_y - m_pan_offset_y) * pan_t;
+
+        // When returning to zero offset while not panning, snap to exact 0.0f to restore deadzone tracking cleanly
+        if (!m_player.is_panning) {
+            camera.stop_panning();
+            if (std::abs(m_pan_offset_x) < 0.05f) m_pan_offset_x = 0.0f;
+            if (std::abs(m_pan_offset_y) < 0.05f) m_pan_offset_y = 0.0f;
+        }
+
+        camera.set_pan_offset(m_pan_offset_x, m_pan_offset_y);
         camera.update();
     }
 
@@ -164,6 +204,7 @@ public:
     void draw_custom(std::vector<uint32_t>& pixel_buffer, float alpha) override {
         // FIRST sync camera viewport with player's interpolated center position & update camera offsets
         camera.follow(m_player.center_x(alpha), m_player.center_y(alpha));
+        camera.set_pan_offset(m_pan_offset_x, m_pan_offset_y);
         camera.update();
 
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);

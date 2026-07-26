@@ -44,11 +44,11 @@ class Grid {
 private:
     int m_width = 20;
     int m_height = 15;
-    int m_tile_size = 16; // pixels per tile
+    int m_tile_size = Game::TILE_SIZE; // pixels per tile
     std::vector<Tile> m_tiles;
 
 public:
-    Grid(int width = 20, int height = 15, int tile_size = 16)
+    Grid(int width = 20, int height = 15, int tile_size = Game::TILE_SIZE)
         : m_width(width),
         m_height(height),
         m_tile_size(tile_size)

@@ -4,6 +4,7 @@
 namespace Game {
     inline constexpr int WIDTH = 320;
     inline constexpr int HEIGHT = 240;
+    inline constexpr int TILE_SIZE = 16;
     inline constexpr std::string_view TITLE = "Aetherlux";
 
     inline constexpr int TARGET_FPS = 60; // Set your cap here

@@ -8,6 +8,7 @@ struct Player : public Entity {
     int pixels_per_tick = 1;
     float speed = static_cast<float>(pixels_per_tick * Game::TARGET_FPS);
     int wand_radius = 96;
+    bool is_panning = false;
 
     Player(float x = 128.0f, float y = 128.0f)
         : Entity(
@@ -92,6 +93,14 @@ private:
     TileType m_selected_build_type = TileType::Pipe;
 
     void update_movement(float dt, const Grid& grid) {
+        // PanMode state is active while PanMode key (Shift / Q) is held
+        is_panning = Action::is_pressed(Action::PanMode);
+
+        // Suppress player entity movement while PanMode (camera scouting) is held
+        if (is_panning) {
+            return;
+        }
+
         float dx = 0.0f;
         float dy = 0.0f;
 
