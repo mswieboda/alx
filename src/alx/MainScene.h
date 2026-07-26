@@ -9,6 +9,7 @@
 #include "Grid.h"
 #include "Player.h"
 #include "Action.h"
+#include "EnemyManager.h"
 
 namespace alx {
 
@@ -18,6 +19,7 @@ class MainScene : public Scene {
 private:
     Grid m_grid;
     Player m_player;
+    EnemyManager m_enemy_manager;
     alx::Camera m_camera;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
@@ -70,6 +72,7 @@ public:
         update_camera_map_boundary();
 
         load_tiles(seeps, refiners, spires, pipes);
+        m_enemy_manager.spawn_random_enemies(m_grid, SpawnerConstants::DEFAULT_SPAWN_COUNT, m_player.center_x(1.0f), m_player.center_y(1.0f));
     }
 
     void load_tiles(
@@ -142,6 +145,9 @@ public:
         // --- PLAYER ---
         m_player.update(dt, m_grid, m_camera);
 
+        // --- ENEMIES ---
+        m_enemy_manager.update(dt);
+
         if (Action::is_pressed(Action::DebugTwUp)) {
             m_twilight_level += dt * 1;
             m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
@@ -172,11 +178,13 @@ public:
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
 
         draw_tiles(pixel_buffer, sub_tick_progress);
+        m_enemy_manager.draw_enemies(pixel_buffer, alpha, m_camera);
         m_player.draw(pixel_buffer, alpha, m_camera);
 
         draw_twilight(pixel_buffer, alpha);
 
         draw_hud();
+        m_enemy_manager.draw_threat_indicators(m_camera);
     }
 
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) {
