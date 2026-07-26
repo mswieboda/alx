@@ -7,7 +7,7 @@ namespace Log {
 
     // with prepended timestamp
     void msg_t(const std::string& message);
-    
+
     // Formatted helper for quickly printing text with primitive data types
     void fmt(const char* format, ...);
 

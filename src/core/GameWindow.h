@@ -31,7 +31,7 @@ public:
 
     // Returns raw pointer for setting input callbacks
     struct mfb_window* raw() { return m_window; }
-    
+
     // Semantic helper properties
     bool is_running() const { return m_running; }
     void close() { m_running = false; }

@@ -40,7 +40,7 @@ void Scene::update_entities(float dt) {
                 const SpriteFrame& current_frame = anim->master_frames[frame_pool_index];
 
                 if (anim->elapsed_time_ms < current_frame.duration_ms) {
-                    break; 
+                    break;
                 }
 
                 anim->elapsed_time_ms -= current_frame.duration_ms;

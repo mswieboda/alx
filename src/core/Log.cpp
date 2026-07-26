@@ -12,10 +12,10 @@ namespace Log {
         auto now = std::chrono::system_clock::now();
         auto time_t_now = std::chrono::system_clock::to_time_t(now);
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-        
+
         std::stringstream ss;
         // Output format: HH:MM:SS.mmm
-        ss << std::put_time(std::localtime(&time_t_now), "%H:%M:%S") 
+        ss << std::put_time(std::localtime(&time_t_now), "%H:%M:%S")
            << "." << std::setfill('0') << std::setw(3) << ms.count();
         return ss.str();
     }
@@ -62,7 +62,7 @@ namespace Log {
             vsnprintf(buf.data(), buf.size(), format, args);
             std::cout << "[" << get_timestamp() << "] " << buf.data() << std::endl;
         }
-        
+
         va_end(args);
     }
 

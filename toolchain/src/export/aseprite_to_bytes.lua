@@ -130,4 +130,3 @@ if pal_file then
     end
     pal_file:close()
 end
-

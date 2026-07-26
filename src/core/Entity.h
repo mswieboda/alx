@@ -82,4 +82,3 @@ struct Entity {
     Entity(Transform t, RenderComponent v, bool act = true, std::string tg = "")
         : transform(t), transform_prev(t), visual(std::move(v)), active(act), tag(std::move(tg)) {}
 };
-

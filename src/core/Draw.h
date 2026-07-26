@@ -60,7 +60,7 @@ namespace Draw {
 
     void set_y_sort_mode(YSortMode mode);
     YSortMode get_y_sort_mode();
-    
+
     void set_palette(const uint32_t* palette);
 
     // Frame string arena: formats text directly into frame scratch pool and returns frame-valid std::string_view

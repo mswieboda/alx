@@ -367,10 +367,10 @@ namespace Draw {
 
                 if constexpr (std::is_same_v<T, TextData>) {
                     draw_text_immediate(buffer, cmd.x, cmd.y, arg.text, arg.color, arg.scale, arg.font);
-                } 
+                }
                 else if constexpr (std::is_same_v<T, RectData>) {
                     draw_rect_immediate(buffer, cmd.x, cmd.y, arg.width, arg.height, arg.color, arg.fill, arg.thickness);
-                } 
+                }
                 else if constexpr (std::is_same_v<T, SpriteData>) {
                     draw_sprite_frame_immediate(
                         buffer,

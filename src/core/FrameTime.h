@@ -9,9 +9,9 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_clock_prev;
 
 public:
-    FrameTime(double target_fps) 
-        : m_target_fps(target_fps), 
-          m_time_step(1.0 / target_fps), 
+    FrameTime(double target_fps)
+        : m_target_fps(target_fps),
+          m_time_step(1.0 / target_fps),
           m_accumulator(0.0),
           m_clock_prev(std::chrono::high_resolution_clock::now()) {}
 

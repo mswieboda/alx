@@ -280,7 +280,7 @@ If `assets/images/palette.gpl` does **not** exist, the pipeline falls back to bu
 
 ##### ⚠️ Sprite Sheet & Frames Assumption
 
-The Lua export script (`aseprite_to_bytes.lua`) only flattens and exports **Frame 1** (the first frame) of each `.aseprite` file. 
+The Lua export script (`aseprite_to_bytes.lua`) only flattens and exports **Frame 1** (the first frame) of each `.aseprite` file.
 
 * For sprite sheets containing multiple frames or animations (such as walking sequences), the sprite sheet **must be laid out side-by-side or as a grid on a single canvas** in Frame 1.
 * Do not rely on Aseprite's built-in multi-frame timeline feature to store distinct frames of an animation across multiple Aseprite frames, as the exporter will ignore all frames after the first.
