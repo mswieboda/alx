@@ -69,13 +69,12 @@ This refactoring splits the heavy monolithic `alx::Grid` into two modular, decou
 - [x] Implement `Tiles::draw` and viewport spatial bounds methods.
 
 ### Phase 3: Network Fixture Layer (`Network`)
-- [ ] Create `src/alx/Network.h` with spatial fixture array and active index tracking (`m_active_indices`).
-- [ ] Implement `place_fixture(GridPos pos, FixtureType type)` and `remove_fixture(GridPos pos)` with swap-and-pop active index management.
-- [ ] Implement auto-tiling neighbor mask updates (`update_neighbor_masks(GridPos pos)`).
-- [ ] Implement `Network::is_solid(GridPos pos)` fixture collision helper.
-- [ ] Implement Model B Sink BFS gradient calculator `recalculate_flow_gradients()` to auto-direct pipe flow vectors.
-- [ ] Implement `Network::update(float dt, const Tiles& tiles)` featuring pull-based multi-pass mana flow propagation, round-robin output distribution, and stagnant mana decay into twilight clouds.
-- [ ] Implement `Network::draw(Renderer& renderer, const Camera& camera)`.
+- [x] Create `src/alx/Network.h` with spatial fixture array and active index tracking (`m_active_indices`).
+- [x] Implement `place_fixture(GridPos pos, FixtureType type)` and `remove_fixture(GridPos pos)` with swap-and-pop active index management.
+- [x] Implement auto-tiling neighbor mask updates (`update_neighbor_masks(GridPos pos)`).
+- [x] Implement `Network::is_solid(GridPos pos)` fixture collision helper.
+- [x] Implement Model B Sink BFS gradient calculator `recalculate_flow_gradients()` to auto-direct pipe flow vectors.
+- [x] Implement `Network::sim_tick()` featuring pull-based multi-pass mana flow propagation, round-robin output distribution, and stagnant mana decay into twilight.
 
 ### Phase 4: `MainScene` & System Integration
 - [ ] Update `MainScene.h` to replace `Grid m_grid` with `Tiles m_tiles` and `Network m_network`.
