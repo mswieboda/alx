@@ -24,7 +24,8 @@ MUSIC_STAMP := $(STAMP_DIR)/.music.stamp
 
 .PHONY: all \
 	assets fonts images music \
-	build run clean clean-assets \
+	build run \
+	clean clean-assets clean-fonts clean-images clean-music \
   build-release run-release clean-release release \
   config reconfig reset
 
@@ -84,6 +85,18 @@ clean:
 clean-assets:
 	@echo "--- Cleaning Asset Stamps ---"
 	@rm -f $(FONT_STAMP) $(IMAGE_STAMP) $(MUSIC_STAMP)
+
+clean-fonts:
+	@echo "--- Cleaning Font Asset Stamp ---"
+	@rm -f $(FONT_STAMP)
+
+clean-images:
+	@echo "--- Cleaning Image Asset Stamp ---"
+	@rm -f $(IMAGE_STAMP)
+
+clean-music:
+	@echo "--- Cleaning Music Asset Stamp ---"
+	@rm -f $(MUSIC_STAMP)
 
 # --- RELEASE SHORTCUTS ---
 build-release:

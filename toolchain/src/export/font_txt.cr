@@ -1,10 +1,9 @@
-module FontExporter
+module FontTxtExporter
   def self.export(input_file : String) : String
     var_name = File.basename(input_file, File.extname(input_file)).downcase.gsub(/[^a-z0-9_]/, "_")
 
     font_size = 16
     font_spacing = 10
-
     font_data = Array.new(128) { Array.new(16, 0_u16) }
     current_ascii = -1
     current_row = 0
@@ -18,8 +17,8 @@ module FontExporter
           font_size = $1.to_i
         elsif line =~ /#\s*spacing:\s*(\d+)/i
           font_spacing = $1.to_i
+          next
         end
-        next
       end
 
       if match = line.match(/\(ASCII\s+(\d+)\)/i) || line.match(/^ASCII\s+(\d+)/i) || line.match(/^(\d+)$/)
@@ -33,10 +32,10 @@ module FontExporter
       end
 
       if current_ascii >= 0 && current_ascii < 128 && current_row < 16
-        # Bit 15 = leftmost pixel (idx 0), Bit 0 = rightmost pixel (idx 15)
         bitmask = line.chars.each_with_index.reduce(0_u16) do |acc, (char, idx)|
-          break acc if idx >= 16
-          (char == '#' || char == '1') ? (acc | (1_u16 << (15 - idx))) : acc
+          limit = font_size == 8 ? 8 : 16
+          break acc if idx >= limit
+          (char == '#' || char == '1') ? (acc | (1_u16 << ((limit - 1) - idx))) : acc
         end
 
         font_data[current_ascii][current_row] = bitmask
@@ -45,9 +44,20 @@ module FontExporter
     end
 
     # Helper function to format 16-bit uint into 0b0000'0000'0000'0000
-    format_binary = ->(val : UInt16) {
-      b = val.to_s(2).rjust(16, '0')
-      "0b#{b[0..3]}'#{b[4..7]}'#{b[8..11]}'#{b[12..15]}"
+    # format_binary = ->(val : UInt16) {
+    #   b = val.to_s(2).rjust(16, '0')
+    #   "0b#{b[0..3]}'#{b[4..7]}'#{b[8..11]}'#{b[12..15]}"
+    # }
+    format_binary = ->(val : UInt16, size : Int32) {
+      if size == 8
+        # Format as an 8-bit binary literal: 0b0000'0000
+        b = val.to_s(2).rjust(8, '0')
+        "0b#{b[0..3]}'#{b[4..7]}"
+      else
+        # Format as a 16-bit binary literal: 0b0000'0000'0000'0000
+        b = val.to_s(2).rjust(16, '0')
+        "0b#{b[0..3]}'#{b[4..7]}'#{b[8..11]}'#{b[12..15]}"
+      end
     }
 
     String.build do |str|
@@ -58,7 +68,7 @@ module FontExporter
       font_data.each_with_index do |rows, char_idx|
         str << "                {\n"
         rows.each_with_index do |row_val, r_idx|
-          str << "                    #{format_binary.call(row_val)}"
+          str << "                    #{format_binary.call(row_val, font_size)}"
           str << "," if r_idx < 15
           str << "\n"
         end

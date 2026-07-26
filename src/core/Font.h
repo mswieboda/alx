@@ -3,12 +3,13 @@
 #include <cstdint>
 
 struct FontData {
-    uint8_t size = 16;
-    uint8_t spacing = 10;
-    using RowType = uint16_t;
+    // these are both overridden by each font
+    uint8_t size = 8;
+    uint8_t spacing = 8;
 
     // 128 ASCII chars, up to 16 rows per char
-    RowType data[128][16] = {}; // Guaranteed all zeros
+    // can use 8-bit (8 rows) too
+    uint16_t data[128][16] = {}; // Guaranteed all zeros
 };
 
 namespace Font {

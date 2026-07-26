@@ -249,37 +249,52 @@ public:
             selected_name = "LightSpire";
         }
 
+        const FontData& font = Assets::Fonts::alt_8x8;
+
         // Line 1: (left) ALLOY
         Draw::text(
-            6, 4,
+            6, 0,
             Draw::fmt("ALLOY: %d", m_player.get_cursed_alloy()),
-            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+            0xFF00CCCC, 1, 100, &font
         );
 
         // Line 1: (center) TWILIGHT percentage
         int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
         std::string_view twilight_str = Draw::fmt("TWILIGHT: %d%%", twilight_pct);
-        int twilight_width = Draw::text_width(twilight_str, 1, &Assets::Fonts::mini);
+        int twilight_width = Draw::text_width(twilight_str, 1, &font);
         Draw::text(
-            screen_width / 2 - twilight_width / 2, 4,
+            screen_width / 2 - twilight_width / 2, 0,
             twilight_str,
-            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+            0xFF00CCCC, 1, 100, &font
         );
 
         // Line 1: (right) BUILD Status
         std::string_view build_str = Draw::fmt("BUILD: %s (%d)", selected_name, cost);
-        int build_width = Draw::text_width(build_str, 1, &Assets::Fonts::mini);
+        int build_width = Draw::text_width(build_str, 1, &font);
         Draw::text(
-            screen_width - 6 - build_width, 4,
+            screen_width - 6 - build_width, 0,
             build_str,
-            0xFF00CCCC, 1, 100, &Assets::Fonts::mini
+            0xFF00CCCC, 1, 100, &font
         );
 
         // Line 2: Concise Controls Legend
         Draw::text(
-            6, 18,
+            6, font.size,
             "[J] Build  [K] Clear  [Q/E] Cycle  [Enter] Menu",
-            0xFF003333, 1, 100, &Assets::Fonts::mini
+            0xFF003333, 1, 100, &font
+        );
+
+        // Line 3: ASCII test output
+        Draw::text(
+            6, font.size + font.size,
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            0xFF003333, 1, 100, &font
+        );
+        // Line 4: ASCII test output
+        Draw::text(
+            6, font.size + font.size + font.size,
+            "BDEagjybcdefghijklmnopqrstuvwxyz",
+            0xFF003333, 1, 100, &font
         );
     }
 

@@ -2,6 +2,7 @@
 /lib/
 /bin/
 /build/
+/tmp/
 
 .DS_Store
 

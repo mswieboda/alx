@@ -111,13 +111,14 @@ namespace Draw {
 
                 // Loop over rows using font.size from the instance
                 for (int row = 0; row < font.size; ++row) {
-                    FontData::RowType font_row = font.data[ascii][row];
+                    uint16_t font_row = font.data[ascii][row];
 
                     int base_y = y + (row * scale);
 
-                    // Check up to 16 bit columns per row (bit 15 = leftmost pixel, bit 0 = rightmost)
-                    for (int col = 0; col < 16; ++col) {
-                        if ((font_row >> (15 - col)) & 1) {
+                    // Check up to font.size bit columns per row
+                    // bit (font.size - 1) = leftmost pixel, bit 0 = rightmost
+                    for (int col = 0; col < font.size; ++col) {
+                        if ((font_row >> ((font.size - 1) - col)) & 1) {
                             int base_x = cursor_x + (col * scale);
 
                             for (int sy = 0; sy < scale; ++sy) {
