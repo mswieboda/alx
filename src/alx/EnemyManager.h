@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 #include "alx/Enemy.h"
-#include "alx/Grid.h"
+#include "alx/Tiles.h"
 #include "alx/Camera.h"
 #include "alx/Player.h"
 #include "alx/AlloyItem.h"
@@ -13,18 +13,19 @@
 
 namespace alx {
 
+namespace SpawnerConstants {
+    constexpr int DEFAULT_SPAWN_COUNT = 6;
+    constexpr int MIN_BORDER_OFFSET = 1;
+    constexpr int MAX_BORDER_OFFSET = 3;
+    constexpr float MIN_PLAYER_DISTANCE = 96.0f;
+}
+
 struct ThreatIndicatorConstants {
     static constexpr int INDICATOR_SIZE = 8;
     static constexpr int MARGIN = 4;
     static constexpr uint32_t COLOR = 0xFFFF0000; // Bright Red
     static constexpr int Z_INDEX = 101;
     static constexpr float SCAN_INTERVAL_SEC = 0.5f;
-};
-
-struct SpawnerConstants {
-    static constexpr int DEFAULT_SPAWN_COUNT = 3;
-    static constexpr int MIN_BORDER_OFFSET = 1;
-    static constexpr int MAX_BORDER_OFFSET = 4;
 };
 
 class EnemyManager {
@@ -44,18 +45,18 @@ public:
         m_attack_hit_registered = false;
     }
 
-    void spawn_random_enemies(const Grid& grid, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f) {
+    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f) {
         clear();
 
-        int grid_w = grid.get_width();
-        int grid_h = grid.get_height();
-        int tile_size = grid.get_tile_size();
+        int grid_w = tiles.get_width();
+        int grid_h = tiles.get_height();
+        int tile_size = tiles.get_tile_size();
 
         std::vector<std::pair<int, int>> candidate_tiles;
 
         for (int ty = 0; ty < grid_h; ++ty) {
             for (int tx = 0; tx < grid_w; ++tx) {
-                if (grid.get_tile(tx, ty).type != TileType::Floor) {
+                if (!tiles.is_floor(tx, ty)) {
                     continue;
                 }
 

@@ -1,6 +1,8 @@
 #pragma once
 #include "alx/Action.h"
 #include "alx/Camera.h"
+#include "alx/Tiles.h"
+#include "alx/Network.h"
 
 namespace alx {
 
@@ -63,14 +65,12 @@ struct Player : public Entity {
 
         AttackHitbox hb;
         if (std::abs(facing_dy) >= std::abs(facing_dx)) {
-            // Vertical facing: 16px wide perpendicular, 8px deep along facing
             hb.width = 16.0f;
             hb.height = 8.0f;
             float offset_y = (facing_dy >= 0.0f) ? (transform.height / 2.0f + 4.0f) : -(transform.height / 2.0f + 4.0f);
             hb.x = cx - 8.0f;
             hb.y = cy + offset_y - 4.0f;
         } else {
-            // Horizontal facing: 8px deep along facing, 16px wide perpendicular
             hb.width = 8.0f;
             hb.height = 16.0f;
             float offset_x = (facing_dx >= 0.0f) ? (transform.width / 2.0f + 4.0f) : -(transform.width / 2.0f + 4.0f);
@@ -80,7 +80,7 @@ struct Player : public Entity {
         return hb;
     }
 
-    void update(float dt, Grid& grid, const alx::Camera& camera) {
+    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
         sync_prev_transforms();
 
         if (attack_active_timer > 0.0f) {
@@ -90,14 +90,13 @@ struct Player : public Entity {
             attack_cooldown_timer -= dt;
         }
 
-        update_movement(dt, grid, camera);
-        update_actions(dt, grid);
+        update_movement(dt, tiles, network, camera);
+        update_actions(dt, tiles, network);
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) {
         if (!active) return;
 
-        // --- MAIN BODY ---
         float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
         float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
 
@@ -119,7 +118,6 @@ struct Player : public Entity {
             );
         }
 
-        // --- ATTACK SWIPE VISUAL ---
         if (is_attacking()) {
             AttackHitbox hb = get_attack_hitbox();
             int hx = camera.to_screen_x(hb.x);
@@ -136,7 +134,6 @@ struct Player : public Entity {
             );
         }
 
-        // --- TARGET box for interactions ---
         float size = (transform.height / 4.0f) * camera.get_zoom();
 
         float target_center_x = draw_x + (draw_w / 2.0f);
@@ -148,33 +145,39 @@ struct Player : public Entity {
         Draw::rect(
             static_cast<int>(std::round(box_x)),
             static_cast<int>(std::round(box_y)),
-            std::max(1, static_cast<int>(std::round(size))), // width
-            std::max(1, static_cast<int>(std::round(size))), // height
-            0xFF990099, // color
-            true, // fill
-            1, // thickness (unused for fill true)
-            transform.z_index // same as player
+            std::max(1, static_cast<int>(std::round(size))),
+            std::max(1, static_cast<int>(std::round(size))),
+            0xFF990099,
+            true,
+            1,
+            transform.z_index
         );
     }
 
     int get_cursed_alloy() const { return m_cursed_alloy; }
     void add_cursed_alloy(int amount) { m_cursed_alloy += amount; }
-    TileType get_selected_build_type() const { return m_selected_build_type; }
+    FixtureType get_selected_fixture_type() const { return m_selected_fixture_type; }
+
+    static int get_fixture_cost(FixtureType type) {
+        switch (type) {
+            case FixtureType::Pipe: return 1;
+            case FixtureType::Refiner: return 5;
+            case FixtureType::Spire: return 10;
+            default: return 0;
+        }
+    }
 
 private:
     int m_cursed_alloy = 5;
-    TileType m_selected_build_type = TileType::Pipe;
+    FixtureType m_selected_fixture_type = FixtureType::Pipe;
 
-    void update_movement(float dt, const Grid& grid, const alx::Camera& camera) {
-        // PanMode state is active while PanMode key (Shift / Q) is held
+    void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera) {
         is_panning = Action::is_pressed(Action::PanMode);
 
-        // Suppress player entity movement while camera scouting or return decay is active
         if (camera.is_player_movement_locked()) {
             return;
         }
 
-        // Suppress player entity movement while Build mode (R-Shoulder) is held
         if (Action::is_pressed(Action::Build)) {
             return;
         }
@@ -187,95 +190,93 @@ private:
         if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
-        // Update facing vector on non-zero movement
         if (dx != 0.0f || dy != 0.0f) {
             facing_dx = dx;
             facing_dy = dy;
         }
 
-        // Normalize diagonal movement so player doesn't move faster diagonally
         if (dx != 0.0f && dy != 0.0f) {
-            constexpr float inv_sqrt2 = 0.70710678118f; // 1 / sqrt(2)
+            constexpr float inv_sqrt2 = 0.70710678118f;
             dx *= inv_sqrt2;
             dy *= inv_sqrt2;
         }
 
-        // --- AXIS-BY-AXIS COLLISION RESOLUTION ---
-
-        // Try moving along the X axis first
         float target_x = transform.x + dx * speed * dt;
-        if (!is_solid_box(target_x, transform.y, transform.width, transform.height, grid)) {
+        if (!is_solid_box(target_x, transform.y, transform.width, transform.height, tiles, network)) {
             transform.x = target_x;
         }
 
-        // Try moving along the Y axis independently
         float target_y = transform.y + dy * speed * dt;
-        if (!is_solid_box(transform.x, target_y, transform.width, transform.height, grid)) {
+        if (!is_solid_box(transform.x, target_y, transform.width, transform.height, tiles, network)) {
             transform.y = target_y;
         }
     }
 
-    void update_actions(float dt, Grid& grid) {
-        // Attack action (Button A without R-Shoulder held)
+    void update_actions(float dt, const Tiles& tiles, Network& network) {
         if (Action::is_attack() && attack_cooldown_timer <= 0.0f) {
             attack_active_timer = ATTACK_ACTIVE_DURATION;
             attack_cooldown_timer = ATTACK_COOLDOWN_DURATION;
         }
-        // Cycle active build type (R-Shoulder + D / Right forward, R-Shoulder + A / Left backward)
+
         if (Action::is_cycle_right()) {
-            if (m_selected_build_type == TileType::Pipe) {
-                m_selected_build_type = TileType::Refiner;
-            } else if (m_selected_build_type == TileType::Refiner) {
-                m_selected_build_type = TileType::Spire;
+            if (m_selected_fixture_type == FixtureType::Pipe) {
+                m_selected_fixture_type = FixtureType::Refiner;
+            } else if (m_selected_fixture_type == FixtureType::Refiner) {
+                m_selected_fixture_type = FixtureType::Spire;
             } else {
-                m_selected_build_type = TileType::Pipe;
+                m_selected_fixture_type = FixtureType::Pipe;
             }
         } else if (Action::is_cycle_left()) {
-            if (m_selected_build_type == TileType::Pipe) {
-                m_selected_build_type = TileType::Spire;
-            } else if (m_selected_build_type == TileType::Spire) {
-                m_selected_build_type = TileType::Refiner;
+            if (m_selected_fixture_type == FixtureType::Pipe) {
+                m_selected_fixture_type = FixtureType::Spire;
+            } else if (m_selected_fixture_type == FixtureType::Spire) {
+                m_selected_fixture_type = FixtureType::Refiner;
             } else {
-                m_selected_build_type = TileType::Pipe;
+                m_selected_fixture_type = FixtureType::Pipe;
             }
         }
 
-        // Key 5 / Action DebugResource: Debug cheat +10 alloy
         if (Action::is_just_pressed(Action::DebugResource)) {
             m_cursed_alloy += 10;
         }
 
-        // Calculate target tile index in front/center of player
         float center_x = transform.x + (transform.width / 2.0f);
         float center_y = transform.y + (transform.height / 1.25f);
-        int tile_size = grid.get_tile_size();
-        int target_tx = static_cast<int>(center_x) / tile_size;
-        int target_ty = static_cast<int>(center_y) / tile_size;
+        int tile_size = tiles.get_tile_size();
+        GridPos target_pos{ static_cast<int16_t>(static_cast<int>(center_x) / tile_size), static_cast<int16_t>(static_cast<int>(center_y) / tile_size) };
 
-        // Build currently selected tile type (R-Shoulder + ActionBtn)
         if (Action::is_build_tile()) {
-            grid.try_place_tile(target_tx, target_ty, m_selected_build_type, m_cursed_alloy);
+            int cost = get_fixture_cost(m_selected_fixture_type);
+            if (m_cursed_alloy >= cost && network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
+                m_cursed_alloy -= cost;
+                network.place_fixture(target_pos, m_selected_fixture_type);
+            }
         }
 
-        // Button B / Action Cancel: Drain active mana or destroy idle buildable tile with refund
         if (Action::is_just_pressed(Action::Cancel)) {
-            grid.try_drain_or_destroy_tile(target_tx, target_ty, m_cursed_alloy);
+            if (network.in_bounds(target_pos)) {
+                const Fixture& fix = network.get_fixture(target_pos);
+                if (fix.type != FixtureType::None && fix.type != FixtureType::Seep) {
+                    int refund = get_fixture_cost(fix.type);
+                    m_cursed_alloy += refund;
+                    network.remove_fixture(target_pos);
+                }
+            }
         }
     }
 
-    // Helper method checking the four corners against grid->is_walkable()
-    bool is_solid_box(float x, float y, float width, float height, const Grid& grid) const {
-        int tile_size = grid.get_tile_size();
+    bool is_solid_box(float x, float y, float width, float height, const Tiles& tiles, const Network& network) const {
+        int tile_size = tiles.get_tile_size();
 
         int left   = static_cast<int>(x) / tile_size;
         int right  = static_cast<int>(x + width - 0.01f) / tile_size;
         int top    = static_cast<int>(y) / tile_size;
         int bottom = static_cast<int>(y + height - 0.01f) / tile_size;
 
-        return !grid.is_walkable(left, top) ||
-               !grid.is_walkable(right, top) ||
-               !grid.is_walkable(left, bottom) ||
-               !grid.is_walkable(right, bottom);
+        return tiles.is_wall(left, top)     || network.is_solid(left, top) ||
+               tiles.is_wall(right, top)    || network.is_solid(right, top) ||
+               tiles.is_wall(left, bottom)  || network.is_solid(left, bottom) ||
+               tiles.is_wall(right, bottom) || network.is_solid(right, bottom);
     }
 };
 

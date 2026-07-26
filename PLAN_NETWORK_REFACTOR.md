@@ -77,12 +77,12 @@ This refactoring splits the heavy monolithic `alx::Grid` into two modular, decou
 - [x] Implement `Network::sim_tick()` featuring pull-based multi-pass mana flow propagation, round-robin output distribution, and stagnant mana decay into twilight.
 
 ### Phase 4: `MainScene` & System Integration
-- [ ] Update `MainScene.h` to replace `Grid m_grid` with `Tiles m_tiles` and `Network m_network`.
-- [ ] Update `MainScene::load_level()` to populate `m_tiles` with room terrain and `m_network` with initial Seep, Refiner, Spire, and Pipe fixtures.
-- [ ] Refactor player input action `Action::BuildTile` to `Action::BuildFixture`.
-- [ ] Update player movement collision logic to evaluate `m_tiles.is_wall(pos) || m_network.is_solid(pos)`.
-- [ ] Refactor render loop: Layer 0 `m_tiles.draw()`, Layer 1 `m_network.draw()`, Layer 2 dynamic entities (`EnemyManager`, `Player`).
-- [ ] Safely remove legacy `Grid.h`.
+- [x] Update `MainScene.h` to replace `Grid m_grid` with `Tiles m_tiles` and `Network m_network`.
+- [x] Update `MainScene::load_level()` to populate `m_tiles` with room terrain and `m_network` with initial Seep, Refiner, Spire, and Pipe fixtures.
+- [x] Refactor player input action `Action::BuildTile` to build network fixtures.
+- [x] Update player movement collision logic to evaluate `m_tiles.is_wall(pos) || m_network.is_solid(pos)`.
+- [x] Refactor render loop: Layer 0 terrain `m_tiles`, Layer 1 network `m_network`, Layer 2 dynamic entities (`EnemyManager`, `Player`).
+- [x] Safely remove legacy `Grid.h`.
 
 ### Phase 5: Verification & Compilation
-- [ ] Execute `make build` to verify clean C++20 compilation, strict type safety, zero warnings/errors, and tight binary target alignment.
+- [x] Execute `make build` to verify clean C++20 compilation, strict type safety, zero warnings/errors, and tight binary target alignment.
