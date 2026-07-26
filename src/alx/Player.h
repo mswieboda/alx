@@ -4,7 +4,9 @@
 namespace alx {
 
 struct Player : public Entity {
-    float speed = 64.0f;
+    // Integer pixels moved per physics tick (MUST be an integer: 1 = 1px/tick, 2 = 2px/tick for pixel-perfect sync without tick wobble)
+    int pixels_per_tick = 1;
+    float speed = static_cast<float>(pixels_per_tick * Game::TARGET_FPS);
     int wand_radius = 96;
 
     Player(float x = 128.0f, float y = 128.0f)
