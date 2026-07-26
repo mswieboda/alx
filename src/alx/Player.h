@@ -17,8 +17,15 @@ struct Player : public Entity {
     {
     }
 
-    float center_x() const { return transform.x + (transform.width / 2.0f); }
-    float center_y() const { return transform.y + (transform.height / 2.0f); }
+    float center_x(float alpha = 1.0f) const {
+        float draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
+        return draw_x + (transform.width / 2.0f);
+    }
+
+    float center_y(float alpha = 1.0f) const {
+        float draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        return draw_y + (transform.height / 2.0f);
+    }
 
     void sync_prev_transforms() {
         transform_prev = transform;
@@ -38,8 +45,8 @@ struct Player : public Entity {
         float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
         float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
 
-        int draw_x = camera.to_screen_x(world_draw_x);
-        int draw_y = camera.to_screen_y(world_draw_y);
+        int draw_x = static_cast<int>(std::round(camera.to_screen_x(world_draw_x)));
+        int draw_y = static_cast<int>(std::round(camera.to_screen_y(world_draw_y)));
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
@@ -161,9 +168,9 @@ private:
         int tile_size = grid.get_tile_size();
 
         int left   = static_cast<int>(x) / tile_size;
-        int right  = static_cast<int>(x + width - 1) / tile_size;
+        int right  = static_cast<int>(x + width - 0.01f) / tile_size;
         int top    = static_cast<int>(y) / tile_size;
-        int bottom = static_cast<int>(y + height - 1) / tile_size;
+        int bottom = static_cast<int>(y + height - 0.01f) / tile_size;
 
         return !grid.is_walkable(left, top) ||
                !grid.is_walkable(right, top) ||

@@ -144,7 +144,6 @@ public:
         }
 
         // --- CAMERA ---
-        camera.follow(m_player.center_x(), m_player.center_y());
         camera.update();
     }
 
@@ -163,6 +162,9 @@ public:
 
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& pixel_buffer, float alpha) override {
+        // FIRST sync camera viewport with player's interpolated center position
+        camera.follow(m_player.center_x(alpha), m_player.center_y(alpha));
+
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
 
         draw_tiles(pixel_buffer, sub_tick_progress);
