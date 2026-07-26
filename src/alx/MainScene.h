@@ -162,20 +162,21 @@ public:
 
     // Direct primitive rendering loop for the grid
     void draw_custom(std::vector<uint32_t>& pixel_buffer, float alpha) override {
-        // FIRST sync camera viewport with player's interpolated center position
+        // FIRST sync camera viewport with player's interpolated center position & update camera offsets
         camera.follow(m_player.center_x(alpha), m_player.center_y(alpha));
+        camera.update();
 
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
 
         draw_tiles(pixel_buffer, sub_tick_progress);
         m_player.draw(pixel_buffer, alpha, camera);
 
-        draw_twilight(pixel_buffer);
+        draw_twilight(pixel_buffer, alpha);
 
         draw_hud();
     }
 
-    void draw_twilight(std::vector<uint32_t>& pixel_buffer) {
+    void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) {
         if (m_twilight_level <= 0.0f) return;
 
         int w = Game::WIDTH;
@@ -191,8 +192,8 @@ public:
         std::fill(m_twilight_pixel_buffer.begin(), m_twilight_pixel_buffer.end(), twilight_color);
 
         // Player screen-space coordinates
-        int player_screen_x = static_cast<int>(m_player.center_x() - camera.x);
-        int player_screen_y = static_cast<int>(m_player.center_y() - camera.y);
+        int player_screen_x = camera.to_screen_x(m_player.center_x(alpha));
+        int player_screen_y = camera.to_screen_y(m_player.center_y(alpha));
         int radius = static_cast<int>(m_player.wand_radius);
         int radius_sq = radius * radius;
         float inv_radius_sq = 1.0f / static_cast<float>(radius_sq);

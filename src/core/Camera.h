@@ -1,11 +1,14 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include "Game.h"
 
 struct Camera {
     float x = 0.0f;
     float y = 0.0f;
+    float lerp_speed = 14.0f; // Smooth GBA-style camera follow speed
+    bool initialized = false;
 
     // Optional target tracking (pointers to world coordinates, e.g. player center_x, center_y)
     float target_x = 0.0f;
@@ -60,11 +63,11 @@ struct Camera {
     }
 
     int to_screen_x(float world_x) const {
-        return static_cast<int>(world_x - x);
+        return static_cast<int>(std::round(world_x - x));
     }
 
     int to_screen_y(float world_y) const {
-        return static_cast<int>(world_y - y);
+        return static_cast<int>(std::round(world_y - y));
     }
 
     float to_world_x(float screen_x) const {

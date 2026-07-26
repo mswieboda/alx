@@ -45,8 +45,8 @@ struct Player : public Entity {
         float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
         float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
 
-        int draw_x = static_cast<int>(std::round(camera.to_screen_x(world_draw_x)));
-        int draw_y = static_cast<int>(std::round(camera.to_screen_y(world_draw_y)));
+        int draw_x = camera.to_screen_x(world_draw_x);
+        int draw_y = camera.to_screen_y(world_draw_y);
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
@@ -71,8 +71,8 @@ struct Player : public Entity {
         float box_y = target_center_y - (size / 2.0f);
 
         Draw::rect(
-            (int)box_x,
-            (int)box_y,
+            static_cast<int>(std::round(box_x)),
+            static_cast<int>(std::round(box_y)),
             (int)size, // width
             (int)size, // height
             0xFF990099, // color
@@ -100,9 +100,9 @@ private:
 
         // Normalize diagonal movement so player doesn't move faster diagonally
         if (dx != 0.0f && dy != 0.0f) {
-            float inv_length = 0.7071f; // ~1 / sqrt(2)
-            dx *= inv_length;
-            dy *= inv_length;
+            constexpr float inv_sqrt2 = 0.70710678118f; // 1 / sqrt(2)
+            dx *= inv_sqrt2;
+            dy *= inv_sqrt2;
         }
 
         // --- AXIS-BY-AXIS COLLISION RESOLUTION ---
