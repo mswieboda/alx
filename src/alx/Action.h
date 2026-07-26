@@ -45,7 +45,7 @@ namespace Action {
         Attack = ActionBtn, // Alias for Attack
         BuildTile,  // R-Shoulder (Right Shift / E) + Button A (J / Z): Place buildable tile
         Cancel,     // Button B (K / X): Cancel / Drain / Demolish
-        Cycle,      // Legacy alias for CycleNext
+        Build,      // R-Shoulder (Right Shift / E): Modifier for Build / Cycle commands
         CycleNext,  // R-Shoulder (Right Shift / E) + D-Pad Right (D / Right): Cycle build type forward
         CyclePrev,  // R-Shoulder (Right Shift / E) + D-Pad Left (A / Left): Cycle build type backward
         PanMode,    // L-Shoulder (Left Shift / Q): Hold to pan camera scouting
@@ -65,10 +65,10 @@ namespace Action {
     bool is_just_pressed(Type type);
 
     // Semantic Combo Helpers (GBA R-Shoulder + D-Pad / Button A)
-    bool is_attack();           // Button A without R-Shoulder (Cycle) held
-    bool is_build_tile();       // R-Shoulder (Cycle) held + Button A
-    bool is_cycle_right();      // R-Shoulder (Cycle) held + D-Pad Right
-    bool is_cycle_left();       // R-Shoulder (Cycle) held + D-Pad Left
+    bool is_attack();           // Button A without R-Shoulder (Build) held
+    bool is_build_tile();       // R-Shoulder (Build) held + Button A
+    bool is_cycle_right();      // R-Shoulder (Build) held + D-Pad Right
+    bool is_cycle_left();       // R-Shoulder (Build) held + D-Pad Left
 
     // String API (Convenience overloads)
     bool is_pressed(const std::string& action_str);

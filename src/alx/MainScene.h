@@ -17,6 +17,16 @@ namespace alx {
 
 class MainScene : public Scene {
 private:
+    // --- CONSTANTS ---
+
+    // --- TWILIGHT ---
+    static constexpr float TWILIGHT_MAX = 0.9f;
+    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.005f;
+
+    // TODO: for dark towers later
+    // static constexpr float DARK_TOWER_SPAWN_RATE_MIN = 15.0f; // in seconds
+    // static constexpr float DARK_TOWER_SPAWN_RATE_MAX = 50.0f; // in seconds
+
     Grid m_grid;
     Player m_player;
     EnemyManager m_enemy_manager;
@@ -27,7 +37,7 @@ private:
     std::vector<uint32_t> m_twilight_pixel_buffer;
 
     // Level-specific progress stats
-    float m_twilight_level = 0.9f;
+    float m_twilight_level = TWILIGHT_MAX;
     float m_wand_radius = 56.0f;
     int m_current_level_id = 1;
 
@@ -46,7 +56,7 @@ public:
 
     void load_level(int level_id) {
         m_current_level_id = level_id;
-        m_twilight_level = 0.9f; // Reset darkness for new room
+        m_twilight_level = TWILIGHT_MAX; // Reset darkness for new room
 
         // temp data for specific initial level spawns
         std::vector<std::pair<int, int>> seeps;
@@ -60,12 +70,16 @@ public:
             m_twilight_level = 0.75f;
 
             // Populate Level 1 coordinates
-            seeps.push_back({15, 12});
-            refiners.push_back({10, 8});
+            seeps = { {15, 12} };
+            refiners = { {10, 8} };
+            spires = { {6, 6} };
 
-            // Input pipeline (Seep to Refiner)
             pipes = {
-                {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11}
+                // seep to refiner
+                {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11},
+
+                // refiner to spire
+                {9, 8}, {9, 9}, {8, 9}, {7, 9}, {6, 9}, {6, 8}, {6, 7}
             };
         }
 
@@ -149,11 +163,11 @@ public:
         m_enemy_manager.update(dt, &m_player);
 
         if (Action::is_pressed(Action::DebugTwUp)) {
-            m_twilight_level += dt * 1;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
+            m_twilight_level += 1 * dt;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
         } else if (Action::is_pressed(Action::DebugTwDown)) {
-            m_twilight_level -= dt * 1;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
+            m_twilight_level -= 1 * dt;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
         }
     }
 
@@ -168,8 +182,8 @@ public:
             // --- GRID ---
             SimResults sim_res = m_grid.tick_simulation(); // Advance factory items/fluid by one step
             if (sim_res.spires_converted > 0) {
-                m_twilight_level -= 0.06f * sim_res.spires_converted;
-                m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
+                m_twilight_level -= TWILIGHT_DECREASE_PER_MANA * sim_res.spires_converted;
+                m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
             }
         }
     }

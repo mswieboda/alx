@@ -17,6 +17,6 @@ namespace Game {
     // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
     inline constexpr uint8_t REFINER_TICKS_REQUIRED = 3;
     inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
-    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 9;
-    inline constexpr uint8_t SEEP_OVERPRESSURE_THRESHOLD_TICKS = 5;
+    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 25;
+    inline constexpr uint8_t SEEP_OVERPRESSURE_THRESHOLD_TICKS = 10; // consider removing this mechanic
 }

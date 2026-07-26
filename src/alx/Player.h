@@ -174,6 +174,11 @@ private:
             return;
         }
 
+        // Suppress player entity movement while Build mode (R-Shoulder) is held
+        if (Action::is_pressed(Action::Build)) {
+            return;
+        }
+
         float dx = 0.0f;
         float dy = 0.0f;
 

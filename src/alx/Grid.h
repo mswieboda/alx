@@ -31,9 +31,9 @@ struct Tile {
     ManaState mana_state = ManaState::None;
     bool is_powered = false;
     uint8_t process_timer = 0;
-    uint8_t mana_ttl = 0;
-    uint8_t overpressure_timer = 0;
-    uint16_t reserve_count = 50;
+    uint8_t mana_ttl = 0;  // consider removing this light mana mechanic
+    uint8_t overpressure_timer = 0;  // consider removing this seep mechanic
+    uint16_t reserve_count = 50; // consider removing this seep mechanic
     int8_t move_dx = 0;
     int8_t move_dy = 0;
     int8_t out_dx = 0;

@@ -16,11 +16,10 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"attack",         ActionBtn},
     {"confirm",        ActionBtn},
     {"a",              ActionBtn},
-    {"build",          BuildTile},
+    {"build",          Build},
     {"build_tile",     BuildTile},
     {"cancel",         Cancel},
     {"b",              Cancel},
-    {"cycle",          Cycle},
     {"cycle_right",    CycleNext},
     {"cycle_next",     CycleNext},
     {"cycle_prev",     CyclePrev},
@@ -45,9 +44,9 @@ std::string type_to_string(Type type) {
         case MoveLeft:      return "move_left";
         case MoveRight:     return "move_right";
         case ActionBtn:     return "action";
-        case BuildTile:     return "build";
+        case Build:         return "build";
+        case BuildTile:     return "build_tile";
         case Cancel:        return "cancel";
-        case Cycle:         return "cycle";
         case CycleNext:     return "cycle_next";
         case CyclePrev:     return "cycle_prev";
         case PanMode:       return "pan_mode";
@@ -99,7 +98,7 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(Cancel)]        = GBA::BUTTON_B;
 
     s_bindings[static_cast<size_t>(PanMode)]       = GBA::L_SHOULDER;
-    s_bindings[static_cast<size_t>(Cycle)]         = GBA::R_SHOULDER;
+    s_bindings[static_cast<size_t>(Build)]         = GBA::R_SHOULDER;
     s_bindings[static_cast<size_t>(CycleNext)]     = GBA::DPAD_RIGHT;
     s_bindings[static_cast<size_t>(CyclePrev)]     = GBA::DPAD_LEFT;
 
@@ -159,19 +158,19 @@ bool is_just_pressed(Type type) {
 }
 
 bool is_attack() {
-    return !is_pressed(Cycle) && is_just_pressed(ActionBtn);
+    return !is_pressed(Build) && is_just_pressed(ActionBtn);
 }
 
 bool is_build_tile() {
-    return is_pressed(Cycle) && is_just_pressed(ActionBtn);
+    return is_pressed(Build) && is_just_pressed(ActionBtn);
 }
 
 bool is_cycle_right() {
-    return is_pressed(Cycle) && (is_just_pressed(MoveRight) || is_just_pressed(Cycle));
+    return is_pressed(Build) && (is_just_pressed(MoveRight));
 }
 
 bool is_cycle_left() {
-    return is_pressed(Cycle) && is_just_pressed(MoveLeft);
+    return is_pressed(Build) && is_just_pressed(MoveLeft);
 }
 
 bool is_pressed(const std::string& action_str) {
