@@ -16,10 +16,14 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"attack",         ActionBtn},
     {"confirm",        ActionBtn},
     {"a",              ActionBtn},
+    {"build",          BuildTile},
+    {"build_tile",     BuildTile},
     {"cancel",         Cancel},
     {"b",              Cancel},
     {"cycle",          Cycle},
-    {"cycle_right",    Cycle},
+    {"cycle_right",    CycleNext},
+    {"cycle_next",     CycleNext},
+    {"cycle_prev",     CyclePrev},
     {"pan_mode",       PanMode},
     {"menu",           Menu},
     {"map",            Map},
@@ -41,8 +45,11 @@ std::string type_to_string(Type type) {
         case MoveLeft:      return "move_left";
         case MoveRight:     return "move_right";
         case ActionBtn:     return "action";
+        case BuildTile:     return "build";
         case Cancel:        return "cancel";
         case Cycle:         return "cycle";
+        case CycleNext:     return "cycle_next";
+        case CyclePrev:     return "cycle_prev";
         case PanMode:       return "pan_mode";
         case Menu:          return "menu";
         case Map:           return "map";
@@ -50,6 +57,22 @@ std::string type_to_string(Type type) {
         default:            return "unknown";
     }
 }
+
+// =========================================================================
+// GBA CONTROLLER HARDWARE MAPPING SCHEME
+// =========================================================================
+// Keyboard inputs strictly emulate a 2D GBA layout (A, B, L, R, D-Pad):
+// - D-Pad (Up/Down/Left/Right): W / A / S / D  or  Arrow Keys
+// - Button A: J or Z (Primary Attack / Action)
+// - Button B: K or X (Cancel / Secondary Action)
+// - L-Shoulder (L): Left Shift or Q (Pan Mode / Camera Scouting)
+// - R-Shoulder (R): Right Shift or E (Modifier for Build / Cycle commands)
+//
+// Combos via R-Shoulder (Right Shift / E):
+// - R-Shoulder + Button A (J/Z)  -> Build Tile
+// - R-Shoulder + Right / D       -> Cycle Build Type Forward
+// - R-Shoulder + Left / A        -> Cycle Build Type Backward
+// =========================================================================
 
 static std::vector<int> s_bindings[static_cast<size_t>(Count)];
 static bool s_initialized = false;
@@ -65,17 +88,24 @@ void reset_default_bindings() {
         vec.clear();
     }
 
-    s_bindings[static_cast<size_t>(MoveUp)]        = { MFB_KB_KEY_W, MFB_KB_KEY_UP };
-    s_bindings[static_cast<size_t>(MoveDown)]      = { MFB_KB_KEY_S, MFB_KB_KEY_DOWN };
-    s_bindings[static_cast<size_t>(MoveLeft)]      = { MFB_KB_KEY_A, MFB_KB_KEY_LEFT };
-    s_bindings[static_cast<size_t>(MoveRight)]     = { MFB_KB_KEY_D, MFB_KB_KEY_RIGHT };
+    s_bindings[static_cast<size_t>(MoveUp)]        = GBA::DPAD_UP;
+    s_bindings[static_cast<size_t>(MoveDown)]      = GBA::DPAD_DOWN;
+    s_bindings[static_cast<size_t>(MoveLeft)]      = GBA::DPAD_LEFT;
+    s_bindings[static_cast<size_t>(MoveRight)]     = GBA::DPAD_RIGHT;
 
-    s_bindings[static_cast<size_t>(ActionBtn)]     = { MFB_KB_KEY_J, MFB_KB_KEY_Z };
-    s_bindings[static_cast<size_t>(Cancel)]        = { MFB_KB_KEY_K, MFB_KB_KEY_X };
-    s_bindings[static_cast<size_t>(Cycle)]         = { MFB_KB_KEY_RIGHT_SHIFT, MFB_KB_KEY_E };
-    s_bindings[static_cast<size_t>(PanMode)]       = { MFB_KB_KEY_LEFT_SHIFT, MFB_KB_KEY_Q };
-    s_bindings[static_cast<size_t>(Menu)]          = { MFB_KB_KEY_ENTER };
-    s_bindings[static_cast<size_t>(Map)]           = { MFB_KB_KEY_TAB, MFB_KB_KEY_SPACE };
+    s_bindings[static_cast<size_t>(ActionBtn)]     = GBA::BUTTON_A;
+    s_bindings[static_cast<size_t>(BuildTile)]     = GBA::BUTTON_A;
+
+    s_bindings[static_cast<size_t>(Cancel)]        = GBA::BUTTON_B;
+
+    s_bindings[static_cast<size_t>(PanMode)]       = GBA::L_SHOULDER;
+    s_bindings[static_cast<size_t>(Cycle)]         = GBA::R_SHOULDER;
+    s_bindings[static_cast<size_t>(CycleNext)]     = GBA::DPAD_RIGHT;
+    s_bindings[static_cast<size_t>(CyclePrev)]     = GBA::DPAD_LEFT;
+
+    s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
+    s_bindings[static_cast<size_t>(Map)]           = GBA::SELECT;
+
     s_bindings[static_cast<size_t>(DebugResource)] = { MFB_KB_KEY_5 };
     s_bindings[static_cast<size_t>(DebugTwUp)]     = { MFB_KB_KEY_EQUAL };
     s_bindings[static_cast<size_t>(DebugTwDown)]   = { MFB_KB_KEY_MINUS };
@@ -126,6 +156,22 @@ bool is_just_pressed(Type type) {
         if (::Input::is_key_just_pressed(key)) return true;
     }
     return false;
+}
+
+bool is_attack() {
+    return !is_pressed(Cycle) && is_just_pressed(ActionBtn);
+}
+
+bool is_build_tile() {
+    return is_pressed(Cycle) && is_just_pressed(ActionBtn);
+}
+
+bool is_cycle_right() {
+    return is_pressed(Cycle) && (is_just_pressed(MoveRight) || is_just_pressed(Cycle));
+}
+
+bool is_cycle_left() {
+    return is_pressed(Cycle) && is_just_pressed(MoveLeft);
 }
 
 bool is_pressed(const std::string& action_str) {

@@ -137,12 +137,20 @@ private:
     }
 
     void update_actions(float dt, Grid& grid) {
-        // Cycle active build type (E / RB)
-        if (Action::is_just_pressed(Action::Cycle)) {
+        // Cycle active build type (R-Shoulder + D / Right forward, R-Shoulder + A / Left backward)
+        if (Action::is_cycle_right()) {
             if (m_selected_build_type == TileType::Pipe) {
                 m_selected_build_type = TileType::Refiner;
             } else if (m_selected_build_type == TileType::Refiner) {
                 m_selected_build_type = TileType::Spire;
+            } else {
+                m_selected_build_type = TileType::Pipe;
+            }
+        } else if (Action::is_cycle_left()) {
+            if (m_selected_build_type == TileType::Pipe) {
+                m_selected_build_type = TileType::Spire;
+            } else if (m_selected_build_type == TileType::Spire) {
+                m_selected_build_type = TileType::Refiner;
             } else {
                 m_selected_build_type = TileType::Pipe;
             }
@@ -160,8 +168,8 @@ private:
         int target_tx = static_cast<int>(center_x) / tile_size;
         int target_ty = static_cast<int>(center_y) / tile_size;
 
-        // Button A / Action: Build currently selected tile type
-        if (Action::is_just_pressed(Action::ActionBtn)) {
+        // Build currently selected tile type (R-Shoulder + ActionBtn)
+        if (Action::is_build_tile()) {
             grid.try_place_tile(target_tx, target_ty, m_selected_build_type, m_cursed_alloy);
         }
 
