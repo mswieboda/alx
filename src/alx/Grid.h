@@ -574,7 +574,7 @@ private:
                     int n_idx = ny * m_width + nx;
                     const Tile& n = m_tiles[n_idx];
                     if (n.type == TileType::Pipe && dark_dist[n_idx] > my_d && dark_dist[n_idx] < 9000) {
-                        if (n.mana_state == ManaState::None && next_mana_states[n_idx] == ManaState::None) {
+                        if (next_mana_states[n_idx] == ManaState::None) {
                             return n_idx;
                         }
                     }
@@ -589,7 +589,7 @@ private:
                     int n_idx = ny * m_width + nx;
                     const Tile& n = m_tiles[n_idx];
                     if (n.type == TileType::Pipe && light_dist[n_idx] > my_d && light_dist[n_idx] < 9000) {
-                        if (n.mana_state == ManaState::None && next_mana_states[n_idx] == ManaState::None) {
+                        if (next_mana_states[n_idx] == ManaState::None) {
                             return n_idx;
                         }
                     }
