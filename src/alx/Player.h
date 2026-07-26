@@ -5,7 +5,7 @@ namespace alx {
 
 struct Player : public Entity {
     float speed = 64.0f;
-    int wand_radius = 128;
+    int wand_radius = 96;
 
     Player(float x = 128.0f, float y = 128.0f)
         : Entity(

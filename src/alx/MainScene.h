@@ -137,10 +137,10 @@ public:
 
         if (Action::is_pressed(Action::DebugTwUp)) {
             m_twilight_level += dt * 1;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 1.0f);
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
         } else if (Action::is_pressed(Action::DebugTwDown)) {
             m_twilight_level -= dt * 1;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 1.0f);
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, 0.9f);
         }
 
         // --- CAMERA ---
@@ -178,59 +178,56 @@ public:
 
         int w = Game::WIDTH;
         int h = Game::HEIGHT;
-        uint32_t twilight_rgb = 0x001a0a2a; // Deep moody purple
+        uint32_t twilight_rgb = 0x00130C1A; // col, dusky navy-violet
 
         // Base full-screen twilight tint
-        uint8_t base_alpha = static_cast<uint8_t>(m_twilight_level * 255.0f);
+        float max_alpha_float = m_twilight_level * 255.0f;
+        uint8_t base_alpha = static_cast<uint8_t>(max_alpha_float);
         uint32_t twilight_color = (static_cast<uint32_t>(base_alpha) << 24) | twilight_rgb;
 
-        // Fast flood fill for whole screen
+        // Fast flood fill for whole screen (~0.001 ms)
         std::fill(m_twilight_pixel_buffer.begin(), m_twilight_pixel_buffer.end(), twilight_color);
 
         // Player screen-space coordinates
-        float player_screen_x = (m_player.center_x()) - camera.x;
-        float player_screen_y = (m_player.center_y()) - camera.y;
-        float radius = m_player.wand_radius;
-        float radius_sq = radius * radius;
+        int player_screen_x = static_cast<int>(m_player.center_x() - camera.x);
+        int player_screen_y = static_cast<int>(m_player.center_y() - camera.y);
+        int radius = static_cast<int>(m_player.wand_radius);
+        int radius_sq = radius * radius;
+        float inv_radius_sq = 1.0f / static_cast<float>(radius_sq);
 
-        // Compute tight screen-space bounding box
-        int min_x = std::clamp(static_cast<int>(player_screen_x - radius), 0, w);
-        int max_x = std::clamp(static_cast<int>(player_screen_x + radius) + 1, 0, w);
-        int min_y = std::clamp(static_cast<int>(player_screen_y - radius), 0, h);
-        int max_y = std::clamp(static_cast<int>(player_screen_y + radius) + 1, 0, h);
+        // Tight screen-space bounding box
+        int min_x = std::clamp(player_screen_x - radius, 0, w);
+        int max_x = std::clamp(player_screen_x + radius + 1, 0, w);
+        int min_y = std::clamp(player_screen_y - radius, 0, h);
+        int max_y = std::clamp(player_screen_y + radius + 1, 0, h);
 
         // Loop ONLY within the player's light radius bounding box
         for (int y = min_y; y < max_y; ++y) {
-            float dy = static_cast<float>(y) - player_screen_y;
-            float dy_sq = dy * dy; // Compute dy^2 once per row!
+            int dy = y - player_screen_y;
+            int dy_sq = dy * dy; // row delta
+            int row_offset = y * w; // row index offset
 
             for (int x = min_x; x < max_x; ++x) {
-                float dx = static_cast<float>(x) - player_screen_x;
-                float dist_sq = dx * dx + dy_sq;
+                int dx = x - player_screen_x;
+                int dist_sq = dx * dx + dy_sq;
 
-                // Fast squared-distance check (no sqrt needed to discard outer pixels!)
+                // Fast squared-distance check
                 if (dist_sq < radius_sq) {
-                    float dist = std::sqrt(dist_sq); // Only call sqrt for pixels INSIDE the circle
-                    float factor = dist / radius; // 0.0 at center, 1.0 at edge
-
-                    float local_alpha = m_twilight_level * factor;
-                    uint8_t alpha_byte = static_cast<uint8_t>(local_alpha * 255.0f);
-                    int idx = y * w + x;
+                    float factor = static_cast<float>(dist_sq) * inv_radius_sq;
+                    uint8_t alpha_byte = static_cast<uint8_t>(max_alpha_float * factor);
+                    int idx = row_offset + x;
 
                     m_twilight_pixel_buffer[idx] = (static_cast<uint32_t>(alpha_byte) << 24) | twilight_rgb;
                 }
             }
         }
 
-        // Submit to render command queue
-        const uint32_t* pixel_data = m_twilight_pixel_buffer.data();
-        uint32_t pixel_data_size = static_cast<uint32_t>(m_twilight_pixel_buffer.size() * sizeof(uint32_t));
-
         Draw::blend_pixels(
             0, 0,
-            pixel_data, pixel_data_size,
+            m_twilight_pixel_buffer.data(),
+            static_cast<uint32_t>(m_twilight_pixel_buffer.size() * sizeof(uint32_t)),
             w, h,
-            100 // High Z-Index for screen overlay
+            100  // high Z-Index for screen overlay
         );
     }
 
