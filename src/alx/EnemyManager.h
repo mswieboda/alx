@@ -7,6 +7,7 @@
 #include "alx/Enemy.h"
 #include "alx/Grid.h"
 #include "alx/Camera.h"
+#include "alx/Player.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -93,10 +94,43 @@ public:
         update_threat_cache();
     }
 
-    void update(float dt) {
+    void update(float dt, Player* player = nullptr) {
         m_scan_timer += dt;
         if (m_scan_timer >= ThreatIndicatorConstants::SCAN_INTERVAL_SEC) {
             m_scan_timer = 0.0f;
+            update_threat_cache();
+        }
+
+        if (player) {
+            check_player_collisions(*player);
+        }
+    }
+
+    void check_player_collisions(Player& player) {
+        float px = player.transform.x;
+        float py = player.transform.y;
+        float pw = player.transform.width;
+        float ph = player.transform.height;
+
+        bool removed_any = false;
+
+        for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
+            float ex = it->x;
+            float ey = it->y;
+            float ew = it->width;
+            float eh = it->height;
+
+            bool collided = (px < ex + ew && px + pw > ex && py < ey + eh && py + ph > ey);
+            if (collided) {
+                player.add_cursed_alloy(1);
+                it = m_enemies.erase(it);
+                removed_any = true;
+            } else {
+                ++it;
+            }
+        }
+
+        if (removed_any) {
             update_threat_cache();
         }
     }

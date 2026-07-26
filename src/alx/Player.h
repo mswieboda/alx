@@ -90,6 +90,7 @@ struct Player : public Entity {
     }
 
     int get_cursed_alloy() const { return m_cursed_alloy; }
+    void add_cursed_alloy(int amount) { m_cursed_alloy += amount; }
     TileType get_selected_build_type() const { return m_selected_build_type; }
 
 private:
