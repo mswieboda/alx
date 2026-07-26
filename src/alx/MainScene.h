@@ -22,6 +22,7 @@ private:
     std::vector<uint32_t> m_twilight_pixel_buffer;
     float m_pan_offset_x = 0.0f;
     float m_pan_offset_y = 0.0f;
+    float m_zoom_progress = 0.0f;
 
     // Level-specific progress stats
     float m_twilight_level = 0.8f;
@@ -183,6 +184,26 @@ public:
             if (std::abs(m_pan_offset_y) < 0.05f) m_pan_offset_y = 0.0f;
         }
 
+        // Quantized Eased Zoom Transition (0.15s duration, 100% integer-pixel safe steps)
+        if (m_player.is_panning) {
+            m_zoom_progress += dt / 0.15f;
+        } else {
+            m_zoom_progress -= dt / 0.15f;
+        }
+        m_zoom_progress = std::clamp(m_zoom_progress, 0.0f, 1.0f);
+
+        // Smoothstep cubic ease-in-out curve
+        float eased_t = m_zoom_progress * m_zoom_progress * (3.0f - 2.0f * m_zoom_progress);
+
+        float min_zoom = 0.75f; // 3/4 scale (12px tile)
+        float max_zoom = 1.00f; // 1/1 scale (16px tile)
+        float raw_zoom = max_zoom + (min_zoom - max_zoom) * eased_t;
+
+        // Quantize zoom to exact integer tile sizes (16px -> 15px -> 14px -> 13px -> 12px)
+        float raw_tile_size = 16.0f * raw_zoom;
+        float quantized_tile_size = std::round(raw_tile_size);
+        camera.zoom = quantized_tile_size / 16.0f;
+
         camera.set_pan_offset(m_pan_offset_x, m_pan_offset_y);
         camera.update();
     }
@@ -235,7 +256,7 @@ public:
         // Player screen-space coordinates
         int player_screen_x = camera.to_screen_x(m_player.center_x(alpha));
         int player_screen_y = camera.to_screen_y(m_player.center_y(alpha));
-        int radius = static_cast<int>(m_player.wand_radius);
+        int radius = static_cast<int>(std::round(m_player.wand_radius * camera.zoom));
         int radius_sq = radius * radius;
         float inv_radius_sq = 1.0f / static_cast<float>(radius_sq);
 
@@ -338,22 +359,26 @@ public:
     }
 
     void draw_tiles(std::vector<uint32_t>& pixel_buffer, float progress) {
-        int tile_size = m_grid.get_tile_size();
+        int base_tile_size = m_grid.get_tile_size();
+        float view_w = Game::WIDTH / camera.zoom;
+        float view_h = Game::HEIGHT / camera.zoom;
 
-        int min_tx = std::max(0, static_cast<int>(camera.get_x()) / tile_size);
-        int max_tx = std::min(m_grid.get_width() - 1, static_cast<int>(camera.get_x() + Game::WIDTH) / tile_size + 1);
-        int min_ty = std::max(0, static_cast<int>(camera.get_y()) / tile_size);
-        int max_ty = std::min(m_grid.get_height() - 1, static_cast<int>(camera.get_y() + Game::HEIGHT) / tile_size + 1);
+        int min_tx = std::max(0, static_cast<int>(camera.get_x()) / base_tile_size);
+        int max_tx = std::min(m_grid.get_width() - 1, static_cast<int>(camera.get_x() + view_w) / base_tile_size + 1);
+        int min_ty = std::max(0, static_cast<int>(camera.get_y()) / base_tile_size);
+        int max_ty = std::min(m_grid.get_height() - 1, static_cast<int>(camera.get_y() + view_h) / base_tile_size + 1);
+
+        int scaled_tile_size = std::max(1, static_cast<int>(std::round(base_tile_size * camera.zoom)));
 
         for (int y = min_ty; y <= max_ty; ++y) {
             for (int x = min_tx; x <= max_tx; ++x) {
                 Tile tile = m_grid.get_tile(x, y);
-                int screen_x = camera.to_screen_x(x * tile_size);
-                int screen_y = camera.to_screen_y(y * tile_size);
+                int screen_x = camera.to_screen_x(x * base_tile_size);
+                int screen_y = camera.to_screen_y(y * base_tile_size);
 
-                draw_tile_bg(tile, x, y, screen_x, screen_y, tile_size);
-                draw_tile_mana(tile, x, y, screen_x, screen_y, tile_size, progress);
-                draw_tile_powered(tile, screen_x, screen_y, tile_size);
+                draw_tile_bg(tile, x, y, screen_x, screen_y, scaled_tile_size);
+                draw_tile_mana(tile, x, y, screen_x, screen_y, scaled_tile_size, progress);
+                draw_tile_powered(tile, screen_x, screen_y, scaled_tile_size);
             }
         }
     }

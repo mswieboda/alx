@@ -50,13 +50,15 @@ struct Player : public Entity {
 
         int draw_x = camera.to_screen_x(world_draw_x);
         int draw_y = camera.to_screen_y(world_draw_y);
+        int draw_w = std::max(1, static_cast<int>(std::round(transform.width * camera.zoom)));
+        int draw_h = std::max(1, static_cast<int>(std::round(transform.height * camera.zoom)));
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
                 draw_x,
                 draw_y,
-                (int)transform.width,
-                (int)transform.height,
+                draw_w,
+                draw_h,
                 rect->color,
                 rect->fill,
                 rect->thickness,
@@ -65,10 +67,10 @@ struct Player : public Entity {
         }
 
         // --- TARGET box for interactions ---
-        float size = transform.height / 4.0f;
+        float size = (transform.height / 4.0f) * camera.zoom;
 
-        float target_center_x = draw_x + (transform.width / 2.0f);
-        float target_center_y = draw_y + (transform.height / 1.25f);
+        float target_center_x = draw_x + (draw_w / 2.0f);
+        float target_center_y = draw_y + (draw_h / 1.25f);
 
         float box_x = target_center_x - (size / 2.0f);
         float box_y = target_center_y - (size / 2.0f);
@@ -76,8 +78,8 @@ struct Player : public Entity {
         Draw::rect(
             static_cast<int>(std::round(box_x)),
             static_cast<int>(std::round(box_y)),
-            (int)size, // width
-            (int)size, // height
+            std::max(1, static_cast<int>(std::round(size))), // width
+            std::max(1, static_cast<int>(std::round(size))), // height
             0xFF990099, // color
             true, // fill
             1, // thickness (unused for fill true)

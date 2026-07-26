@@ -132,20 +132,23 @@ struct Camera {
         }
     }
 
+    float zoom = 1.0f;        // 1.0f = 1x normal, 0.5f = 2x zoom out
+    float target_zoom = 1.0f; // Target zoom factor
+
     int to_screen_x(float world_x) const {
-        return static_cast<int>(std::round(world_x - x));
+        return static_cast<int>(std::round((world_x - x) * zoom));
     }
 
     int to_screen_y(float world_y) const {
-        return static_cast<int>(std::round(world_y - y));
+        return static_cast<int>(std::round((world_y - y) * zoom));
     }
 
     float to_world_x(float screen_x) const {
-        return screen_x + x;
+        return (screen_x / zoom) + x;
     }
 
     float to_world_y(float screen_y) const {
-        return screen_y + y;
+        return (screen_y / zoom) + y;
     }
 
     float get_x() const { return x; }
