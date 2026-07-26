@@ -1,10 +1,12 @@
 #pragma once
 #include "alx/Action.h"
+#include "alx/Camera.h"
 
 namespace alx {
 
 struct Player : public Entity {
-    // Integer pixels moved per physics tick (MUST be an integer: 1 = 1px/tick, 2 = 2px/tick for pixel-perfect sync without tick wobble)
+    // Integer pixels moved per physics tick
+    // (MUST be an integer: 1 = 1px/tick, 2 = 2px/tick for pixel-perfect sync without tick wobble)
     int pixels_per_tick = 1;
     float speed = static_cast<float>(pixels_per_tick * Game::TARGET_FPS);
     int wand_radius = 96;
@@ -34,14 +36,14 @@ struct Player : public Entity {
         transform_prev = transform;
     }
 
-    void update(float dt, Grid& grid) {
+    void update(float dt, Grid& grid, const alx::Camera& camera) {
         sync_prev_transforms();
 
-        update_movement(dt, grid);
+        update_movement(dt, grid, camera);
         update_actions(dt, grid);
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Camera& camera) {
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) {
         if (!active) return;
 
         // --- MAIN BODY ---
@@ -50,8 +52,8 @@ struct Player : public Entity {
 
         int draw_x = camera.to_screen_x(world_draw_x);
         int draw_y = camera.to_screen_y(world_draw_y);
-        int draw_w = std::max(1, static_cast<int>(std::round(transform.width * camera.zoom)));
-        int draw_h = std::max(1, static_cast<int>(std::round(transform.height * camera.zoom)));
+        int draw_w = std::max(1, static_cast<int>(std::round(transform.width * camera.get_zoom())));
+        int draw_h = std::max(1, static_cast<int>(std::round(transform.height * camera.get_zoom())));
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
@@ -67,7 +69,7 @@ struct Player : public Entity {
         }
 
         // --- TARGET box for interactions ---
-        float size = (transform.height / 4.0f) * camera.zoom;
+        float size = (transform.height / 4.0f) * camera.get_zoom();
 
         float target_center_x = draw_x + (draw_w / 2.0f);
         float target_center_y = draw_y + (draw_h / 1.25f);
@@ -94,12 +96,12 @@ private:
     int m_cursed_alloy = 5;
     TileType m_selected_build_type = TileType::Pipe;
 
-    void update_movement(float dt, const Grid& grid) {
+    void update_movement(float dt, const Grid& grid, const alx::Camera& camera) {
         // PanMode state is active while PanMode key (Shift / Q) is held
         is_panning = Action::is_pressed(Action::PanMode);
 
-        // Suppress player entity movement while PanMode (camera scouting) is held
-        if (is_panning) {
+        // Suppress player entity movement while camera scouting or return decay is active
+        if (camera.is_player_movement_locked()) {
             return;
         }
 
