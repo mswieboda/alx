@@ -64,9 +64,9 @@ This refactoring splits the heavy monolithic `alx::Grid` into two modular, decou
 - [x] Create `src/alx/Fixture.h` defining `FixtureType`, `ManaState`, `DirectionMask`, `FixtureFlag`, and packed 8-byte `Fixture` struct.
 
 ### Phase 2: Static Terrain Layer (`Tiles`)
-- [ ] Create `src/alx/Tiles.h` replacing static map handling of `Grid.h`.
-- [ ] Implement spatial bounds checking `in_bounds(GridPos pos)` and terrain collision `is_wall(GridPos pos)`.
-- [ ] Implement `Tiles::draw(Renderer& renderer, const Camera& camera)`.
+- [x] Create `src/alx/Tiles.h` replacing static map handling of `Grid.h`.
+- [x] Implement spatial bounds checking `in_bounds(GridPos pos)` and terrain collision `is_wall(GridPos pos)`.
+- [x] Implement `Tiles::draw` and viewport spatial bounds methods.
 
 ### Phase 3: Network Fixture Layer (`Network`)
 - [ ] Create `src/alx/Network.h` with spatial fixture array and active index tracking (`m_active_indices`).
