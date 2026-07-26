@@ -64,18 +64,47 @@ struct Camera {
     float pan_offset_y = 0.0f;
     float pan_anchor_x = 0.0f;
     float pan_anchor_y = 0.0f;
+    float pre_pan_x = 0.0f;
+    float pre_pan_y = 0.0f;
+    float anchor_blend = 0.0f;
     bool is_panning_active = false;
+    bool has_ever_wasd_panned = false;
+
+    bool is_panning_or_decaying() const {
+        return is_panning_active || pan_offset_x != 0.0f || pan_offset_y != 0.0f || zoom != 1.0f;
+    }
 
     void set_pan_offset(float offset_x, float offset_y) {
         pan_offset_x = offset_x;
         pan_offset_y = offset_y;
     }
 
-    void start_panning() {
+    void start_panning(float viewport_width = static_cast<float>(Game::WIDTH),
+                       float viewport_height = static_cast<float>(Game::HEIGHT)) {
         if (!is_panning_active) {
-            pan_anchor_x = x;
-            pan_anchor_y = y;
+            float half_vw_base = viewport_width / 2.0f;
+            float half_vh_base = viewport_height / 2.0f;
+            pre_pan_x = x;
+            pre_pan_y = y;
+            pan_anchor_x = x + half_vw_base;
+            pan_anchor_y = y + half_vh_base;
+            anchor_blend = 0.0f;
+            has_ever_wasd_panned = false;
             is_panning_active = true;
+        }
+    }
+
+    float pan_speed = 2.0f;
+    float return_speed = 6.0f;
+
+    void update_anchor_blend(float dt, bool has_wasd_input) {
+        if (has_wasd_input) {
+            has_ever_wasd_panned = true;
+        }
+        
+        // ONLY blend towards player center if WASD was actually used to scout!
+        if (has_ever_wasd_panned && !has_wasd_input) {
+            anchor_blend += (1.0f - anchor_blend) * (1.0f - std::exp(-return_speed * dt));
         }
     }
 
@@ -88,15 +117,37 @@ struct Camera {
     {
         // center viewport on target or apply deadzone boundary tracking
         if (has_target) {
+            float half_vw = (viewport_width / 2.0f) / zoom;
+            float half_vh = (viewport_height / 2.0f) / zoom;
+
             float effective_target_x = target_x + pan_offset_x;
             float effective_target_y = target_y + pan_offset_y;
 
-            if (is_panning_active) {
-                x = pan_anchor_x + pan_offset_x;
-                y = pan_anchor_y + pan_offset_y;
+            if (is_panning_or_decaying()) {
+                if (!has_ever_wasd_panned) {
+                    // Tactical Radar Peek: Keep camera anchored to exact pre-pan resting position
+                    float center_x = pan_anchor_x;
+                    float center_y = pan_anchor_y;
+                    x = center_x - half_vw;
+                    y = center_y - half_vh;
+                } else {
+                    // Active Scouting: Blend anchor point from initial screen center (anchor_blend = 0) to player center (anchor_blend = 1)
+                    float current_anchor_x = (1.0f - anchor_blend) * pan_anchor_x + anchor_blend * target_x;
+                    float current_anchor_y = (1.0f - anchor_blend) * pan_anchor_y + anchor_blend * target_y;
+
+                    float center_x = current_anchor_x + pan_offset_x;
+                    float center_y = current_anchor_y + pan_offset_y;
+
+                    float max_pan_x = Game::TILE_SIZE * 12.0f; // 12 tiles X
+                    float max_pan_y = Game::TILE_SIZE * 9.0f;  // 9 tiles Y (4:3 aspect ratio)
+
+                    center_x = std::clamp(center_x, target_x - max_pan_x, target_x + max_pan_x);
+                    center_y = std::clamp(center_y, target_y - max_pan_y, target_y + max_pan_y);
+
+                    x = center_x - half_vw;
+                    y = center_y - half_vh;
+                }
             } else if (use_deadzone) {
-                float half_vw = viewport_width / 2.0f;
-                float half_vh = viewport_height / 2.0f;
                 float half_dw = deadzone_w / 2.0f;
                 float half_dh = deadzone_h / 2.0f;
 
@@ -115,8 +166,8 @@ struct Camera {
                     y = effective_target_y - half_vh - half_dh;
                 }
             } else {
-                x = effective_target_x - (viewport_width / 2.0f);
-                y = effective_target_y - (viewport_height / 2.0f);
+                x = effective_target_x - half_vw;
+                y = effective_target_y - half_vh;
             }
         }
 
@@ -130,6 +181,10 @@ struct Camera {
             x = std::clamp(x, min_x, max_x);
             y = std::clamp(y, min_y, max_y);
         }
+
+        // Quantize camera world position to exact integer pixels
+        x = std::round(x);
+        y = std::round(y);
     }
 
     float zoom = 1.0f;        // 1.0f = 1x normal, 0.5f = 2x zoom out

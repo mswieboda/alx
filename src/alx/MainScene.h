@@ -53,7 +53,7 @@ public:
         std::vector<std::pair<int, int>> pipes;
 
         if (level_id == 1) {
-            m_grid = Grid(40, 25);
+            m_grid = Grid(60, 30);
             m_player = Player(9 * m_grid.get_tile_size(), 9 * m_grid.get_tile_size());
             m_twilight_level = 0.75f;
 
@@ -150,6 +150,8 @@ public:
         float target_pan_x = 0.0f;
         float target_pan_y = 0.0f;
 
+        bool has_wasd_input = false;
+
         if (m_player.is_panning) {
             camera.start_panning();
 
@@ -160,28 +162,35 @@ public:
             if (Action::is_pressed(Action::MoveLeft))  pdx -= 1.0f;
             if (Action::is_pressed(Action::MoveRight)) pdx += 1.0f;
 
+            if (pdx != 0.0f || pdy != 0.0f) {
+                has_wasd_input = true;
+            }
+
             if (pdx != 0.0f && pdy != 0.0f) {
                 constexpr float inv_sqrt2 = 0.70710678118f;
                 pdx *= inv_sqrt2;
                 pdy *= inv_sqrt2;
             }
 
-            constexpr float MAX_PAN_DIST = Game::TILE_SIZE * 12.0f; // 12 tiles max scouting range
-            target_pan_x = pdx * MAX_PAN_DIST;
-            target_pan_y = pdy * MAX_PAN_DIST;
+            constexpr float MAX_PAN_DIST_X = Game::TILE_SIZE * 12.0f; // 12 tiles horizontal
+            constexpr float MAX_PAN_DIST_Y = MAX_PAN_DIST_X * (static_cast<float>(Game::HEIGHT) / static_cast<float>(Game::WIDTH)); // 9 tiles vertical (4:3 aspect ratio)
+            target_pan_x = pdx * MAX_PAN_DIST_X;
+            target_pan_y = pdy * MAX_PAN_DIST_Y;
         }
 
-        // Smoothly interpolate pan offsets toward target
-        float pan_speed = 2.0f;
-        float pan_t = 1.0f - std::exp(-pan_speed * dt);
+        camera.update_anchor_blend(dt, has_wasd_input);
+
+        // Smoothly interpolate pan offsets (gentle pan_speed outwards, fast return_speed decay)
+        float active_speed = (m_player.is_panning && has_wasd_input) ? camera.pan_speed : camera.return_speed;
+        float pan_t = 1.0f - std::exp(-active_speed * dt);
         m_pan_offset_x += (target_pan_x - m_pan_offset_x) * pan_t;
         m_pan_offset_y += (target_pan_y - m_pan_offset_y) * pan_t;
 
         // When returning to zero offset while not panning, snap to exact 0.0f to restore deadzone tracking cleanly
         if (!m_player.is_panning) {
             camera.stop_panning();
-            if (std::abs(m_pan_offset_x) < 0.05f) m_pan_offset_x = 0.0f;
-            if (std::abs(m_pan_offset_y) < 0.05f) m_pan_offset_y = 0.0f;
+            if (std::abs(m_pan_offset_x) < 0.5f) m_pan_offset_x = 0.0f;
+            if (std::abs(m_pan_offset_y) < 0.5f) m_pan_offset_y = 0.0f;
         }
 
         // Quantized Eased Zoom Transition (0.15s duration, 100% integer-pixel safe steps)
@@ -200,11 +209,14 @@ public:
         float raw_zoom = max_zoom + (min_zoom - max_zoom) * eased_t;
 
         // Quantize zoom to exact integer tile sizes (16px -> 15px -> 14px -> 13px -> 12px)
-        float raw_tile_size = 16.0f * raw_zoom;
+        float raw_tile_size = Game::TILE_SIZE * raw_zoom;
         float quantized_tile_size = std::round(raw_tile_size);
-        camera.zoom = quantized_tile_size / 16.0f;
+        camera.zoom = quantized_tile_size / Game::TILE_SIZE;
 
-        camera.set_pan_offset(m_pan_offset_x, m_pan_offset_y);
+        camera.set_pan_offset(
+            std::round(m_pan_offset_x),
+            std::round(m_pan_offset_y)
+        );
         camera.update();
     }
 
@@ -225,7 +237,10 @@ public:
     void draw_custom(std::vector<uint32_t>& pixel_buffer, float alpha) override {
         // FIRST sync camera viewport with player's interpolated center position & update camera offsets
         camera.follow(m_player.center_x(alpha), m_player.center_y(alpha));
-        camera.set_pan_offset(m_pan_offset_x, m_pan_offset_y);
+        camera.set_pan_offset(
+            std::round(m_pan_offset_x),
+            std::round(m_pan_offset_y)
+        );
         camera.update();
 
         float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);

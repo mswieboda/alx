@@ -54,7 +54,13 @@ void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager
 // --- MAIN --- init window, frame timing management, pixel buffer, scene manager
 // game loop - poll events, updates, draw
 int main() {
-    GameWindow game_window(Game::TITLE.data(), Game::WIDTH * 2, Game::HEIGHT * 2, Game::WIDTH, Game::HEIGHT);
+    GameWindow game_window(
+        Game::TITLE.data(),
+        // initial window size
+        Game::WIDTH * Game::DEFAULT_WINDOW_SCALE, Game::HEIGHT * Game::DEFAULT_WINDOW_SCALE,
+        // game size
+        Game::WIDTH, Game::HEIGHT
+    );
     FrameTime frame_time(Game::TARGET_FPS);
 
     if (!Audio::init()) {
