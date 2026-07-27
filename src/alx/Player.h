@@ -251,7 +251,7 @@ private:
         // 1.00f = Classic 16-bit SNES/Zelda grid-aligned (+41% speed boost, 100% 60Hz smooth)
         // 0.75f = Rational 3/4px sub-pixel step (+6% speed boost, silky 4-frame rational rhythm)
         // 0.70710678f = Euclidean normalized (+0% speed boost, irrational jitter pattern)
-        static constexpr float DIAGONAL_SPEED_SCALE = 1.0f;
+        static constexpr float DIAGONAL_SPEED_SCALE = 0.75f;
 
         if (dx != 0.0f && dy != 0.0f) {
             dx *= DIAGONAL_SPEED_SCALE;

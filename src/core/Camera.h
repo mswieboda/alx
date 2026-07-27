@@ -9,7 +9,7 @@ namespace core {
 struct Camera {
     float x = 0.0f;
     float y = 0.0f;
-    float lerp_speed = 3.0f; // Smooth GBA-style camera follow speed
+    float lerp_speed = 16.0f; // Smooth GBA-style camera follow speed
     bool initialized = false;
 
     // Optional target tracking (pointers to world coordinates, e.g. player center_x, center_y)
