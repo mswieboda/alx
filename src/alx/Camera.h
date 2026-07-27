@@ -13,9 +13,9 @@ struct Camera : public core::Camera {
     static constexpr float RETURN_SPEED = 6.0f;
     static constexpr float ZOOM_DURATION = 0.15f;
 
-    void sync_render_position(float player_alpha_x, float player_alpha_y) {
+    void sync_render_position(float player_alpha_x, float player_alpha_y, float dt = 1.0f / 60.0f) {
         follow(player_alpha_x, player_alpha_y);
-        sync_core_camera();
+        sync_core_camera(dt);
     }
 
     bool is_player_movement_locked() const {
@@ -145,7 +145,7 @@ private:
         }
     }
 
-    void sync_core_camera() {
+    void sync_core_camera(float dt = 1.0f / 60.0f) {
         if (has_target) {
             float half_vw = (static_cast<float>(Game::WIDTH) / 2.0f) / zoom;
             float half_vh = (static_cast<float>(Game::HEIGHT) / 2.0f) / zoom;
@@ -173,7 +173,7 @@ private:
                     y = center_y - half_vh;
                 }
             } else {
-                core::Camera::update();
+                core::Camera::update(dt);
                 return;
             }
         }
@@ -185,9 +185,6 @@ private:
             x = std::clamp(x, limit_left, max_x);
             y = std::clamp(y, limit_top, max_y);
         }
-
-        x = std::round(x);
-        y = std::round(y);
     }
 };
 

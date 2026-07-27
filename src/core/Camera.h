@@ -9,7 +9,7 @@ namespace core {
 struct Camera {
     float x = 0.0f;
     float y = 0.0f;
-    float lerp_speed = 14.0f; // Smooth GBA-style camera follow speed
+    float lerp_speed = 3.0f; // Smooth GBA-style camera follow speed
     bool initialized = false;
 
     // Optional target tracking (pointers to world coordinates, e.g. player center_x, center_y)
@@ -63,49 +63,62 @@ struct Camera {
         use_deadzone = false;
     }
 
-    void update(float viewport_width = static_cast<float>(Game::WIDTH),
+    void update(float dt = 1.0f / 60.0f,
+                float viewport_width = static_cast<float>(Game::WIDTH),
                 float viewport_height = static_cast<float>(Game::HEIGHT))
     {
-        if (has_target) {
-            float half_vw = (viewport_width / 2.0f) / zoom;
-            float half_vh = (viewport_height / 2.0f) / zoom;
+        if (!has_target) return;
 
-            if (use_deadzone) {
-                float half_dw = deadzone_w / 2.0f;
-                float half_dh = deadzone_h / 2.0f;
+        float half_vw = (viewport_width / 2.0f) / zoom;
+        float half_vh = (viewport_height / 2.0f) / zoom;
 
-                float target_rel_x = target_x - x - half_vw;
-                float target_rel_y = target_y - y - half_vh;
+        float desired_x = x;
+        float desired_y = y;
 
-                if (target_rel_x < -half_dw) {
-                    x = target_x - half_vw + half_dw;
-                } else if (target_rel_x > half_dw) {
-                    x = target_x - half_vw - half_dw;
-                }
+        if (use_deadzone) {
+            float half_dw = deadzone_w / 2.0f;
+            float half_dh = deadzone_h / 2.0f;
 
-                if (target_rel_y < -half_dh) {
-                    y = target_y - half_vh + half_dh;
-                } else if (target_rel_y > half_dh) {
-                    y = target_y - half_vh - half_dh;
-                }
-            } else {
-                x = target_x - half_vw;
-                y = target_y - half_vh;
+            float target_rel_x = target_x - x - half_vw;
+            float target_rel_y = target_y - y - half_vh;
+
+            desired_x = x;
+            if (target_rel_x < -half_dw) {
+                desired_x = target_x - half_vw + half_dw;
+            } else if (target_rel_x > half_dw) {
+                desired_x = target_x - half_vw - half_dw;
             }
+
+            desired_y = y;
+            if (target_rel_y < -half_dh) {
+                desired_y = target_y - half_vh + half_dh;
+            } else if (target_rel_y > half_dh) {
+                desired_y = target_y - half_vh - half_dh;
+            }
+        } else {
+            desired_x = target_x - half_vw;
+            desired_y = target_y - half_vh;
         }
 
-        // Clamp viewport position inside limits
+        // Clamp desired destination to map limits BEFORE lerp to ensure smooth deceleration at borders
         if (has_limits) {
             float max_x = std::max(limit_left, limit_right - viewport_width);
             float max_y = std::max(limit_top, limit_bottom - viewport_height);
 
-            x = std::clamp(x, limit_left, max_x);
-            y = std::clamp(y, limit_top, max_y);
+            desired_x = std::clamp(desired_x, limit_left, max_x);
+            desired_y = std::clamp(desired_y, limit_top, max_y);
         }
 
-        // Quantize camera world position to exact integer pixels
-        x = std::round(x);
-        y = std::round(y);
+        // Smoothly lerp camera position towards clamped desired destination
+        if (!initialized) {
+            x = desired_x;
+            y = desired_y;
+            initialized = true;
+        } else {
+            float t = 1.0f - std::exp(-lerp_speed * dt);
+            x += (desired_x - x) * t;
+            y += (desired_y - y) * t;
+        }
     }
 
     int to_screen_x(float world_x) const {

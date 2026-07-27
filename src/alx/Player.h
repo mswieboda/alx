@@ -9,9 +9,15 @@
 namespace alx {
 
 struct Player : public Entity {
-    // Integer pixels moved per physics tick
-    int pixels_per_tick = 1;
-    float speed = static_cast<float>(pixels_per_tick * Game::TARGET_FPS);
+    // Movement speed in pixels per 60Hz physics tick.
+    // NOTE FOR TUNING: Sticking to simple rational fractions (0.25f, 0.50f, 0.75f, 1.00f, 1.25f, 1.50f)
+    // maintains a steady, harmonic multi-frame sub-pixel cadence without irregular rasterization stutter:
+    //   - 1.00f = 60px/s (1px/tick: 100% 60Hz smooth, 0 pause frames)
+    //   - 0.75f = 45px/s (3/4px/tick: steady 4-frame +1, +1, +0, +1 cadence)
+    //   - 0.50f = 30px/s (1/2px/tick: steady 30Hz alternating +1, +0, +1, +0 cadence)
+    //   - 0.25f = 15px/s (1/4px/tick: steady 15Hz 4-tick +1, +0, +0, +0 pulse)
+    float pixels_per_tick = 1.0f;
+    float speed = pixels_per_tick * static_cast<float>(Game::TARGET_FPS);
     int wand_radius = 96;
     bool is_panning = false;
 
@@ -241,10 +247,15 @@ private:
             }
         }
 
+        // DIAGONAL SPEED SCALE OPTIONS:
+        // 1.00f = Classic 16-bit SNES/Zelda grid-aligned (+41% speed boost, 100% 60Hz smooth)
+        // 0.75f = Rational 3/4px sub-pixel step (+6% speed boost, silky 4-frame rational rhythm)
+        // 0.70710678f = Euclidean normalized (+0% speed boost, irrational jitter pattern)
+        static constexpr float DIAGONAL_SPEED_SCALE = 1.0f;
+
         if (dx != 0.0f && dy != 0.0f) {
-            constexpr float inv_sqrt2 = 0.70710678118f;
-            dx *= inv_sqrt2;
-            dy *= inv_sqrt2;
+            dx *= DIAGONAL_SPEED_SCALE;
+            dy *= DIAGONAL_SPEED_SCALE;
         }
 
         float target_x = transform.x + dx * speed * dt;
