@@ -144,24 +144,24 @@ struct Player : public Entity {
         return draw_y + (transform.height / 2.0f);
     }
 
-    Collision::Circle get_ground_circle(float px, float py) const {
+    Collision::Circle ground_circle(float px, float py) const {
         float r = transform.width * GROUND_RADIUS_RATIO;
         float cy = py + (transform.height * GROUND_OFFSET_Y_RATIO) - r;
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
-    Collision::Circle get_ground_circle() const {
-        return get_ground_circle(transform.x, transform.y);
+    Collision::Circle ground_circle() const {
+        return ground_circle(transform.x, transform.y);
     }
 
-    Collision::Circle get_hurt_circle(float px, float py) const {
+    Collision::Circle hurt_circle(float px, float py) const {
         float r = transform.width * HURT_RADIUS_RATIO;
         float cy = py + (transform.height * HURT_OFFSET_Y_RATIO);
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
-    Collision::Circle get_hurt_circle() const {
-        return get_hurt_circle(transform.x, transform.y);
+    Collision::Circle hurt_circle() const {
+        return hurt_circle(transform.x, transform.y);
     }
 
     void sync_prev_transforms() {
@@ -172,7 +172,7 @@ struct Player : public Entity {
         return attack_active_timer > 0.0f;
     }
 
-    Collision::Circle get_attack_hit_circle() const {
+    Collision::Circle attack_hit_circle() const {
         float cx = center_x(1.0f) + facing_dx * ATTACK_HIT_OFFSET;
         float cy = center_y(1.0f) + facing_dy * ATTACK_HIT_OFFSET;
         return Collision::Circle{ cx, cy, ATTACK_HIT_RADIUS };
@@ -230,7 +230,7 @@ struct Player : public Entity {
 
         // Ground feet collision circle outline (cyan debug)
         if (Game::DRAW_DEBUG_COLLISION_AREAS) {
-            Collision::Circle ground = get_ground_circle(world_draw_x, world_draw_y);
+            Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
             Draw::oval(
                 ground.cx,
                 ground.cy,
@@ -246,7 +246,7 @@ struct Player : public Entity {
 
         // Attack hit box/circle
         if (is_attacking()) {
-            Collision::Circle hit_c = get_attack_hit_circle();
+            Collision::Circle hit_c = attack_hit_circle();
             Draw::rect(
                 hit_c.cx - hit_c.radius,
                 hit_c.cy - hit_c.radius,
@@ -280,11 +280,11 @@ struct Player : public Entity {
         );
     }
 
-    int get_cursed_alloy() const { return m_cursed_alloy; }
+    int cursed_alloy() const { return m_cursed_alloy; }
     void add_cursed_alloy(int amount) { m_cursed_alloy += amount; }
-    FixtureType get_selected_fixture_type() const { return m_selected_fixture_type; }
+    FixtureType selected_fixture_type() const { return m_selected_fixture_type; }
 
-    static int get_fixture_cost(FixtureType type) {
+    static int fixture_cost(FixtureType type) {
         switch (type) {
             case FixtureType::Pipe: return 1;
             case FixtureType::Refiner: return 5;
@@ -376,7 +376,7 @@ private:
         GridPos target_pos{ static_cast<int16_t>(static_cast<int>(center_x) / tile_size), static_cast<int16_t>(static_cast<int>(center_y) / tile_size) };
 
         if (Action::is_build_tile()) {
-            int cost = get_fixture_cost(m_selected_fixture_type);
+            int cost = fixture_cost(m_selected_fixture_type);
             if (m_cursed_alloy >= cost && network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
                 m_cursed_alloy -= cost;
                 network.place_fixture(target_pos, m_selected_fixture_type);
@@ -387,7 +387,7 @@ private:
             if (network.in_bounds(target_pos)) {
                 const Fixture& fix = network.get_fixture(target_pos);
                 if (fix.type != FixtureType::None && fix.type != FixtureType::Seep) {
-                    int refund = get_fixture_cost(fix.type);
+                    int refund = fixture_cost(fix.type);
                     m_cursed_alloy += refund;
                     network.remove_fixture(target_pos);
                 }
@@ -396,7 +396,7 @@ private:
     }
 
     bool is_solid_ground(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
-        Collision::Circle ground = get_ground_circle(test_x, test_y);
+        Collision::Circle ground = ground_circle(test_x, test_y);
         float tile_size = static_cast<float>(tiles.get_tile_size());
 
         int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.get_tile_size();
@@ -413,7 +413,7 @@ private:
                 }
                 if (network.in_bounds(tx, ty)) {
                     if (network.is_solid(tx, ty)) {
-                        Collision::AABB fixture_aabb = get_fixture_ground_aabb(tx, ty, tile_size);
+                        Collision::AABB fixture_aabb = fixture_ground_aabb(tx, ty, tile_size);
                         if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
                             return true;
                         }

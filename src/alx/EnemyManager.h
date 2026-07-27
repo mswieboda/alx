@@ -117,7 +117,7 @@ public:
     }
 
     bool is_enemy_solid_ground(const Enemy& enemy, float test_x, float test_y, const Tiles& tiles, const Network& network) const {
-        Collision::Circle ground = enemy.get_ground_circle(test_x, test_y);
+        Collision::Circle ground = enemy.ground_circle(test_x, test_y);
         float tile_size = static_cast<float>(tiles.get_tile_size());
 
         int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.get_tile_size();
@@ -134,7 +134,7 @@ public:
                 }
                 if (network.in_bounds(tx, ty)) {
                     if (network.is_solid(tx, ty)) {
-                        Collision::AABB fixture_aabb = get_fixture_ground_aabb(tx, ty, tile_size);
+                        Collision::AABB fixture_aabb = fixture_ground_aabb(tx, ty, tile_size);
                         if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
                             return true;
                         }
@@ -192,8 +192,8 @@ public:
     void update_enemy_push_separation() {
         for (size_t i = 0; i < m_enemies.size(); ++i) {
             for (size_t j = i + 1; j < m_enemies.size(); ++j) {
-                Collision::Circle c1 = m_enemies[i].get_ground_circle();
-                Collision::Circle c2 = m_enemies[j].get_ground_circle();
+                Collision::Circle c1 = m_enemies[i].ground_circle();
+                Collision::Circle c2 = m_enemies[j].ground_circle();
                 float push_x1 = 0.0f, push_y1 = 0.0f, push_x2 = 0.0f, push_y2 = 0.0f;
                 if (Collision::resolve_soft_circle_overlap(c1.cx, c1.cy, c1.radius, c2.cx, c2.cy, c2.radius, push_x1, push_y1, push_x2, push_y2)) {
                     m_enemies[i].transform.x += push_x1;
@@ -210,10 +210,10 @@ public:
         if (player.is_attacking()) {
             if (!m_attack_hit_registered) {
                 m_attack_hit_registered = true;
-                Collision::Circle hit_c = player.get_attack_hit_circle();
+                Collision::Circle hit_c = player.attack_hit_circle();
 
                 for (auto& enemy : m_enemies) {
-                    if (Collision::circle_vs_circle(enemy.get_hurt_circle(), hit_c)) {
+                    if (Collision::circle_vs_circle(enemy.hurt_circle(), hit_c)) {
                         float push_dx = enemy.center_x() - player.center_x();
                         float push_dy = enemy.center_y() - player.center_y();
                         float len_sq = push_dx * push_dx + push_dy * push_dy;

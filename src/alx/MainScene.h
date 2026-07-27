@@ -246,8 +246,8 @@ public:
         int screen_width = Game::WIDTH;
 
         const char* selected_name = "pipe";
-        FixtureType sel_type = m_player.get_selected_fixture_type();
-        int cost = Player::get_fixture_cost(sel_type);
+        FixtureType sel_type = m_player.selected_fixture_type();
+        int cost = Player::fixture_cost(sel_type);
         if (sel_type == FixtureType::Refiner) {
             selected_name = "refiner";
         } else if (sel_type == FixtureType::Spire) {
@@ -260,7 +260,7 @@ public:
 
         Draw::text(
             6, ly,
-            Draw::fmt("alloy: %d", m_player.get_cursed_alloy()),
+            Draw::fmt("alloy: %d", m_player.cursed_alloy()),
             0xFF00CCCC, 1, Layer::HUD_Text, &font
         );
 

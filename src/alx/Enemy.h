@@ -63,24 +63,24 @@ struct Enemy : public Entity {
         return draw_y + (transform.height / 2.0f);
     }
 
-    Collision::Circle get_ground_circle(float px, float py) const {
+    Collision::Circle ground_circle(float px, float py) const {
         float r = transform.width * EnemyConstants::GROUND_RADIUS_RATIO;
         float cy = py + (transform.height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
-    Collision::Circle get_ground_circle() const {
-        return get_ground_circle(transform.x, transform.y);
+    Collision::Circle ground_circle() const {
+        return ground_circle(transform.x, transform.y);
     }
 
-    Collision::Circle get_hurt_circle(float px, float py) const {
+    Collision::Circle hurt_circle(float px, float py) const {
         float r = transform.width * EnemyConstants::HURT_RADIUS_RATIO;
         float cy = py + (transform.height * EnemyConstants::HURT_OFFSET_Y_RATIO);
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
-    Collision::Circle get_hurt_circle() const {
-        return get_hurt_circle(transform.x, transform.y);
+    Collision::Circle hurt_circle() const {
+        return hurt_circle(transform.x, transform.y);
     }
 
     void sync_prev_transforms() {
@@ -160,7 +160,7 @@ struct Enemy : public Entity {
 
         // Ground feet collision circle outline (cyan debug)
         if (Game::DRAW_DEBUG_COLLISION_AREAS) {
-            Collision::Circle ground = get_ground_circle(world_draw_x, world_draw_y);
+            Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
             Draw::oval(
                 ground.cx,
                 ground.cy,

@@ -48,7 +48,7 @@ struct Fixture {
     [[nodiscard]] constexpr bool is_empty() const noexcept { return type == FixtureType::None; }
 };
 
-inline Collision::AABB get_fixture_ground_aabb(int tx, int ty, float tile_size) {
+inline Collision::AABB fixture_ground_aabb(int tx, int ty, float tile_size) {
     float w = tile_size * FixtureConstants::GROUND_WIDTH_RATIO;
     float h = tile_size * FixtureConstants::GROUND_HEIGHT_RATIO;
     float x = static_cast<float>(tx) * tile_size + (tile_size - w) / 2.0f;
