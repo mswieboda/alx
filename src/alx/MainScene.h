@@ -181,6 +181,12 @@ public:
         draw_twilight(pixel_buffer, alpha);
         draw_hud();
         m_enemy_manager.draw_threat_indicators(m_camera);
+
+        // NOTE: draw test circle
+        int cx = Game::WIDTH / 2;
+        int cy = Game::HEIGHT / 2;
+        Draw::circle(cx, cy, 16, 0xFF00FF00, true, 1, 999);
+        Draw::circle(cx, cy, 4, 0xFFFFFFFF, false, 1, 1000);
     }
 
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) {

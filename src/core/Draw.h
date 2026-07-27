@@ -24,6 +24,13 @@ namespace Draw {
         int thickness;
     };
 
+    struct CircleData {
+        int radius;
+        uint32_t color;
+        bool fill;
+        int thickness;
+    };
+
     struct SpriteData {
         const uint8_t* pixel_data;
         uint32_t pixel_data_size;
@@ -48,7 +55,7 @@ namespace Draw {
         int y;
         int z_index;
         int sort_y;
-        std::variant<TextData, RectData, SpriteData, BlendPixelsData> data;
+        std::variant<TextData, RectData, CircleData, SpriteData, BlendPixelsData> data;
     };
 
     // --- 3. PUBLIC PIPELINE INTERFACE ---
@@ -73,6 +80,7 @@ namespace Draw {
               int scale = 1, int z_index = 1,
               const FontData* font = &Font::DEFAULT_BLANK);
     void rect(int x, int y, int width, int height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1);
+    void circle(int x, int y, int radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1);
     void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index = 1);
     void sprite_frame(
         int screen_x, int screen_y,

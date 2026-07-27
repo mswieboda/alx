@@ -83,6 +83,53 @@ namespace Draw {
             }
         }
 
+        void draw_circle_immediate(std::vector<uint32_t>& buf, int cx, int cy, int radius, uint32_t color, bool fill, int thickness) {
+            if (radius <= 0) return;
+
+            uint32_t alpha = (color >> 24) & 0xFF;
+
+            if (alpha == 0) return;
+
+            int r_sq = radius * radius - radius;
+
+            if (r_sq < 0) r_sq = 0;
+
+            int inner_r = radius - thickness;
+            int inner_r_sq = 0;
+
+            if (inner_r > 0) {
+                inner_r_sq = inner_r * inner_r - inner_r;
+                if (inner_r_sq < 0) inner_r_sq = 0;
+            }
+
+            int start_x = std::max(0, cx - radius);
+            int end_x = std::min(Game::WIDTH, cx + radius + 1);
+            int start_y = std::max(0, cy - radius);
+            int end_y = std::min(Game::HEIGHT, cy + radius + 1);
+
+            for (int y = start_y; y < end_y; ++y) {
+                int dy = y - cy;
+                int dy_sq = dy * dy;
+
+                for (int x = start_x; x < end_x; ++x) {
+                    int dx = x - cx;
+                    int dist_sq = dx * dx + dy_sq;
+
+                    if (dist_sq <= r_sq) {
+                        if (fill || dist_sq >= inner_r_sq) {
+                            uint32_t idx = y * Game::WIDTH + x;
+
+                            if (alpha == 0xFF) {
+                                buf[idx] = color;
+                            } else {
+                                buf[idx] = blend_pixel(buf[idx], color);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         void draw_text_immediate(std::vector<uint32_t>& buf, int x, int y,
                                 std::string_view text, uint32_t color, int scale,
                                 const FontData* font_ptr)
@@ -297,6 +344,16 @@ namespace Draw {
         g_queue.push_back({ x, y, z_index, sort_y, RectData{ width, height, color, fill, thickness } });
     }
 
+    void circle(int x, int y, int radius, uint32_t color, bool fill, int thickness, int z_index) {
+        int sort_y = 0;
+        if (g_y_sort_mode == YSortMode::TopY) {
+            sort_y = y - radius;
+        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
+            sort_y = y + radius;
+        }
+        g_queue.push_back({ x, y, z_index, sort_y, CircleData{ radius, color, fill, thickness } });
+    }
+
     void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index) {
         int sort_y = 0;
         if (g_y_sort_mode == YSortMode::TopY) {
@@ -370,6 +427,9 @@ namespace Draw {
                 }
                 else if constexpr (std::is_same_v<T, RectData>) {
                     draw_rect_immediate(buffer, cmd.x, cmd.y, arg.width, arg.height, arg.color, arg.fill, arg.thickness);
+                }
+                else if constexpr (std::is_same_v<T, CircleData>) {
+                    draw_circle_immediate(buffer, cmd.x, cmd.y, arg.radius, arg.color, arg.fill, arg.thickness);
                 }
                 else if constexpr (std::is_same_v<T, SpriteData>) {
                     draw_sprite_frame_immediate(
