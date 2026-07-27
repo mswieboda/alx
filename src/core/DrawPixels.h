@@ -1,0 +1,43 @@
+#pragma once
+#include <vector>
+#include <string_view>
+#include <cstdint>
+#include "Font.h"
+
+#ifndef ALX_DRAW_INTERNAL_ALLOW
+#error "DrawPixels.h is a private backend header and must not be included directly. Use core/Draw.h instead."
+#endif
+
+namespace DrawPixels {
+
+    void clear(std::vector<uint32_t>& buf, uint32_t color);
+
+    void rect(std::vector<uint32_t>& buf, int rx, int ry, int rw, int rh, uint32_t color, bool fill, int thickness);
+
+    void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness);
+
+    void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr);
+
+    void sprite_frame(
+        std::vector<uint32_t>& buf,
+        int x, int y,
+        const uint8_t* pixel_data,
+        uint32_t pixel_data_size,
+        int width,
+        int height,
+        int src_x,
+        int src_y,
+        int src_w,
+        int src_h,
+        const uint32_t* palette
+    );
+
+    void blend(
+        std::vector<uint32_t>& pixel_buffer,
+        int x, int y,
+        const uint32_t* pixel_data,
+        uint32_t pixel_data_size,
+        int width, int height
+    );
+
+} // namespace DrawPixels
