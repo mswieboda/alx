@@ -39,8 +39,8 @@ private:
     int m_current_level_id = 1;
 
 public:
-    Camera& get_camera() override { return m_camera; }
-    const Camera& get_camera() const override { return m_camera; }
+    Camera& camera() override { return m_camera; }
+    const Camera& camera() const override { return m_camera; }
 
     void init(SceneManager& sm) override {
         background_color = 0xFF131313; // very dark gray
@@ -205,7 +205,7 @@ public:
 
         int player_screen_x = m_camera.to_screen_x(m_player.center_x(alpha));
         int player_screen_y = m_camera.to_screen_y(m_player.center_y(alpha));
-        int radius = static_cast<int>(std::round(m_player.wand_radius * m_camera.get_zoom()));
+        int radius = static_cast<int>(std::round(m_player.wand_radius * m_camera.zoom));
         int radius_sq = radius * radius;
         float inv_radius_sq = 1.0f / static_cast<float>(radius_sq);
 
@@ -306,13 +306,13 @@ public:
 
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress) {
         int base_tile_size = m_tiles.tile_size();
-        float view_w = Game::WIDTH / m_camera.get_zoom();
-        float view_h = Game::HEIGHT / m_camera.get_zoom();
+        float view_w = Game::WIDTH / m_camera.zoom;
+        float view_h = Game::HEIGHT / m_camera.zoom;
 
-        int min_tx = std::max(0, static_cast<int>(m_camera.get_x()) / base_tile_size);
-        int max_tx = std::min(m_tiles.width() - 1, static_cast<int>(m_camera.get_x() + view_w) / base_tile_size + 1);
-        int min_ty = std::max(0, static_cast<int>(m_camera.get_y()) / base_tile_size);
-        int max_ty = std::min(m_tiles.height() - 1, static_cast<int>(m_camera.get_y() + view_h) / base_tile_size + 1);
+        int min_tx = std::max(0, static_cast<int>(m_camera.x) / base_tile_size);
+        int max_tx = std::min(m_tiles.width() - 1, static_cast<int>(m_camera.x + view_w) / base_tile_size + 1);
+        int min_ty = std::max(0, static_cast<int>(m_camera.y) / base_tile_size);
+        int max_ty = std::min(m_tiles.height() - 1, static_cast<int>(m_camera.y + view_h) / base_tile_size + 1);
 
         // Layer 0: Render Terrain Floor & Wall tiles
         for (int y = min_ty; y <= max_ty; ++y) {

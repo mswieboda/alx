@@ -142,13 +142,6 @@ struct Camera {
     float to_world_y(float screen_y) const {
         return (screen_y / zoom) + y;
     }
-
-    float x_pos() const { return x; }
-    float y_pos() const { return y; }
-    float get_x() const { return x; }
-    float get_y() const { return y; }
-    float get_zoom() const { return zoom; }
-    float zoom_val() const { return zoom; }
 };
 
 } // namespace core

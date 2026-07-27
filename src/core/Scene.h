@@ -18,13 +18,13 @@ protected:
     mutable bool m_tag_map_dirty = true;
 
 public:
-    Camera camera;
+    Camera m_camera;
     uint32_t background_color = 0xFF000000;
 
     virtual ~Scene() = default;
 
-    virtual Camera& get_camera() { return camera; }
-    virtual const Camera& get_camera() const { return camera; }
+    virtual Camera& camera() { return m_camera; }
+    virtual const Camera& camera() const { return m_camera; }
 
     // Core Lifecycle Hooks
     virtual void init(SceneManager& sm) = 0;

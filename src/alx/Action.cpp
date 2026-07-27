@@ -128,7 +128,7 @@ void unbind_key(Type type, int key) {
     vec.erase(std::remove(vec.begin(), vec.end(), key), vec.end());
 }
 
-const std::vector<int>& get_bound_keys(Type type) {
+const std::vector<int>& bound_keys(Type type) {
     ensure_initialized();
     if (type == Count) {
         static const std::vector<int> empty_vec;

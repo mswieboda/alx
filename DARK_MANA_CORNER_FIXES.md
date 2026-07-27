@@ -3,7 +3,7 @@
 ## Context
 
 The corner L-bend rendering now correctly:
-- Detects corners on first encounter (via `get_downstream_dir()` fallback)
+- Detects corners on first encounter (via `downstream_dir()` fallback)
 - Grows the incoming arm from the entry edge toward the hub (progress 0→0.5)
 - Grows the outgoing arm from the hub toward the exit edge (progress 0.5→1.0)
 - Backed-up pipes render as solid static fills (no flashing)

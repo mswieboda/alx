@@ -111,7 +111,7 @@ namespace Draw {
         g_y_sort_mode = mode;
     }
 
-    YSortMode get_y_sort_mode() {
+    YSortMode y_sort_mode() {
         return g_y_sort_mode;
     }
 

@@ -34,7 +34,7 @@ public:
         m_accumulator -= m_time_step;
     }
 
-    float get_alpha() const {
+    float alpha() const {
         return static_cast<float>(m_accumulator / m_time_step);
     }
 

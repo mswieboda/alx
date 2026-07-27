@@ -42,8 +42,6 @@ struct Camera : public core::Camera {
         sync_core_camera();
     }
 
-    float get_zoom() const { return zoom; }
-
 private:
     float m_target_pan_x = 0.0f;
     float m_target_pan_y = 0.0f;

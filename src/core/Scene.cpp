@@ -15,7 +15,7 @@ void Scene::sync_prev_transforms() {
 void Scene::draw(std::vector<uint32_t>& screen_buffer, float alpha) {
     sync_camera(alpha);
 
-    Draw::world_begin(get_camera());
+    Draw::world_begin(camera());
         draw_entities(screen_buffer, alpha);
         draw_world(screen_buffer, alpha);
     Draw::world_end();

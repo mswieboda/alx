@@ -78,7 +78,7 @@ namespace Action {
     void bind_key(Type type, int key);
     void unbind_key(Type type, int key);
     void reset_default_bindings();
-    const std::vector<int>& get_bound_keys(Type type);
+    const std::vector<int>& bound_keys(Type type);
 }
 
 } // namespace alx

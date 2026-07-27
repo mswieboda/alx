@@ -44,7 +44,7 @@ void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scen
 
 // --- DRAW --- where drawing happens
 void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager, std::vector<uint32_t>& pixel_buffer) {
-    float alpha = frame_time.get_alpha();
+    float alpha = frame_time.alpha();
 
     scene_manager.draw(pixel_buffer, alpha);
 

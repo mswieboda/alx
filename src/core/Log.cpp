@@ -8,7 +8,7 @@
 
 namespace Log {
     // Internal helper to generate the high-res timestamp string
-    static std::string get_timestamp() {
+    static std::string timestamp() {
         auto now = std::chrono::system_clock::now();
         auto time_t_now = std::chrono::system_clock::to_time_t(now);
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
@@ -25,7 +25,7 @@ namespace Log {
     }
 
     void msg_t(const std::string& message) {
-        std::cout << "[" << get_timestamp() << "] " << message << std::endl;
+        std::cout << "[" << timestamp() << "] " << message << std::endl;
     }
 
     void fmt(const char* format, ...) {
@@ -60,7 +60,7 @@ namespace Log {
         if (size > 0) {
             std::vector<char> buf(size + 1);
             vsnprintf(buf.data(), buf.size(), format, args);
-            std::cout << "[" << get_timestamp() << "] " << buf.data() << std::endl;
+            std::cout << "[" << timestamp() << "] " << buf.data() << std::endl;
         }
 
         va_end(args);
