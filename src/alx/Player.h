@@ -8,6 +8,74 @@
 
 namespace alx {
 
+struct FacingVector {
+    float dx = 0.0f;
+    float dy = 1.0f;
+};
+
+struct PlayerInputBuffer {
+    static constexpr float FACING_DIAGONAL_LATCH_TIME = 0.050f; // 50ms (~3 frames at 60 FPS)
+    static constexpr float FACING_START_DELAY_TIME    = 0.033f; // 33ms (~2 frames at 60 FPS)
+
+    float diagonal_latch_timer = 0.0f;
+    float start_delay_timer = 0.0f;
+    float latched_facing_dx = 0.0f;
+    float latched_facing_dy = 1.0f;
+    float current_facing_dx = 0.0f;
+    float current_facing_dy = 1.0f;
+    bool was_moving = false;
+
+    // Updates internal facing state using input latching (Technique 1) & release buffering (Technique 2) and returns facing vector
+    FacingVector update_facing(float dt, float raw_dx, float raw_dy) {
+        bool is_diagonal = (raw_dx != 0.0f && raw_dy != 0.0f);
+        bool is_moving = (raw_dx != 0.0f || raw_dy != 0.0f);
+
+        if (is_diagonal) {
+            // Immediately lock diagonal facing vector and refresh latch timer
+            constexpr float inv_sqrt2 = 0.70710678118f;
+            current_facing_dx = raw_dx * inv_sqrt2;
+            current_facing_dy = raw_dy * inv_sqrt2;
+            latched_facing_dx = current_facing_dx;
+            latched_facing_dy = current_facing_dy;
+            diagonal_latch_timer = FACING_DIAGONAL_LATCH_TIME;
+            start_delay_timer = 0.0f;
+        } else if (is_moving) {
+            // Single-axis input
+            if (diagonal_latch_timer > 0.0f) {
+                // Technique 2: Diagonal Release Buffer (Stop Latch)
+                diagonal_latch_timer -= dt;
+                current_facing_dx = latched_facing_dx;
+                current_facing_dy = latched_facing_dy;
+                start_delay_timer = 0.0f;
+            } else if (!was_moving) {
+                // Technique 1: Facing Direction Hysteresis (2-Frame Input Latch)
+                // Defer updating facing_dx/dy by 2 frames when starting movement from idle
+                start_delay_timer = FACING_START_DELAY_TIME;
+            } else if (start_delay_timer > 0.0f) {
+                start_delay_timer -= dt;
+                if (start_delay_timer <= 0.0f) {
+                    current_facing_dx = raw_dx;
+                    current_facing_dy = raw_dy;
+                }
+            } else {
+                current_facing_dx = raw_dx;
+                current_facing_dy = raw_dy;
+            }
+        } else {
+            // Stopped moving (raw_dx == 0 && raw_dy == 0)
+            if (diagonal_latch_timer > 0.0f) {
+                diagonal_latch_timer -= dt;
+                current_facing_dx = latched_facing_dx;
+                current_facing_dy = latched_facing_dy;
+            }
+            start_delay_timer = 0.0f;
+        }
+
+        was_moving = is_moving;
+        return FacingVector{ current_facing_dx, current_facing_dy };
+    }
+};
+
 struct Player : public Entity {
     // Movement speed in pixels per 60Hz physics tick.
     // NOTE FOR TUNING: Sticking to simple rational fractions (0.25f, 0.50f, 0.75f, 1.00f, 1.25f, 1.50f)
@@ -20,6 +88,9 @@ struct Player : public Entity {
     float speed = pixels_per_tick * static_cast<float>(Game::TARGET_FPS);
     int wand_radius = 96;
     bool is_panning = false;
+
+    // Input buffer for facing hysteresis & diagonal release buffer
+    PlayerInputBuffer input_buffer;
 
     // Facing vector (default facing down)
     float facing_dx = 0.0f;
@@ -236,16 +307,9 @@ private:
         if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
-        if (dx != 0.0f || dy != 0.0f) {
-            if (dx != 0.0f && dy != 0.0f) {
-                constexpr float inv_sqrt2 = 0.70710678118f;
-                facing_dx = dx * inv_sqrt2;
-                facing_dy = dy * inv_sqrt2;
-            } else {
-                facing_dx = dx;
-                facing_dy = dy;
-            }
-        }
+        FacingVector facing = input_buffer.update_facing(dt, dx, dy);
+        facing_dx = facing.dx;
+        facing_dy = facing.dy;
 
         // DIAGONAL SPEED SCALE OPTIONS:
         // 1.00f = Classic 16-bit SNES/Zelda grid-aligned (+41% speed boost, 100% 60Hz smooth)
