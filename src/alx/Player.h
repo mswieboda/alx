@@ -175,9 +175,9 @@ struct Player : public Entity {
         }
 
         // Indicator where tile build/remove happens
-        float size = world_draw_h / 4.0f;
+        float size = std::round(world_draw_h / 4.0f);
         float target_center_x = world_draw_x + (world_draw_w / 2.0f);
-        float target_center_y = world_draw_y + (world_draw_h / 1.25f);
+        float target_center_y = world_draw_y + std::round(world_draw_h / 1.25f);
         float box_x = target_center_x - (size / 2.0f);
         float box_y = target_center_y - (size / 2.0f);
 
