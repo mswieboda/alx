@@ -4,6 +4,7 @@
 #include "alx/Tiles.h"
 #include "alx/Network.h"
 #include "alx/Layer.h"
+#include "alx/DrawFX.h"
 #include "core/Collision.h"
 
 namespace alx {
@@ -200,24 +201,16 @@ struct Player : public Entity {
         float world_draw_h = transform.height;
 
         float world_bottom_y = world_draw_y + world_draw_h;
-        float shadow_cx = world_draw_x + (world_draw_w / 2.0f);
-        float shadow_cy = world_bottom_y;
-
-        // TODO: make these radius values/ratios constants
-        float shadow_rx = transform.width * SHADOW_RX_RATIO;
-        float shadow_ry = shadow_rx * SHADOW_RY_RATIO_OF_RX;
 
         // Player shadow underneath player at bottom Y edge (foreshortened oval)
-        Draw::oval(
-            shadow_cx,
-            shadow_cy,
-            shadow_rx,
-            shadow_ry,
-            0x60000000, // Translucent dark shadow
-            true,
-            1,
+        DrawFX::shadow(
+            world_draw_x,
+            world_draw_y,
+            world_draw_w,
+            world_draw_h,
             transform.z_index,
-            static_cast<int>(world_bottom_y) // sort Y override
+            SHADOW_RX_RATIO,
+            SHADOW_RY_RATIO_OF_RX
         );
 
         // Player body
@@ -232,6 +225,22 @@ struct Player : public Entity {
                 rect->thickness,
                 transform.z_index,
                 static_cast<int>(world_bottom_y) // sort Y override
+            );
+        }
+
+        // Ground feet collision circle outline (cyan debug)
+        if (Game::DRAW_DEBUG_COLLISION_AREAS) {
+            Collision::Circle ground = get_ground_circle(world_draw_x, world_draw_y);
+            Draw::oval(
+                ground.cx,
+                ground.cy,
+                ground.radius,
+                ground.radius,
+                0xFF00FFFF, // Bright Cyan debug outline
+                false,      // fill = false (outline only)
+                1,          // thickness = 1
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
             );
         }
 

@@ -145,7 +145,7 @@ public:
         m_camera.update(dt);
 
         m_player.update(dt, m_tiles, m_network, m_camera);
-        m_enemy_manager.update(dt, &m_player);
+        m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
 
         if (Action::is_pressed(Action::DebugTwUp)) {
             m_twilight_level += 1 * dt;

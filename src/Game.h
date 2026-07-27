@@ -14,6 +14,9 @@ namespace Game {
     // NOTE: disable this in a true released game so ESC doesn't quit so easily
     inline constexpr bool QUIT_ON_ESC = true;
 
+    // Debug Options
+    inline constexpr bool DRAW_DEBUG_COLLISION_AREAS = true;
+
     // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
     inline constexpr uint8_t REFINER_TICKS_REQUIRED = 5;
     inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;

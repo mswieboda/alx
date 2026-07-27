@@ -9,6 +9,10 @@
 
 #include "core/Collision.h"
 
+#include <random>
+#include "alx/DrawFX.h"
+#include "Game.h"
+
 namespace alx {
 
 struct EnemyConstants {
@@ -21,6 +25,13 @@ struct EnemyConstants {
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (y + height - r)
     static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
+
+    static constexpr float DEFAULT_SPEED = 45.0f;          // 0.75 px/tick at 60 FPS
+    static constexpr float HIT_STUN_DURATION = 0.3f;
+    static constexpr float MIN_IDLE_TIME = 0.5f;
+    static constexpr float MAX_IDLE_TIME = 1.5f;
+    static constexpr float MIN_MOVE_TIME = 1.0f;
+    static constexpr float MAX_MOVE_TIME = 2.5f;
 };
 
 struct Enemy {
@@ -30,6 +41,12 @@ struct Enemy {
     float height = EnemyConstants::DEFAULT_HEIGHT;
     uint32_t color = EnemyConstants::COLOR;
     int hp = EnemyConstants::DEFAULT_MAX_HP;
+
+    float speed = EnemyConstants::DEFAULT_SPEED;
+    float move_dx = 0.0f;
+    float move_dy = 0.0f;
+    float state_timer = 0.0f;
+    bool is_moving = false;
 
     Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR, int max_hp = EnemyConstants::DEFAULT_MAX_HP)
         : x(px), y(py), width(w), height(h), color(col), hp(max_hp) {}
@@ -42,10 +59,14 @@ struct Enemy {
         return y + (height / 2.0f);
     }
 
-    Collision::Circle get_ground_circle() const {
+    Collision::Circle get_ground_circle(float px, float py) const {
         float r = width * EnemyConstants::GROUND_RADIUS_RATIO;
-        float cy = y + (height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
-        return Collision::Circle{ x + (width / 2.0f), cy, r };
+        float cy = py + (height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
+        return Collision::Circle{ px + (width / 2.0f), cy, r };
+    }
+
+    Collision::Circle get_ground_circle() const {
+        return get_ground_circle(x, y);
     }
 
     Collision::Circle get_hurt_circle() const {
@@ -54,10 +75,39 @@ struct Enemy {
         return Collision::Circle{ x + (width / 2.0f), cy, r };
     }
 
+    void pick_random_wander_state(std::mt19937& rng) {
+        std::uniform_real_distribution<float> prob_dist(0.0f, 1.0f);
+        if (prob_dist(rng) < 0.3f) {
+            is_moving = false;
+            move_dx = 0.0f;
+            move_dy = 0.0f;
+            std::uniform_real_distribution<float> idle_dist(EnemyConstants::MIN_IDLE_TIME, EnemyConstants::MAX_IDLE_TIME);
+            state_timer = idle_dist(rng);
+        } else {
+            is_moving = true;
+            constexpr float inv_sqrt2 = 0.70710678118f;
+            static constexpr std::pair<float, float> dirs[8] = {
+                {1.0f, 0.0f}, {-1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, -1.0f},
+                {inv_sqrt2, inv_sqrt2}, {-inv_sqrt2, inv_sqrt2},
+                {inv_sqrt2, -inv_sqrt2}, {-inv_sqrt2, -inv_sqrt2}
+            };
+            std::uniform_int_distribution<int> dir_dist(0, 7);
+            auto [dx, dy] = dirs[dir_dist(rng)];
+            move_dx = dx;
+            move_dy = dy;
+            std::uniform_real_distribution<float> move_time_dist(EnemyConstants::MIN_MOVE_TIME, EnemyConstants::MAX_MOVE_TIME);
+            state_timer = move_time_dist(rng);
+        }
+    }
+
     void take_damage(int amount, float push_dx, float push_dy) {
         hp -= amount;
         x += push_dx * EnemyConstants::KNOCKBACK_DIST;
         y += push_dy * EnemyConstants::KNOCKBACK_DIST;
+        is_moving = false;
+        move_dx = 0.0f;
+        move_dy = 0.0f;
+        state_timer = EnemyConstants::HIT_STUN_DURATION;
     }
 
     bool is_dead() const {
@@ -65,6 +115,15 @@ struct Enemy {
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
+        // Enemy shadow underneath enemy at bottom Y edge (foreshortened oval)
+        DrawFX::shadow(
+            x,
+            y,
+            width,
+            height,
+            Layer::WorldObj
+        );
+
         Draw::rect(
             x,
             y,
@@ -73,8 +132,25 @@ struct Enemy {
             color,
             true, // fill
             1,    // thickness
-            Layer::WorldObj
+            Layer::WorldObj,
+            static_cast<int>(y + height)
         );
+
+        // Ground feet collision circle outline (cyan debug)
+        if (Game::DRAW_DEBUG_COLLISION_AREAS) {
+            Collision::Circle ground = get_ground_circle();
+            Draw::oval(
+                ground.cx,
+                ground.cy,
+                ground.radius,
+                ground.radius,
+                0xFF00FFFF, // Bright Cyan debug outline
+                false,      // fill = false (outline only)
+                1,          // thickness = 1
+                Layer::WorldObj + 1,
+                static_cast<int>(y + height)
+            );
+        }
     }
 };
 
