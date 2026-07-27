@@ -52,6 +52,7 @@ namespace Action {
         Menu,       // Enter (Start): Menu / Pause
         Map,        // Tab / Space (Select): Map
         DebugResource,  // 5: Temporary debug cheat +10 alloy
+        DebugEnemyWave, // 6: Temporary debug cheat to spawn 2 enemies
         DebugTwUp,  // plus key
         DebugTwDown, // minus key
         Count

@@ -14,7 +14,7 @@
 namespace alx {
 
 namespace SpawnerConstants {
-    constexpr int DEFAULT_SPAWN_COUNT = 6;
+    constexpr int DEFAULT_SPAWN_COUNT = 2;
     constexpr int MIN_BORDER_OFFSET = 1;
     constexpr int MAX_BORDER_OFFSET = 3;
     constexpr float MIN_PLAYER_DISTANCE = 96.0f;
@@ -46,8 +46,10 @@ public:
         m_attack_hit_registered = false;
     }
 
-    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f) {
-        clear();
+    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
+        if (clear_existing) {
+            clear();
+        }
 
         int grid_w = tiles.width();
         int grid_h = tiles.height();

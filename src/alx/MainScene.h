@@ -84,7 +84,7 @@ public:
 
         update_camera_map_boundary();
         load_tiles_and_network(seeps, refiners, spires, pipes);
-        m_enemy_manager.spawn_random_enemies(m_tiles, SpawnerConstants::DEFAULT_SPAWN_COUNT, m_player.center_x(1.0f), m_player.center_y(1.0f));
+        m_enemy_manager.clear();
     }
 
     void load_tiles_and_network(
@@ -146,6 +146,10 @@ public:
 
         m_player.update(dt, m_tiles, m_network, m_camera);
         m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
+
+        if (Action::is_just_pressed(Action::DebugEnemyWave)) {
+            m_enemy_manager.spawn_random_enemies(m_tiles, 2, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
+        }
 
         if (Action::is_pressed(Action::DebugTwUp)) {
             m_twilight_level += 1 * dt;

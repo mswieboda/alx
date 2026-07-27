@@ -26,7 +26,8 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"pan_mode",       PanMode},
     {"menu",           Menu},
     {"map",            Map},
-    {"debug_resource", DebugResource}
+    {"debug_resource", DebugResource},
+    {"debug_enemy_wave", DebugEnemyWave}
 };
 
 Type string_to_type(const std::string& action_str) {
@@ -53,6 +54,7 @@ std::string type_to_string(Type type) {
         case Menu:          return "menu";
         case Map:           return "map";
         case DebugResource: return "debug_resource";
+        case DebugEnemyWave: return "debug_enemy_wave";
         default:            return "unknown";
     }
 }
@@ -106,6 +108,7 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(Map)]           = GBA::SELECT;
 
     s_bindings[static_cast<size_t>(DebugResource)] = { MFB_KB_KEY_5 };
+    s_bindings[static_cast<size_t>(DebugEnemyWave)] = { MFB_KB_KEY_6 };
     s_bindings[static_cast<size_t>(DebugTwUp)]     = { MFB_KB_KEY_EQUAL };
     s_bindings[static_cast<size_t>(DebugTwDown)]   = { MFB_KB_KEY_MINUS };
 }

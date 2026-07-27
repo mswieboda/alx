@@ -26,7 +26,7 @@ struct EnemyConstants {
     static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
 
-    static constexpr float DEFAULT_SPEED = 45.0f;          // 0.75 px/tick at 60 FPS
+    static constexpr float DEFAULT_SPEED = 15.0f;          // 0.25 px/tick at 60 FPS
     static constexpr float HIT_STUN_DURATION = 0.3f;
     static constexpr float MIN_IDLE_TIME = 0.5f;
     static constexpr float MAX_IDLE_TIME = 1.5f;
