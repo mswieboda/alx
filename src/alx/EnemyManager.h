@@ -49,9 +49,9 @@ public:
     void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f) {
         clear();
 
-        int grid_w = tiles.get_width();
-        int grid_h = tiles.get_height();
-        int tile_size = tiles.get_tile_size();
+        int grid_w = tiles.width();
+        int grid_h = tiles.height();
+        int tile_size = tiles.tile_size();
 
         std::vector<std::pair<int, int>> candidate_tiles;
 
@@ -117,7 +117,7 @@ public:
     }
 
     static bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
-        float tile_size = static_cast<float>(tiles.get_tile_size());
+        float tile_size = static_cast<float>(tiles.tile_size());
 
         int min_tx = static_cast<int>(std::floor((ground.cx - ground.radius) / tile_size));
         int max_tx = static_cast<int>(std::floor((ground.cx + ground.radius) / tile_size));
@@ -348,7 +348,7 @@ public:
         }
     }
 
-    const std::vector<Enemy>& get_enemies() const { return m_enemies; }
+    const std::vector<Enemy>& enemies() const { return m_enemies; }
 
 private:
     void update_threat_cache() {

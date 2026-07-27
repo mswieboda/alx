@@ -31,26 +31,26 @@ bool Network::in_bounds(int x, int y) const noexcept {
     return x >= 0 && x < m_width && y >= 0 && y < m_height;
 }
 
-Fixture& Network::get_fixture(GridPos pos) noexcept {
+Fixture& Network::fixture(GridPos pos) noexcept {
     return m_fixtures[pos.to_index(m_width)];
 }
 
-const Fixture& Network::get_fixture(GridPos pos) const noexcept {
+const Fixture& Network::fixture(GridPos pos) const noexcept {
     return m_fixtures[pos.to_index(m_width)];
 }
 
-Fixture& Network::get_fixture(int x, int y) noexcept {
+Fixture& Network::fixture(int x, int y) noexcept {
     return m_fixtures[y * m_width + x];
 }
 
-const Fixture& Network::get_fixture(int x, int y) const noexcept {
+const Fixture& Network::fixture(int x, int y) const noexcept {
     return m_fixtures[y * m_width + x];
 }
 
 bool Network::can_place_fixture(GridPos pos, FixtureType type, const Tiles& tiles) const noexcept {
     if (!in_bounds(pos)) return false;
     if (!tiles.is_floor(pos)) return false;
-    return get_fixture(pos).is_empty();
+    return fixture(pos).is_empty();
 }
 
 bool Network::place_fixture(GridPos pos, FixtureType type) {
@@ -94,7 +94,7 @@ bool Network::remove_fixture(GridPos pos) {
 
 bool Network::is_solid(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return false;
-    FixtureType t = get_fixture(pos).type;
+    FixtureType t = fixture(pos).type;
     return t == FixtureType::Refiner || t == FixtureType::Spire;
 }
 
@@ -110,7 +110,7 @@ void Network::update_neighbor_masks(GridPos pos) {
         GridPos target = (i == 4) ? pos : neighbors[i];
         if (!in_bounds(target)) continue;
 
-        Fixture& fix = get_fixture(target);
+        Fixture& fix = fixture(target);
         if (fix.is_empty()) continue;
 
         uint8_t in_mask = 0;
@@ -118,7 +118,7 @@ void Network::update_neighbor_masks(GridPos pos) {
 
         for (int k = 0; k < 4; ++k) {
             if (in_bounds(t_neighbors[k])) {
-                const Fixture& n_fix = get_fixture(t_neighbors[k]);
+                const Fixture& n_fix = fixture(t_neighbors[k]);
                 if (!n_fix.is_empty()) {
                     in_mask |= masks[k];
                 }
@@ -172,12 +172,12 @@ std::vector<int> Network::compute_distance_field(FixtureType sourceType) const {
     return dist;
 }
 
-void Network::get_downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const {
+void Network::downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const {
     out_dx = 0;
     out_dy = 0;
 
     if (!in_bounds(x, y)) return;
-    const Fixture& current = get_fixture(x, y);
+    const Fixture& current = fixture(x, y);
     if (current.type != FixtureType::Pipe || current.mana_state == ManaState::None) return;
 
     int idx = y * m_width + x;

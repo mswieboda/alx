@@ -44,10 +44,10 @@ public:
     [[nodiscard]] bool in_bounds(GridPos pos) const noexcept;
     [[nodiscard]] bool in_bounds(int x, int y) const noexcept;
 
-    [[nodiscard]] Fixture& get_fixture(GridPos pos) noexcept;
-    [[nodiscard]] const Fixture& get_fixture(GridPos pos) const noexcept;
-    [[nodiscard]] Fixture& get_fixture(int x, int y) noexcept;
-    [[nodiscard]] const Fixture& get_fixture(int x, int y) const noexcept;
+    [[nodiscard]] Fixture& fixture(GridPos pos) noexcept;
+    [[nodiscard]] const Fixture& fixture(GridPos pos) const noexcept;
+    [[nodiscard]] Fixture& fixture(int x, int y) noexcept;
+    [[nodiscard]] const Fixture& fixture(int x, int y) const noexcept;
 
     // --- Placement & Removal Management ---
     bool can_place_fixture(GridPos pos, FixtureType type, const Tiles& tiles) const noexcept;
@@ -60,15 +60,15 @@ public:
 
     // --- Auto-Tiling Mask & Downstream Query ---
     void update_neighbor_masks(GridPos pos);
-    void get_downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
+    void downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
 
     // --- Clean Top-Level Simulation Master Tick ---
     NetworkSimResults sim_tick();
 
-    [[nodiscard]] int get_width() const noexcept { return m_width; }
-    [[nodiscard]] int get_height() const noexcept { return m_height; }
-    [[nodiscard]] int get_tile_size() const noexcept { return m_tile_size; }
-    [[nodiscard]] const std::vector<int32_t>& get_active_indices() const noexcept { return m_active_indices; }
+    [[nodiscard]] int width() const noexcept { return m_width; }
+    [[nodiscard]] int height() const noexcept { return m_height; }
+    [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
+    [[nodiscard]] const std::vector<int32_t>& active_indices() const noexcept { return m_active_indices; }
 };
 
 } // namespace alx

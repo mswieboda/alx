@@ -66,7 +66,7 @@ public:
         if (level_id == 1) {
             m_tiles = Tiles(60, 30);
             m_network = Network(60, 30);
-            m_player = Player(9 * m_tiles.get_tile_size(), 9 * m_tiles.get_tile_size());
+            m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
             m_twilight_level = 0.75f;
 
             seeps = { {15, 12} };
@@ -93,8 +93,8 @@ public:
         const std::vector<std::pair<int, int>>& spires,
         const std::vector<std::pair<int, int>>& pipes
     ) {
-        int width = m_tiles.get_width();
-        int height = m_tiles.get_height();
+        int width = m_tiles.width();
+        int height = m_tiles.height();
 
         // 1. Static Floor & Wall initialization
         for (int y = 0; y < height; ++y) {
@@ -127,9 +127,9 @@ public:
     }
 
     void update_camera_map_boundary() {
-        int tile_size = m_tiles.get_tile_size();
-        int bound_width = m_tiles.get_width() * tile_size;
-        int bound_height = (m_tiles.get_height() * tile_size);
+        int tile_size = m_tiles.tile_size();
+        int bound_width = m_tiles.width() * tile_size;
+        int bound_height = (m_tiles.height() * tile_size);
 
         m_camera.set_limits(0, 0, bound_width, bound_height);
     }
@@ -288,36 +288,36 @@ public:
 
     bool is_connectable_fixture(int gx, int gy) const {
         if (!m_network.in_bounds(gx, gy)) return false;
-        FixtureType t = m_network.get_fixture(gx, gy).type;
+        FixtureType t = m_network.fixture(gx, gy).type;
         return t == FixtureType::Pipe || t == FixtureType::Seep || t == FixtureType::Refiner || t == FixtureType::Spire;
     }
 
     bool connects_dark_mana(int gx, int gy) const {
         if (!m_network.in_bounds(gx, gy)) return false;
-        const Fixture& f = m_network.get_fixture(gx, gy);
+        const Fixture& f = m_network.fixture(gx, gy);
         return (f.type == FixtureType::Pipe || f.type == FixtureType::Seep || f.type == FixtureType::Refiner) && f.mana_state == ManaState::Dark;
     }
 
     bool is_node_fixture(int gx, int gy) const {
         if (!m_network.in_bounds(gx, gy)) return false;
-        FixtureType t = m_network.get_fixture(gx, gy).type;
+        FixtureType t = m_network.fixture(gx, gy).type;
         return t == FixtureType::Seep || t == FixtureType::Refiner || t == FixtureType::Spire;
     }
 
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress) {
-        int base_tile_size = m_tiles.get_tile_size();
+        int base_tile_size = m_tiles.tile_size();
         float view_w = Game::WIDTH / m_camera.get_zoom();
         float view_h = Game::HEIGHT / m_camera.get_zoom();
 
         int min_tx = std::max(0, static_cast<int>(m_camera.get_x()) / base_tile_size);
-        int max_tx = std::min(m_tiles.get_width() - 1, static_cast<int>(m_camera.get_x() + view_w) / base_tile_size + 1);
+        int max_tx = std::min(m_tiles.width() - 1, static_cast<int>(m_camera.get_x() + view_w) / base_tile_size + 1);
         int min_ty = std::max(0, static_cast<int>(m_camera.get_y()) / base_tile_size);
-        int max_ty = std::min(m_tiles.get_height() - 1, static_cast<int>(m_camera.get_y() + view_h) / base_tile_size + 1);
+        int max_ty = std::min(m_tiles.height() - 1, static_cast<int>(m_camera.get_y() + view_h) / base_tile_size + 1);
 
         // Layer 0: Render Terrain Floor & Wall tiles
         for (int y = min_ty; y <= max_ty; ++y) {
             for (int x = min_tx; x <= max_tx; ++x) {
-                Tile tile = m_tiles.get_tile(x, y);
+                Tile tile = m_tiles.tile(x, y);
                 int world_x = x * base_tile_size;
                 int world_y = y * base_tile_size;
 
@@ -328,7 +328,7 @@ public:
         // Layer 1: Render Network Fixtures (Pipes, Refiners, Spires, Seeps, Mana Flow Orbs)
         for (int y = min_ty; y <= max_ty; ++y) {
             for (int x = min_tx; x <= max_tx; ++x) {
-                const Fixture& fix = m_network.get_fixture(x, y);
+                const Fixture& fix = m_network.fixture(x, y);
                 if (fix.is_empty()) continue;
 
                 int world_x = x * base_tile_size;
@@ -475,7 +475,7 @@ public:
 
         if (in_dx != 0 || in_dy != 0) {
             if (out_dx == 0 && out_dy == 0) {
-                m_network.get_downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
+                m_network.downstream_dir(gx, gy, ManaState::Dark, out_dx, out_dy);
             }
             if (out_dx == 0 && out_dy == 0) {
                 out_dx = in_dx;
@@ -576,10 +576,10 @@ public:
         Draw::rect(world_x, world_y, tile_size, tile_size, color, false, 1, Layer::WorldObj);
     }
 
-    Tiles& get_tiles() { return m_tiles; }
-    const Tiles& get_tiles() const { return m_tiles; }
-    Network& get_network() { return m_network; }
-    const Network& get_network() const { return m_network; }
+    Tiles& tiles() { return m_tiles; }
+    const Tiles& tiles() const { return m_tiles; }
+    Network& network() { return m_network; }
+    const Network& network() const { return m_network; }
 };
 
 } // namespace alx

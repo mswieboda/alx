@@ -372,7 +372,7 @@ private:
 
         float center_x = transform.x + (transform.width / 2.0f);
         float center_y = transform.y + (transform.height / 1.25f);
-        int tile_size = tiles.get_tile_size();
+        int tile_size = tiles.tile_size();
         GridPos target_pos{ static_cast<int16_t>(static_cast<int>(center_x) / tile_size), static_cast<int16_t>(static_cast<int>(center_y) / tile_size) };
 
         if (Action::is_build_tile()) {
@@ -385,7 +385,7 @@ private:
 
         if (Action::is_just_pressed(Action::Cancel)) {
             if (network.in_bounds(target_pos)) {
-                const Fixture& fix = network.get_fixture(target_pos);
+                const Fixture& fix = network.fixture(target_pos);
                 if (fix.type != FixtureType::None && fix.type != FixtureType::Seep) {
                     int refund = fixture_cost(fix.type);
                     m_cursed_alloy += refund;
@@ -397,12 +397,12 @@ private:
 
     bool is_solid_ground(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
         Collision::Circle ground = ground_circle(test_x, test_y);
-        float tile_size = static_cast<float>(tiles.get_tile_size());
+        float tile_size = static_cast<float>(tiles.tile_size());
 
-        int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.get_tile_size();
-        int max_tx = static_cast<int>(ground.cx + ground.radius) / tiles.get_tile_size();
-        int min_ty = static_cast<int>(ground.cy - ground.radius) / tiles.get_tile_size();
-        int max_ty = static_cast<int>(ground.cy + ground.radius) / tiles.get_tile_size();
+        int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.tile_size();
+        int max_tx = static_cast<int>(ground.cx + ground.radius) / tiles.tile_size();
+        int min_ty = static_cast<int>(ground.cy - ground.radius) / tiles.tile_size();
+        int max_ty = static_cast<int>(ground.cy + ground.radius) / tiles.tile_size();
 
         for (int ty = min_ty; ty <= max_ty; ++ty) {
             for (int tx = min_tx; tx <= max_tx; ++tx) {

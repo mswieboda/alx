@@ -22,10 +22,10 @@ public:
     [[nodiscard]] bool in_bounds(GridPos pos) const noexcept;
     [[nodiscard]] bool in_bounds(int x, int y) const noexcept;
 
-    [[nodiscard]] Tile& get_tile(GridPos pos) noexcept;
-    [[nodiscard]] const Tile& get_tile(GridPos pos) const noexcept;
-    [[nodiscard]] Tile& get_tile(int x, int y) noexcept;
-    [[nodiscard]] const Tile& get_tile(int x, int y) const noexcept;
+    [[nodiscard]] Tile& tile(GridPos pos) noexcept;
+    [[nodiscard]] const Tile& tile(GridPos pos) const noexcept;
+    [[nodiscard]] Tile& tile(int x, int y) noexcept;
+    [[nodiscard]] const Tile& tile(int x, int y) const noexcept;
 
     void set_tile(GridPos pos, TileType type) noexcept;
     void set_tile(int x, int y, TileType type) noexcept;
@@ -35,9 +35,9 @@ public:
     [[nodiscard]] bool is_floor(GridPos pos) const noexcept;
     [[nodiscard]] bool is_floor(int x, int y) const noexcept;
 
-    [[nodiscard]] int get_width() const noexcept { return m_width; }
-    [[nodiscard]] int get_height() const noexcept { return m_height; }
-    [[nodiscard]] int get_tile_size() const noexcept { return m_tile_size; }
+    [[nodiscard]] int width() const noexcept { return m_width; }
+    [[nodiscard]] int height() const noexcept { return m_height; }
+    [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
 };
 
 } // namespace alx
