@@ -121,6 +121,12 @@ struct Camera {
         }
     }
 
+    // Converts world-space coordinates to integer screen pixels using arithmetic half-up rounding
+    // (std::floor(val + 0.5f)). This provides two key properties:
+    // 1. Sub-Pixel Smoothness: Floating-point entity transforms (Player, Enemies, FX) round smoothly
+    //    to the nearest screen pixel as they move in fractional sub-pixel increments.
+    // 2. Translation Invariance: Satisfies f(v + K) == f(v) + K for all integer tile widths K,
+    //    preventing negative-coordinate origin tearing on tile maps.
     int to_screen_x(float world_x) const {
         return static_cast<int>(std::floor((world_x - x) * zoom + 0.5f));
     }

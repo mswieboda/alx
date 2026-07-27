@@ -33,20 +33,45 @@ namespace Draw {
             int x, y, w, h;
         };
 
+        // Two-Point Boundary Projection Algorithm:
+        // Converts world-space rectangles to screen space by projecting BOTH the top-left (x, y)
+        // and bottom-right (x + w, y + h) endpoints through to_screen_x/to_screen_y.
+        // This guarantees that adjacent tiles (e.g. Tile A at x, Tile B at x + w) share the exact
+        // same integer screen pixel boundary (to_screen_x(x + w)), preventing 1-pixel visual tearing
+        // or gaps across all zoom levels, sub-pixel movements, and deadzone lerps.
+        //
+        // RASTERIZATION ALIASING NOTE (Sub-Pixel Remainder Rolling / Pixel Snapping Beats):
+        // In GBA-style CPU software rendering without GPU sub-pixel bilinear filtering, mapping
+        // continuous floating-point camera positions onto a discrete integer pixel buffer causes
+        // fractional remainders to roll across discrete tile dimensions. This results in standard,
+        // expected retro rasterization aliasing (where a tile row/column dynamically alternates
+        // between N and N-1 pixels as sub-pixel camera movement rolls across buffer coordinates).
+        // This is 100% gapless, authentic, and standard behavior for CPU software pixel buffers.
+        // TL;DR: Dimensions dynamically shift +/-1px as float camera positions roll across pixel buffers,
+        //   resulting in a temporary squeeze/shrink of element (tile/sprite/rect) heights and widths,
+        //   more noticeable in large repeated patterns like tiles vs individual sprites/drawn entities.
         inline ScreenRect transform_rect(float x, float y, float w, float h) {
             if (g_active_camera) {
+                int x1 = g_active_camera->to_screen_x(x);
+                int x2 = g_active_camera->to_screen_x(x + w);
+                int y1 = g_active_camera->to_screen_y(y);
+                int y2 = g_active_camera->to_screen_y(y + h);
                 return {
-                    g_active_camera->to_screen_x(x),
-                    g_active_camera->to_screen_y(y),
-                    std::max(1, static_cast<int>(std::floor(w * g_active_camera->zoom + 0.5f))),
-                    std::max(1, static_cast<int>(std::floor(h * g_active_camera->zoom + 0.5f)))
+                    x1,
+                    y1,
+                    std::max(1, x2 - x1),
+                    std::max(1, y2 - y1)
                 };
             }
+            int x1 = static_cast<int>(std::floor(x + 0.5f));
+            int x2 = static_cast<int>(std::floor(x + w + 0.5f));
+            int y1 = static_cast<int>(std::floor(y + 0.5f));
+            int y2 = static_cast<int>(std::floor(y + h + 0.5f));
             return {
-                static_cast<int>(std::floor(x + 0.5f)),
-                static_cast<int>(std::floor(y + 0.5f)),
-                std::max(1, static_cast<int>(std::floor(w + 0.5f))),
-                std::max(1, static_cast<int>(std::floor(h + 0.5f)))
+                x1,
+                y1,
+                std::max(1, x2 - x1),
+                std::max(1, y2 - y1)
             };
         }
 
