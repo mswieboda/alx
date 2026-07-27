@@ -5,6 +5,7 @@
 #include <vector>
 #include "core/Draw.h"
 #include "alx/Camera.h"
+#include "alx/Layer.h"
 
 namespace alx {
 
@@ -12,7 +13,7 @@ struct AlloyItemConstants {
     static constexpr float DEFAULT_WIDTH = 8.0f;
     static constexpr float DEFAULT_HEIGHT = 8.0f;
     static constexpr uint32_t COLOR = 0xFFFF9900; // Glowing Amber/Gold Cursed Alloy
-    static constexpr int Z_INDEX = 4; // Below player (z=10), above floor (z=0)
+    static constexpr int Z_INDEX = Layer::GroundItem;
 };
 
 struct AlloyItem {

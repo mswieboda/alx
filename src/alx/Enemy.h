@@ -5,6 +5,7 @@
 #include <vector>
 #include "core/Draw.h"
 #include "alx/Camera.h"
+#include "alx/Layer.h"
 
 #include "core/Collision.h"
 
@@ -77,7 +78,7 @@ struct Enemy {
             color,
             true, // fill
             1,    // thickness
-            5     // z-index
+            Layer::WorldObj
         );
     }
 };

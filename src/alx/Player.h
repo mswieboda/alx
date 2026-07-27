@@ -3,6 +3,7 @@
 #include "alx/Camera.h"
 #include "alx/Tiles.h"
 #include "alx/Network.h"
+#include "alx/Layer.h"
 #include "core/Collision.h"
 
 namespace alx {
@@ -42,7 +43,7 @@ struct Player : public Entity {
 
     Player(float x = 128.0f, float y = 128.0f)
         : Entity(
-            Transform{ x, y, 12, 24, 10 }, // Transform (x, y, w, h, z_index)
+            Transform{ x, y, 12, 24, Layer::WorldObj }, // Transform (x, y, w, h, z_index)
             RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
             true,                                           // Active
             "player"                                        // Tag for easy lookups
@@ -302,8 +303,7 @@ private:
                     }
                 }
                 if (network.in_bounds(tx, ty)) {
-                    FixtureType ft = network.get_fixture(tx, ty).type;
-                    if (ft == FixtureType::Refiner || ft == FixtureType::Spire || ft == FixtureType::Seep) {
+                    if (network.is_solid(tx, ty)) {
                         Collision::AABB fixture_aabb = get_fixture_ground_aabb(tx, ty, tile_size);
                         if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
                             return true;

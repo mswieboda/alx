@@ -95,7 +95,7 @@ bool Network::remove_fixture(GridPos pos) {
 bool Network::is_solid(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return false;
     FixtureType t = get_fixture(pos).type;
-    return t == FixtureType::Refiner || t == FixtureType::Spire || t == FixtureType::Seep;
+    return t == FixtureType::Refiner || t == FixtureType::Spire;
 }
 
 bool Network::is_solid(int x, int y) const noexcept {

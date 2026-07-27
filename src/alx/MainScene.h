@@ -11,6 +11,7 @@
 #include "Player.h"
 #include "Action.h"
 #include "EnemyManager.h"
+#include "Layer.h"
 
 namespace alx {
 
@@ -230,7 +231,7 @@ public:
             m_twilight_pixel_buffer.data(),
             static_cast<uint32_t>(m_twilight_pixel_buffer.size() * sizeof(uint32_t)),
             w, h,
-            100
+            Layer::WorldOverlay
         );
     }
 
@@ -253,7 +254,7 @@ public:
         Draw::text(
             6, ly,
             Draw::fmt("alloy: %d", m_player.get_cursed_alloy()),
-            0xFF00CCCC, 1, 100, &font
+            0xFF00CCCC, 1, Layer::HUD_Text, &font
         );
 
         int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
@@ -262,7 +263,7 @@ public:
         Draw::text(
             screen_width / 2 - twilight_width / 2, ly,
             twilight_str,
-            0xFF00CCCC, 1, 100, &font
+            0xFF00CCCC, 1, Layer::HUD_Text, &font
         );
 
         std::string_view build_str = Draw::fmt("%s (%d)", selected_name, cost);
@@ -270,12 +271,12 @@ public:
         Draw::text(
             screen_width - 6 - build_width, ly,
             build_str,
-            0xFF00CCCC, 1, 100, &font
+            0xFF00CCCC, 1, Layer::HUD_Text, &font
         );
 
         ly += font.size;
         const int rect_height = ly + line_h_padding;
-        Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, 99);
+        Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, Layer::HUD_BG);
     }
 
     bool is_connectable_fixture(int gx, int gy) const {
@@ -355,7 +356,7 @@ public:
             color,
             fill,
             1,
-            0
+            Layer::Ground
         );
     }
 
@@ -367,28 +368,34 @@ public:
             int offset = (tile_size - hub_size) / 2;
             int stub_len = offset;
 
-            Draw::rect(screen_x + offset, screen_y + offset, hub_size, hub_size, pipe_color, true, 1, 0);
+            Draw::rect(screen_x + offset, screen_y + offset, hub_size, hub_size, pipe_color, true, 1, Layer::GroundFixture);
 
             if (is_connectable_fixture(gx, gy - 1)) {
-                Draw::rect(screen_x + offset, screen_y, hub_size, stub_len, pipe_color, true, 1, 0);
+                Draw::rect(screen_x + offset, screen_y, hub_size, stub_len, pipe_color, true, 1, Layer::GroundFixture);
             }
             if (is_connectable_fixture(gx, gy + 1)) {
-                Draw::rect(screen_x + offset, screen_y + offset + hub_size, hub_size, stub_len, pipe_color, true, 1, 0);
+                Draw::rect(screen_x + offset, screen_y + offset + hub_size, hub_size, stub_len, pipe_color, true, 1, Layer::GroundFixture);
             }
             if (is_connectable_fixture(gx - 1, gy)) {
-                Draw::rect(screen_x, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, 0);
+                Draw::rect(screen_x, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, Layer::GroundFixture);
             }
             if (is_connectable_fixture(gx + 1, gy)) {
-                Draw::rect(screen_x + offset + hub_size, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, 0);
+                Draw::rect(screen_x + offset + hub_size, screen_y + offset, stub_len, hub_size, pipe_color, true, 1, Layer::GroundFixture);
             }
             return;
         }
 
         uint32_t color = 0xFF00FF66;
+        int z_idx = Layer::GroundFixture;
         if (fix.type == FixtureType::Refiner) {
             color = 0xFF301C66;
-        } else if (fix.type == FixtureType::Spire || fix.type == FixtureType::Seep) {
+            z_idx = Layer::WorldObj;
+        } else if (fix.type == FixtureType::Spire) {
             color = 0xFF00FF66;
+            z_idx = Layer::WorldObj;
+        } else if (fix.type == FixtureType::Seep) {
+            color = 0xFF00FF66;
+            z_idx = Layer::GroundFixture;
         }
 
         Draw::rect(
@@ -399,7 +406,7 @@ public:
             color,
             true,
             1,
-            0
+            z_idx
         );
     }
 
@@ -413,6 +420,7 @@ public:
 
         uint32_t color = (fix.mana_state == ManaState::Light) ? 0xFF00FFFF : 0xFF6600FF;
         int size = tile_size / 2;
+        int z_idx = (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) ? Layer::WorldObj : Layer::GroundFixtureItem;
         Draw::rect(
             screen_x + size / 2,
             screen_y + size / 2,
@@ -421,7 +429,7 @@ public:
             color,
             true,
             1,
-            1
+            z_idx
         );
     }
 
@@ -473,20 +481,20 @@ public:
 
             if (!is_corner) {
                 if (in_dx != 0) {
-                    Draw::rect(render_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                    Draw::rect(render_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     if (is_connectable_fixture(gx - 1, gy) || in_dx == 1) {
-                        Draw::rect(render_x, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                        Draw::rect(render_x, screen_y + offset, offset, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                     if (is_connectable_fixture(gx + 1, gy) || in_dx == -1) {
-                        Draw::rect(render_x + offset + stream_w, screen_y + offset, offset, stream_w, liquid_color, true, 1, 1);
+                        Draw::rect(render_x + offset + stream_w, screen_y + offset, offset, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                 } else {
-                    Draw::rect(screen_x + offset, render_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+                    Draw::rect(screen_x + offset, render_y + offset, stream_w, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     if (is_connectable_fixture(gx, gy - 1) || in_dy == 1) {
-                        Draw::rect(screen_x + offset, render_y, stream_w, offset, liquid_color, true, 1, 1);
+                        Draw::rect(screen_x + offset, render_y, stream_w, offset, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                     if (is_connectable_fixture(gx, gy + 1) || in_dy == -1) {
-                        Draw::rect(screen_x + offset, render_y + offset + stream_w, stream_w, offset, liquid_color, true, 1, 1);
+                        Draw::rect(screen_x + offset, render_y + offset + stream_w, stream_w, offset, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                 }
             } else {
@@ -495,44 +503,44 @@ public:
                 int out_len = static_cast<int>(std::max(0.0f, head_s - half));
 
                 if (head_s >= half) {
-                    Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, 1);
+                    Draw::rect(hub_x - stream_w / 2, hub_y - stream_w / 2, stream_w, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                 }
 
                 if (in_len > 0) {
                     if (in_dy != 0) {
                         int y0 = (in_dy == 1) ? (hub_y - half) : (hub_y + half - in_len);
-                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, 1);
+                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, in_len, liquid_color, true, 1, Layer::GroundFixtureItem);
                     } else {
                         int x0 = (in_dx == 1) ? (hub_x - half) : (hub_x + half - in_len);
-                        Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, 1);
+                        Draw::rect(x0, hub_y - stream_w / 2, in_len, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                 }
 
                 if (out_len > 0) {
                     if (out_dy != 0) {
                         int y0 = (out_dy == 1) ? hub_y : (hub_y - out_len);
-                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, out_len, liquid_color, true, 1, 1);
+                        Draw::rect(hub_x - stream_w / 2, y0, stream_w, out_len, liquid_color, true, 1, Layer::GroundFixtureItem);
                     } else {
                         int x0 = (out_dx == 1) ? hub_x : (hub_x - out_len);
-                        Draw::rect(x0, hub_y - stream_w / 2, out_len, stream_w, liquid_color, true, 1, 1);
+                        Draw::rect(x0, hub_y - stream_w / 2, out_len, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
                     }
                 }
             }
         } else {
             int stub_len = offset;
-            Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, 1);
+            Draw::rect(screen_x + offset, screen_y + offset, stream_w, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
 
             if (connects_dark_mana(gx, gy - 1)) {
-                Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, 1);
+                Draw::rect(screen_x + offset, screen_y, stream_w, stub_len, liquid_color, true, 1, Layer::GroundFixtureItem);
             }
             if (connects_dark_mana(gx, gy + 1)) {
-                Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, 1);
+                Draw::rect(screen_x + offset, screen_y + offset + stream_w, stream_w, stub_len, liquid_color, true, 1, Layer::GroundFixtureItem);
             }
             if (connects_dark_mana(gx - 1, gy)) {
-                Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                Draw::rect(screen_x, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
             }
             if (connects_dark_mana(gx + 1, gy)) {
-                Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, 1);
+                Draw::rect(screen_x + offset + stream_w, screen_y + offset, stub_len, stream_w, liquid_color, true, 1, Layer::GroundFixtureItem);
             }
         }
     }
@@ -550,8 +558,8 @@ public:
         int orb_x = screen_x + offset + anim_offset_x;
         int orb_y = screen_y + offset + anim_offset_y;
 
-        Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, 1);
-        Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, 2);
+        Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, Layer::GroundFixtureItem);
+        Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, Layer::GroundFixtureItemFX);
     }
 
     void draw_fixture_powered(const Fixture& fix, int screen_x, int screen_y, int tile_size) {
@@ -560,7 +568,7 @@ public:
         }
 
         uint32_t color = 0xFFFFFF00;
-        Draw::rect(screen_x, screen_y, tile_size, tile_size, color, false, 1, 0);
+        Draw::rect(screen_x, screen_y, tile_size, tile_size, color, false, 1, Layer::WorldObj);
     }
 
     Tiles& get_tiles() { return m_tiles; }
