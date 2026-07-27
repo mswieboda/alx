@@ -116,14 +116,13 @@ public:
         }
     }
 
-    bool is_enemy_solid_ground(const Enemy& enemy, float test_x, float test_y, const Tiles& tiles, const Network& network) const {
-        Collision::Circle ground = enemy.ground_circle(test_x, test_y);
+    static bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
         float tile_size = static_cast<float>(tiles.get_tile_size());
 
-        int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.get_tile_size();
-        int max_tx = static_cast<int>(ground.cx + ground.radius) / tiles.get_tile_size();
-        int min_ty = static_cast<int>(ground.cy - ground.radius) / tiles.get_tile_size();
-        int max_ty = static_cast<int>(ground.cy + ground.radius) / tiles.get_tile_size();
+        int min_tx = static_cast<int>(std::floor((ground.cx - ground.radius) / tile_size));
+        int max_tx = static_cast<int>(std::floor((ground.cx + ground.radius) / tile_size));
+        int min_ty = static_cast<int>(std::floor((ground.cy - ground.radius) / tile_size));
+        int max_ty = static_cast<int>(std::floor((ground.cy + ground.radius) / tile_size));
 
         for (int ty = min_ty; ty <= max_ty; ++ty) {
             for (int tx = min_tx; tx <= max_tx; ++tx) {
@@ -163,7 +162,7 @@ public:
 
                 if (enemy.move_dx != 0.0f) {
                     float target_x = enemy.transform.x + enemy.move_dx * enemy.speed * dt;
-                    if (!is_enemy_solid_ground(enemy, target_x, enemy.transform.y, tiles, network)) {
+                    if (!is_solid_ground(enemy.ground_circle(target_x, enemy.transform.y), tiles, network)) {
                         enemy.transform.x = target_x;
                     } else {
                         blocked_x = true;
@@ -172,7 +171,7 @@ public:
 
                 if (enemy.move_dy != 0.0f) {
                     float target_y = enemy.transform.y + enemy.move_dy * enemy.speed * dt;
-                    if (!is_enemy_solid_ground(enemy, enemy.transform.x, target_y, tiles, network)) {
+                    if (!is_solid_ground(enemy.ground_circle(enemy.transform.x, target_y), tiles, network)) {
                         enemy.transform.y = target_y;
                     } else {
                         blocked_y = true;
