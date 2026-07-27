@@ -10,8 +10,9 @@
 #include "core/Collision.h"
 #include "alx/Camera.h"
 #include "alx/Layer.h"
-#include "alx/DrawFX.h"
+#include "alx/Random.h"
 #include "Game.h"
+#include "Debug.h"
 
 namespace alx {
 
@@ -141,14 +142,12 @@ struct Enemy : public Entity {
         is_moving = true;
     }
 
-    void pick_random_wander_state(std::mt19937& rng) {
-        std::uniform_real_distribution<float> prob_dist(0.0f, 1.0f);
-        if (prob_dist(rng) < 0.3f) {
+    void pick_random_wander_state() {
+        if (Random::chance(0.3f)) {
             is_moving = false;
             move_dx = 0.0f;
             move_dy = 0.0f;
-            std::uniform_real_distribution<float> idle_dist(MIN_IDLE_TIME, MAX_IDLE_TIME);
-            state_timer = idle_dist(rng);
+            state_timer = Random::get_float(MIN_IDLE_TIME, MAX_IDLE_TIME);
         } else {
             is_moving = true;
             constexpr float inv_sqrt2 = 0.70710678118f;
@@ -157,13 +156,15 @@ struct Enemy : public Entity {
                 {inv_sqrt2, inv_sqrt2}, {-inv_sqrt2, inv_sqrt2},
                 {inv_sqrt2, -inv_sqrt2}, {-inv_sqrt2, -inv_sqrt2}
             };
-            std::uniform_int_distribution<int> dir_dist(0, 7);
-            auto [dx, dy] = dirs[dir_dist(rng)];
+            auto [dx, dy] = dirs[Random::get_int(0, 7)];
             move_dx = dx;
             move_dy = dy;
-            std::uniform_real_distribution<float> move_time_dist(MIN_MOVE_TIME, MAX_MOVE_TIME);
-            state_timer = move_time_dist(rng);
+            state_timer = Random::get_float(MIN_MOVE_TIME, MAX_MOVE_TIME);
         }
+    }
+
+    void pick_random_wander_state(std::mt19937& /*rng*/) {
+        pick_random_wander_state();
     }
 
     void take_damage(int amount, float push_dx, float push_dy) {
@@ -214,7 +215,7 @@ struct Enemy : public Entity {
         }
 
         // Ground feet collision circle outline (cyan debug)
-        if (Game::DRAW_DEBUG_COLLISION_AREAS) {
+        if (Debug::DRAW_COLLISION_AREAS) {
             Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
             Draw::oval(
                 ground.cx,

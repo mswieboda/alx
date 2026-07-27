@@ -14,8 +14,10 @@ namespace Game {
     // NOTE: disable this in a true released game so ESC doesn't quit so easily
     inline constexpr bool QUIT_ON_ESC = true;
 
-    // Debug Options
-    inline constexpr bool DRAW_DEBUG_COLLISION_AREAS = true;
+    // Seed Configuration
+    // Set CUSTOM_SEED to a positive integer (e.g. 1337) to force deterministic runs.
+    // Set to -1 (or <= 0) for dynamic random seeding on every launch.
+    inline constexpr int64_t CUSTOM_SEED = -1; // e.g. 1337
 
     // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
     inline constexpr uint8_t REFINER_TICKS_REQUIRED = 5;

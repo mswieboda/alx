@@ -1,3 +1,6 @@
+#include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 #include "Game.h"
 #include "core/GameWindow.h"
@@ -8,7 +11,38 @@
 #include "core/Log.h"
 #include "core/Draw.h"
 #include "assets/Images.h"
+#include "alx/Random.h"
 #include "alx/MainScene.h"
+
+// --- CLI ARGUMENT PARSING HELPERS ---
+std::optional<std::string_view> find_cli_arg(int argc, char* argv[], std::string_view name) {
+    std::string flag_space = "--" + std::string(name);
+    std::string flag_eq = flag_space + "=";
+
+    for (int i = 1; i < argc; ++i) {
+        std::string_view arg = argv[i];
+        if (arg == flag_space && i + 1 < argc) {
+            return std::string_view(argv[i + 1]);
+        }
+        if (arg.starts_with(flag_eq)) {
+            return arg.substr(flag_eq.length());
+        }
+    }
+    return std::nullopt;
+}
+
+int64_t parse_cli_int64_arg(int argc, char* argv[], std::string_view name, int64_t default_val) {
+    auto val_str = find_cli_arg(argc, argv, name);
+    if (!val_str.has_value()) {
+        return default_val;
+    }
+    try {
+        return std::stoll(std::string(*val_str));
+    } catch (...) {
+        Log::error("Invalid integer CLI argument for --" + std::string(name));
+        return default_val;
+    }
+}
 
 // --- UPDATE --- where game logic updates happens
 void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager) {
@@ -53,7 +87,10 @@ void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager
 
 // --- MAIN --- init window, frame timing management, pixel buffer, scene manager
 // game loop - poll events, updates, draw
-int main() {
+int main(int argc, char* argv[]) {
+    int64_t seed = parse_cli_int64_arg(argc, argv, "seed", Game::CUSTOM_SEED);
+    alx::Random::init(seed);
+
     GameWindow game_window(
         Game::TITLE.data(),
         // initial window size

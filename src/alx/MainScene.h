@@ -6,11 +6,14 @@
 #include "core/Scene.h"
 #include "core/Input.h"
 #include "assets/Fonts.h"
+#include "Game.h"
+#include "Debug.h"
 #include "Tiles.h"
 #include "Network.h"
 #include "Player.h"
 #include "Action.h"
 #include "EnemyManager.h"
+#include "Random.h"
 #include "Layer.h"
 
 namespace alx {
@@ -288,6 +291,16 @@ public:
         ly += font.size;
         const int rect_height = ly + line_h_padding;
         Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, Layer::HUD_BG);
+
+        if constexpr (Debug::SHOW_SEED) {
+            std::string_view seed_str = Draw::fmt(Random::is_custom_seeded() ? "seed: %u (custom)" : "seed: %u", Random::active_seed());
+            int bottom_y = Game::HEIGHT - font.size - line_h_padding;
+            Draw::text(
+                6, bottom_y,
+                seed_str,
+                0x9900CCCC, 1, Layer::HUD_Text, &font
+            );
+        }
     }
 
     bool is_connectable_fixture(int gx, int gy) const {

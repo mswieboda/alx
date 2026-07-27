@@ -231,7 +231,7 @@ struct Player : public Entity {
         }
 
         // Ground feet collision circle outline (cyan debug)
-        if (Game::DRAW_DEBUG_COLLISION_AREAS) {
+        if (Debug::DRAW_COLLISION_AREAS) {
             Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
             Draw::oval(
                 ground.cx,

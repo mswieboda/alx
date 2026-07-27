@@ -35,7 +35,6 @@ private:
     float m_scan_timer = 0.0f;
     std::vector<size_t> m_cached_offscreen_indices;
     bool m_attack_hit_registered = false;
-    std::mt19937 m_rng{1337};
 
 public:
     void clear() {
@@ -89,7 +88,7 @@ public:
 
         if (candidate_tiles.empty()) return;
 
-        std::shuffle(candidate_tiles.begin(), candidate_tiles.end(), m_rng);
+        std::shuffle(candidate_tiles.begin(), candidate_tiles.end(), Random::engine());
 
         int spawn_num = std::min(count, static_cast<int>(candidate_tiles.size()));
         for (int i = 0; i < spawn_num; ++i) {
@@ -99,7 +98,7 @@ public:
             Enemy& enemy = m_enemies.emplace_back(world_x, world_y);
             enemy.state = EnemyState::SpawnWander;
             enemy.state_timer = Enemy::SPAWN_WANDER_DURATION;
-            enemy.pick_random_wander_state(m_rng);
+            enemy.pick_random_wander_state();
         }
 
         update_threat_cache();
@@ -213,17 +212,16 @@ public:
                             enemy.has_target = true;
                             enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
 
-                            std::uniform_real_distribution<float> reeval_dist(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
-                            enemy.reeval_timer = reeval_dist(m_rng);
+                            enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                             enemy.stuck_timer = 0.0f;
                         } else {
                             enemy.state = EnemyState::RestlessWander;
-                            enemy.pick_random_wander_state(m_rng);
+                            enemy.pick_random_wander_state();
                             enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                             enemy.has_target = false;
                         }
                     } else if (!enemy.is_moving) {
-                        enemy.pick_random_wander_state(m_rng);
+                        enemy.pick_random_wander_state();
                     }
                     break;
                 }
@@ -242,12 +240,11 @@ public:
                         if (new_target.x >= 0 && new_target.y >= 0) {
                             enemy.target_fixture_pos = new_target;
                             enemy.has_target = true;
-                            std::uniform_real_distribution<float> reeval_dist(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
-                            enemy.reeval_timer = reeval_dist(m_rng);
+                            enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                         } else if (!target_valid) {
                             enemy.state = EnemyState::SpawnWander;
                             enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            enemy.pick_random_wander_state(m_rng);
+                            enemy.pick_random_wander_state();
                             enemy.has_target = false;
                             break;
                         }
@@ -256,7 +253,7 @@ public:
                     if (enemy.state_timer <= 0.0f) {
                         enemy.state = EnemyState::RestlessWander;
                         enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                        enemy.pick_random_wander_state(m_rng);
+                        enemy.pick_random_wander_state();
                         break;
                     }
 
@@ -316,7 +313,7 @@ public:
                             enemy.stuck_timer = 0.0f;
                             enemy.state = EnemyState::DetourWander;
                             enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
-                            enemy.pick_random_wander_state(m_rng);
+                            enemy.pick_random_wander_state();
                         }
                     } else {
                         enemy.is_moving = false;
