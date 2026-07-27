@@ -91,26 +91,26 @@ namespace Draw {
     constexpr int NO_SORT_Y_OVERRIDE = INT32_MIN;
 
     // Submit actions to the frame queue
-    void text(int x, int y, std::string_view text, uint32_t color,
+    void text(float x, float y, std::string_view text, uint32_t color,
               int scale = 1, int z_index = 1,
               const FontData* font = &Font::DEFAULT_BLANK,
               int sort_y_override = NO_SORT_Y_OVERRIDE);
-    void rect(int x, int y, int width, int height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
+    void rect(float x, float y, float width, float height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void circle(float cx, float cy, float radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
-    void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
+    void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void sprite_frame(
-        int screen_x, int screen_y,
+        float screen_x, float screen_y,
         const uint8_t* sheet_pixels, uint32_t sheet_pixels_size,
-        int sheet_width, int sheet_height,
+        float sheet_width, float sheet_height,
         int src_x, int src_y, int src_w, int src_h,
         int z_index = 1,
         int sort_y_override = NO_SORT_Y_OVERRIDE
     );
     void blend_pixels(
-        int screen_x, int screen_y,
+        float screen_x, float screen_y,
         const uint32_t* pixel_data, uint32_t pixel_data_size,
-        int width, int height,
+        float width, float height,
         int z_index = 1,
         int sort_y_override = NO_SORT_Y_OVERRIDE
     );

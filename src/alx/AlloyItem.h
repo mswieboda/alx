@@ -40,10 +40,10 @@ struct AlloyItem {
 
         // Draw alloy nugget core
         Draw::rect(
-            static_cast<int>(x),
-            static_cast<int>(y),
-            static_cast<int>(width),
-            static_cast<int>(height),
+            x,
+            y,
+            width,
+            height,
             color,
             true, // fill
             1,    // thickness

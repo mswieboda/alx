@@ -143,12 +143,13 @@ struct Player : public Entity {
             static_cast<int>(world_bottom_y) // sort Y override
         );
 
+        // Player body
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
-                static_cast<int>(world_draw_x),
-                static_cast<int>(world_draw_y),
-                static_cast<int>(world_draw_w),
-                static_cast<int>(world_draw_h),
+                world_draw_x,
+                world_draw_y,
+                world_draw_w,
+                world_draw_h,
                 rect->color,
                 rect->fill,
                 rect->thickness,
@@ -157,13 +158,14 @@ struct Player : public Entity {
             );
         }
 
+        // Attack hit box/circle
         if (is_attacking()) {
             Collision::Circle hit_c = get_attack_hit_circle();
             Draw::rect(
-                static_cast<int>(hit_c.cx - hit_c.radius),
-                static_cast<int>(hit_c.cy - hit_c.radius),
-                static_cast<int>(hit_c.radius * 2.0f),
-                static_cast<int>(hit_c.radius * 2.0f),
+                hit_c.cx - hit_c.radius,
+                hit_c.cy - hit_c.radius,
+                hit_c.radius * 2.0f,
+                hit_c.radius * 2.0f,
                 0x8000FFFF, // 50% transparent Cyan debug attack box
                 true,
                 1,
@@ -172,19 +174,18 @@ struct Player : public Entity {
             );
         }
 
-        float size = transform.height / 4.0f;
-
+        // Indicator where tile build/remove happens
+        float size = world_draw_h / 4.0f;
         float target_center_x = world_draw_x + (world_draw_w / 2.0f);
         float target_center_y = world_draw_y + (world_draw_h / 1.25f);
-
         float box_x = target_center_x - (size / 2.0f);
         float box_y = target_center_y - (size / 2.0f);
 
         Draw::rect(
-            static_cast<int>(std::round(box_x)),
-            static_cast<int>(std::round(box_y)),
-            static_cast<int>(std::round(size)),
-            static_cast<int>(std::round(size)),
+            box_x,
+            box_y,
+            size,
+            size,
             0xFF990099,
             true,
             1,

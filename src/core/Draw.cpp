@@ -33,16 +33,21 @@ namespace Draw {
             int x, y, w, h;
         };
 
-        inline ScreenRect transform_rect(int x, int y, int w, int h) {
+        inline ScreenRect transform_rect(float x, float y, float w, float h) {
             if (g_active_camera) {
                 return {
-                    g_active_camera->to_screen_x(static_cast<float>(x)),
-                    g_active_camera->to_screen_y(static_cast<float>(y)),
+                    g_active_camera->to_screen_x(x),
+                    g_active_camera->to_screen_y(y),
                     std::max(1, static_cast<int>(std::round(w * g_active_camera->zoom))),
                     std::max(1, static_cast<int>(std::round(h * g_active_camera->zoom)))
                 };
             }
-            return { x, y, w, h };
+            return {
+                static_cast<int>(std::round(x)),
+                static_cast<int>(std::round(y)),
+                std::max(1, static_cast<int>(std::round(w))),
+                std::max(1, static_cast<int>(std::round(h)))
+            };
         }
 
         inline float transform_x(float x) {
@@ -139,9 +144,9 @@ namespace Draw {
         return 0;
     }
 
-    void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override) {
-        float draw_x = transform_x(static_cast<float>(x));
-        float draw_y = transform_y(static_cast<float>(y));
+    void text(float x, float y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override) {
+        float draw_x = transform_x(x);
+        float draw_y = transform_y(y);
         int override_y = transform_sort_y_override(sort_y_override);
 
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
@@ -149,7 +154,7 @@ namespace Draw {
         g_queue.push_back({ draw_x, draw_y, z_index, sort_y, TextData{ text, color, scale, f } });
     }
 
-    void rect(int x, int y, int width, int height, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
+    void rect(float x, float y, float width, float height, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
         auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
 
@@ -174,7 +179,7 @@ namespace Draw {
         oval(cx, cy, radius, radius, color, fill, thickness, z_index, sort_y_override);
     }
 
-    void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index, int sort_y_override) {
+    void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index, int sort_y_override) {
         auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
 
@@ -185,9 +190,9 @@ namespace Draw {
     }
 
     void sprite_frame(
-        int screen_x, int screen_y,
+        float screen_x, float screen_y,
         const uint8_t* pixels, uint32_t pixels_size,
-        int width, int height,
+        float width, float height,
         int src_x, int src_y, int src_w, int src_h,
         int z_index,
         int sort_y_override
@@ -202,9 +207,9 @@ namespace Draw {
     }
 
     void blend_pixels(
-        int screen_x, int screen_y,
+        float screen_x, float screen_y,
         const uint32_t* pixel_data, uint32_t pixel_data_size,
-        int width, int height,
+        float width, float height,
         int z_index,
         int sort_y_override
     ) {
