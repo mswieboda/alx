@@ -143,7 +143,7 @@ struct Player : public Entity {
             true,
             1,
             transform.z_index,
-            bottom_y
+            bottom_y // sort Y override
         );
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
@@ -156,7 +156,7 @@ struct Player : public Entity {
                 rect->fill,
                 rect->thickness,
                 transform.z_index,
-                bottom_y
+                bottom_y // sort Y override
             );
         }
 
@@ -172,7 +172,8 @@ struct Player : public Entity {
                 0x8000FFFF, // 50% transparent Cyan debug attack box
                 true,
                 1,
-                transform.z_index + 1
+                transform.z_index,
+                bottom_y // sort Y override
             );
         }
 
