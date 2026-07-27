@@ -196,13 +196,13 @@ public:
         }
     }
 
-    void draw_enemies(std::vector<uint32_t>& pixel_buffer, float alpha, const alx::Camera& camera) const {
+    void draw_enemies(std::vector<uint32_t>& pixel_buffer, float alpha) const {
         for (const auto& item : m_alloy_items) {
-            item.draw(pixel_buffer, alpha, camera);
+            item.draw(pixel_buffer, alpha);
         }
 
         for (const auto& enemy : m_enemies) {
-            enemy.draw(pixel_buffer, alpha, camera);
+            enemy.draw(pixel_buffer, alpha);
         }
     }
 

@@ -4,6 +4,7 @@
 #include "../Game.h"
 #include "Draw.h"
 #include "Font.h"
+#include "Camera.h"
 #include "assets/Fonts.h"
 
 namespace Draw {
@@ -20,6 +21,9 @@ namespace Draw {
 
         // global reused palette between images/sprites
         const uint32_t* g_palette = nullptr;
+
+        // active camera context for world-space coordinates
+        const Camera* g_active_camera = nullptr;
 
         inline uint32_t blend_pixel(uint32_t dest, uint32_t src) {
             uint32_t src_alpha = (src >> 24) & 0xFF;
@@ -294,6 +298,18 @@ namespace Draw {
         }
     }
 
+    void world_begin(const Camera& camera) {
+        g_active_camera = &camera;
+    }
+
+    void world_end() {
+        g_active_camera = nullptr;
+    }
+
+    bool is_world_mode() {
+        return g_active_camera != nullptr;
+    }
+
     void set_y_sort_mode(YSortMode mode) {
         g_y_sort_mode = mode;
     }
@@ -357,21 +373,65 @@ namespace Draw {
     }
 
     void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override) {
+        int draw_x = x;
+        int draw_y = y;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_x = g_active_camera->to_screen_x(static_cast<float>(x));
+            draw_y = g_active_camera->to_screen_y(static_cast<float>(y));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
-        int sort_y = calc_sort_y(y, f->size * scale, sort_y_override);
-        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y, TextData{ text, color, scale, f } });
+        int sort_y = calc_sort_y(draw_y, f->size * scale, draw_sort_y_override);
+        g_queue.push_back({ static_cast<float>(draw_x), static_cast<float>(draw_y), z_index, sort_y, TextData{ text, color, scale, f } });
     }
 
     void rect(int x, int y, int width, int height, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
-        int sort_y = calc_sort_y(y, height, sort_y_override);
-        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y, RectData{ width, height, color, fill, thickness } });
+        int draw_x = x;
+        int draw_y = y;
+        int draw_w = width;
+        int draw_h = height;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_x = g_active_camera->to_screen_x(static_cast<float>(x));
+            draw_y = g_active_camera->to_screen_y(static_cast<float>(y));
+            draw_w = std::max(1, static_cast<int>(std::round(width * g_active_camera->zoom)));
+            draw_h = std::max(1, static_cast<int>(std::round(height * g_active_camera->zoom)));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
+        int sort_y = calc_sort_y(draw_y, draw_h, draw_sort_y_override);
+        g_queue.push_back({ static_cast<float>(draw_x), static_cast<float>(draw_y), z_index, sort_y, RectData{ draw_w, draw_h, color, fill, thickness } });
     }
 
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
-        int base_y = static_cast<int>(std::round(cy));
-        int base_ry = static_cast<int>(std::round(ry));
-        int sort_y = calc_sort_y(base_y, base_ry, sort_y_override, -base_ry);
-        g_queue.push_back({ cx, cy, z_index, sort_y, OvalData{ cx, cy, rx, ry, color, fill, thickness } });
+        float draw_cx = cx;
+        float draw_cy = cy;
+        float draw_rx = rx;
+        float draw_ry = ry;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_cx = static_cast<float>(g_active_camera->to_screen_x(cx));
+            draw_cy = static_cast<float>(g_active_camera->to_screen_y(cy));
+            draw_rx = std::max(1.0f, std::round(rx * g_active_camera->zoom));
+            draw_ry = std::max(1.0f, std::round(ry * g_active_camera->zoom));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
+        int base_y = static_cast<int>(std::round(draw_cy));
+        int base_ry = static_cast<int>(std::round(draw_ry));
+        int sort_y = calc_sort_y(base_y, base_ry, draw_sort_y_override, -base_ry);
+        g_queue.push_back({ draw_cx, draw_cy, z_index, sort_y, OvalData{ draw_cx, draw_cy, draw_rx, draw_ry, color, fill, thickness } });
     }
 
     void circle(float cx, float cy, float radius, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
@@ -379,9 +439,25 @@ namespace Draw {
     }
 
     void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index, int sort_y_override) {
-        int sort_y = calc_sort_y(y, height, sort_y_override);
-        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y,
-            SpriteData{ pixel_data, pixel_data_size, width, height, 0, 0, width, height }
+        int draw_x = x;
+        int draw_y = y;
+        int draw_w = width;
+        int draw_h = height;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_x = g_active_camera->to_screen_x(static_cast<float>(x));
+            draw_y = g_active_camera->to_screen_y(static_cast<float>(y));
+            draw_w = std::max(1, static_cast<int>(std::round(width * g_active_camera->zoom)));
+            draw_h = std::max(1, static_cast<int>(std::round(height * g_active_camera->zoom)));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
+        int sort_y = calc_sort_y(draw_y, draw_h, draw_sort_y_override);
+        g_queue.push_back({ static_cast<float>(draw_x), static_cast<float>(draw_y), z_index, sort_y,
+            SpriteData{ pixel_data, pixel_data_size, draw_w, draw_h, 0, 0, draw_w, draw_h }
         });
     }
 
@@ -393,9 +469,25 @@ namespace Draw {
         int z_index,
         int sort_y_override
     ) {
-        int sort_y = calc_sort_y(screen_y, src_h, sort_y_override);
-        g_queue.push_back({ static_cast<float>(screen_x), static_cast<float>(screen_y), z_index, sort_y,
-            SpriteData{ pixels, pixels_size, width, height, src_x, src_y, src_w, src_h }
+        int draw_x = screen_x;
+        int draw_y = screen_y;
+        int draw_w = width;
+        int draw_h = height;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_x = g_active_camera->to_screen_x(static_cast<float>(screen_x));
+            draw_y = g_active_camera->to_screen_y(static_cast<float>(screen_y));
+            draw_w = std::max(1, static_cast<int>(std::round(width * g_active_camera->zoom)));
+            draw_h = std::max(1, static_cast<int>(std::round(height * g_active_camera->zoom)));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
+        int sort_y = calc_sort_y(draw_y, src_h, draw_sort_y_override);
+        g_queue.push_back({ static_cast<float>(draw_x), static_cast<float>(draw_y), z_index, sort_y,
+            SpriteData{ pixels, pixels_size, draw_w, draw_h, src_x, src_y, src_w, src_h }
         });
     }
 
@@ -406,9 +498,25 @@ namespace Draw {
         int z_index,
         int sort_y_override
     ) {
-        int sort_y = calc_sort_y(screen_y, height, sort_y_override);
-        g_queue.push_back({ static_cast<float>(screen_x), static_cast<float>(screen_y), z_index, sort_y,
-            BlendPixelsData{ pixel_data, pixel_data_size, width, height }
+        int draw_x = screen_x;
+        int draw_y = screen_y;
+        int draw_w = width;
+        int draw_h = height;
+        int draw_sort_y_override = sort_y_override;
+
+        if (g_active_camera) {
+            draw_x = g_active_camera->to_screen_x(static_cast<float>(screen_x));
+            draw_y = g_active_camera->to_screen_y(static_cast<float>(screen_y));
+            draw_w = std::max(1, static_cast<int>(std::round(width * g_active_camera->zoom)));
+            draw_h = std::max(1, static_cast<int>(std::round(height * g_active_camera->zoom)));
+            if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+                draw_sort_y_override = g_active_camera->to_screen_y(static_cast<float>(sort_y_override));
+            }
+        }
+
+        int sort_y = calc_sort_y(draw_y, draw_h, draw_sort_y_override);
+        g_queue.push_back({ static_cast<float>(draw_x), static_cast<float>(draw_y), z_index, sort_y,
+            BlendPixelsData{ pixel_data, pixel_data_size, draw_w, draw_h }
         });
     }
 

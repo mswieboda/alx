@@ -114,24 +114,21 @@ struct Player : public Entity {
         update_actions(dt, tiles, network);
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) {
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha) {
         if (!active) return;
 
         float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
         float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        float world_draw_w = transform.width;
+        float world_draw_h = transform.height;
 
-        int draw_x = camera.to_screen_x(world_draw_x);
-        int draw_y = camera.to_screen_y(world_draw_y);
-        int draw_w = std::max(1, static_cast<int>(std::round(transform.width * camera.get_zoom())));
-        int draw_h = std::max(1, static_cast<int>(std::round(transform.height * camera.get_zoom())));
-
-        int bottom_y = draw_y + draw_h;
-        float shadow_cx = draw_x + (draw_w / 2.0f);
-        float shadow_cy = static_cast<float>(bottom_y);
+        float world_bottom_y = world_draw_y + world_draw_h;
+        float shadow_cx = world_draw_x + (world_draw_w / 2.0f);
+        float shadow_cy = world_bottom_y;
 
         // TODO: make these radius values/ratios constants
-        float shadow_rx = std::max(1.0f, std::round((transform.width * SHADOW_RX_RATIO) * camera.get_zoom()));
-        float shadow_ry = std::max(1.0f, std::round(shadow_rx * SHADOW_RY_RATIO_OF_RX));
+        float shadow_rx = transform.width * SHADOW_RX_RATIO;
+        float shadow_ry = shadow_rx * SHADOW_RY_RATIO_OF_RX;
 
         // Player shadow underneath player at bottom Y edge (foreshortened oval)
         Draw::oval(
@@ -143,44 +140,42 @@ struct Player : public Entity {
             true,
             1,
             transform.z_index,
-            bottom_y // sort Y override
+            static_cast<int>(world_bottom_y) // sort Y override
         );
 
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
-                draw_x,
-                draw_y,
-                draw_w,
-                draw_h,
+                static_cast<int>(world_draw_x),
+                static_cast<int>(world_draw_y),
+                static_cast<int>(world_draw_w),
+                static_cast<int>(world_draw_h),
                 rect->color,
                 rect->fill,
                 rect->thickness,
                 transform.z_index,
-                bottom_y // sort Y override
+                static_cast<int>(world_bottom_y) // sort Y override
             );
         }
 
         if (is_attacking()) {
             Collision::Circle hit_c = get_attack_hit_circle();
-            int hx = camera.to_screen_x(hit_c.cx - hit_c.radius);
-            int hy = camera.to_screen_y(hit_c.cy - hit_c.radius);
-            int hw = std::max(1, static_cast<int>(std::round(hit_c.radius * 2.0f * camera.get_zoom())));
-            int hh = std::max(1, static_cast<int>(std::round(hit_c.radius * 2.0f * camera.get_zoom())));
-
             Draw::rect(
-                hx, hy, hw, hh,
+                static_cast<int>(hit_c.cx - hit_c.radius),
+                static_cast<int>(hit_c.cy - hit_c.radius),
+                static_cast<int>(hit_c.radius * 2.0f),
+                static_cast<int>(hit_c.radius * 2.0f),
                 0x8000FFFF, // 50% transparent Cyan debug attack box
                 true,
                 1,
                 transform.z_index,
-                bottom_y // sort Y override
+                static_cast<int>(world_bottom_y) // sort Y override
             );
         }
 
-        float size = (transform.height / 4.0f) * camera.get_zoom();
+        float size = transform.height / 4.0f;
 
-        float target_center_x = draw_x + (draw_w / 2.0f);
-        float target_center_y = draw_y + (draw_h / 1.25f);
+        float target_center_x = world_draw_x + (world_draw_w / 2.0f);
+        float target_center_y = world_draw_y + (world_draw_h / 1.25f);
 
         float box_x = target_center_x - (size / 2.0f);
         float box_y = target_center_y - (size / 2.0f);
@@ -188,13 +183,13 @@ struct Player : public Entity {
         Draw::rect(
             static_cast<int>(std::round(box_x)),
             static_cast<int>(std::round(box_y)),
-            std::max(1, static_cast<int>(std::round(size))),
-            std::max(1, static_cast<int>(std::round(size))),
+            static_cast<int>(std::round(size)),
+            static_cast<int>(std::round(size)),
             0xFF990099,
             true,
             1,
             transform.z_index,
-            bottom_y
+            static_cast<int>(world_bottom_y)
         );
     }
 
@@ -348,4 +343,3 @@ private:
 };
 
 } // namespace alx
-

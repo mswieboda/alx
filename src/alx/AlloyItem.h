@@ -35,20 +35,15 @@ struct AlloyItem {
         return y + (height / 2.0f);
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) const {
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
         if (!active) return;
-
-        int draw_x = camera.to_screen_x(x);
-        int draw_y = camera.to_screen_y(y);
-        int draw_w = std::max(1, static_cast<int>(std::round(width * camera.get_zoom())));
-        int draw_h = std::max(1, static_cast<int>(std::round(height * camera.get_zoom())));
 
         // Draw alloy nugget core
         Draw::rect(
-            draw_x,
-            draw_y,
-            draw_w,
-            draw_h,
+            static_cast<int>(x),
+            static_cast<int>(y),
+            static_cast<int>(width),
+            static_cast<int>(height),
             color,
             true, // fill
             1,    // thickness

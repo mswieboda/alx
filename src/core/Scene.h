@@ -23,8 +23,8 @@ public:
 
     virtual ~Scene() = default;
 
-    Camera& get_camera() { return camera; }
-    const Camera& get_camera() const { return camera; }
+    virtual Camera& get_camera() { return camera; }
+    virtual const Camera& get_camera() const { return camera; }
 
     // Core Lifecycle Hooks
     virtual void init(SceneManager& sm) = 0;
@@ -44,7 +44,12 @@ public:
     size_t entity_index(const std::string& tag) const;
 
 protected:
-    // Optional virtual hook for custom raw pixel drawing
+    // Optional virtual hooks for rendering lifecycle
+    virtual void sync_camera(float alpha) {}
+    virtual void draw_world(std::vector<uint32_t>& screen_buffer, float alpha = 1.0f) {}
+    virtual void draw_screen(std::vector<uint32_t>& screen_buffer, float alpha = 1.0f) {}
+
+    // Optional virtual hook for backwards compatibility custom raw pixel drawing
     virtual void draw_custom(std::vector<uint32_t>& screen_buffer, float alpha = 1.0f);
 
     // The shared built-in entity rendering pipeline

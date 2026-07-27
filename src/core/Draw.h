@@ -6,7 +6,17 @@
 #include <cstdint>
 #include "Font.h"
 
+namespace core { struct Camera; }
+using Camera = core::Camera;
+
 namespace Draw {
+
+    // --- WORLD CAMERA CONTEXT ---
+    void world_begin(const Camera& camera);
+    void world_end();
+    bool is_world_mode();
+
+    // --- COMMAND VARIANTS ---
 
     // --- COMMAND VARIANTS ---
     struct TextData {

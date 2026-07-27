@@ -64,17 +64,12 @@ struct Enemy {
         return hp <= 0;
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const alx::Camera& camera) const {
-        int draw_x = camera.to_screen_x(x);
-        int draw_y = camera.to_screen_y(y);
-        int draw_w = std::max(1, static_cast<int>(std::round(width * camera.get_zoom())));
-        int draw_h = std::max(1, static_cast<int>(std::round(height * camera.get_zoom())));
-
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
         Draw::rect(
-            draw_x,
-            draw_y,
-            draw_w,
-            draw_h,
+            static_cast<int>(x),
+            static_cast<int>(y),
+            static_cast<int>(width),
+            static_cast<int>(height),
             color,
             true, // fill
             1,    // thickness
