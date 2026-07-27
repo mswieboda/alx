@@ -6,6 +6,8 @@
 #include "core/Draw.h"
 #include "alx/Camera.h"
 
+#include "core/Collision.h"
+
 namespace alx {
 
 struct EnemyConstants {
@@ -14,6 +16,8 @@ struct EnemyConstants {
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
     static constexpr int DEFAULT_MAX_HP = 3;
     static constexpr float KNOCKBACK_DIST = 2.0f;
+    static constexpr float MOVEMENT_RADIUS = 6.0f;
+    static constexpr float HURT_RADIUS = 7.0f;
 };
 
 struct Enemy {
@@ -33,6 +37,14 @@ struct Enemy {
 
     float center_y() const {
         return y + (height / 2.0f);
+    }
+
+    Collision::Circle get_movement_circle() const {
+        return Collision::Circle{ x + (width / 2.0f), y + 12.0f, EnemyConstants::MOVEMENT_RADIUS };
+    }
+
+    Collision::Circle get_hurt_circle() const {
+        return Collision::Circle{ x + (width / 2.0f), y + (height / 2.0f), EnemyConstants::HURT_RADIUS };
     }
 
     void take_damage(int amount, float push_dx, float push_dy) {

@@ -3,6 +3,7 @@
 #include "alx/Camera.h"
 #include "alx/Tiles.h"
 #include "alx/Network.h"
+#include "core/Collision.h"
 
 namespace alx {
 
@@ -17,9 +18,11 @@ struct Player : public Entity {
     float facing_dx = 0.0f;
     float facing_dy = 1.0f;
 
-    // Attack timing constants
+    // Attack timing and radius constants
     static constexpr float ATTACK_ACTIVE_DURATION = 0.15f;
     static constexpr float ATTACK_COOLDOWN_DURATION = 0.25f;
+    static constexpr float ATTACK_HIT_RADIUS = 10.0f;
+    static constexpr float ATTACK_HIT_OFFSET = 10.0f;
 
     float attack_active_timer = 0.0f;
     float attack_cooldown_timer = 0.0f;
@@ -51,6 +54,22 @@ struct Player : public Entity {
         return draw_y + (transform.height / 2.0f);
     }
 
+    Collision::Circle get_feet_collision_circle(float px, float py) const {
+        return Collision::Circle{ px + (transform.width / 2.0f), py + transform.height, 6.0f };
+    }
+
+    Collision::Circle get_feet_collision_circle() const {
+        return get_feet_collision_circle(transform.x, transform.y);
+    }
+
+    Collision::Circle get_hurt_circle(float px, float py) const {
+        return Collision::Circle{ px + (transform.width / 2.0f), py + (transform.height / 2.0f), 6.0f };
+    }
+
+    Collision::Circle get_hurt_circle() const {
+        return get_hurt_circle(transform.x, transform.y);
+    }
+
     void sync_prev_transforms() {
         transform_prev = transform;
     }
@@ -59,26 +78,12 @@ struct Player : public Entity {
         return attack_active_timer > 0.0f;
     }
 
-    AttackHitbox get_attack_hitbox() const {
-        float cx = transform.x + (transform.width / 2.0f);
-        float cy = transform.y + (transform.height / 2.0f);
-
-        AttackHitbox hb;
-        if (std::abs(facing_dy) >= std::abs(facing_dx)) {
-            hb.width = 16.0f;
-            hb.height = 8.0f;
-            float offset_y = (facing_dy >= 0.0f) ? (transform.height / 2.0f + 4.0f) : -(transform.height / 2.0f + 4.0f);
-            hb.x = cx - 8.0f;
-            hb.y = cy + offset_y - 4.0f;
-        } else {
-            hb.width = 8.0f;
-            hb.height = 16.0f;
-            float offset_x = (facing_dx >= 0.0f) ? (transform.width / 2.0f + 4.0f) : -(transform.width / 2.0f + 4.0f);
-            hb.x = cx + offset_x - 4.0f;
-            hb.y = cy - 8.0f;
-        }
-        return hb;
+    Collision::Circle get_attack_hit_circle() const {
+        float cx = center_x(1.0f) + facing_dx * ATTACK_HIT_OFFSET;
+        float cy = center_y(1.0f) + facing_dy * ATTACK_HIT_OFFSET;
+        return Collision::Circle{ cx, cy, ATTACK_HIT_RADIUS };
     }
+
 
     void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
         sync_prev_transforms();
@@ -119,15 +124,15 @@ struct Player : public Entity {
         }
 
         if (is_attacking()) {
-            AttackHitbox hb = get_attack_hitbox();
-            int hx = camera.to_screen_x(hb.x);
-            int hy = camera.to_screen_y(hb.y);
-            int hw = std::max(1, static_cast<int>(std::round(hb.width * camera.get_zoom())));
-            int hh = std::max(1, static_cast<int>(std::round(hb.height * camera.get_zoom())));
+            Collision::Circle hit_c = get_attack_hit_circle();
+            int hx = camera.to_screen_x(hit_c.cx - hit_c.radius);
+            int hy = camera.to_screen_y(hit_c.cy - hit_c.radius);
+            int hw = std::max(1, static_cast<int>(std::round(hit_c.radius * 2.0f * camera.get_zoom())));
+            int hh = std::max(1, static_cast<int>(std::round(hit_c.radius * 2.0f * camera.get_zoom())));
 
             Draw::rect(
                 hx, hy, hw, hh,
-                0xFF00FFFF, // Cyan attack arc flash
+                0x8000FFFF, // 50% transparent Cyan debug attack box
                 true,
                 1,
                 transform.z_index + 1
@@ -191,8 +196,14 @@ private:
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
         if (dx != 0.0f || dy != 0.0f) {
-            facing_dx = dx;
-            facing_dy = dy;
+            if (dx != 0.0f && dy != 0.0f) {
+                constexpr float inv_sqrt2 = 0.70710678118f;
+                facing_dx = dx * inv_sqrt2;
+                facing_dy = dy * inv_sqrt2;
+            } else {
+                facing_dx = dx;
+                facing_dy = dy;
+            }
         }
 
         if (dx != 0.0f && dy != 0.0f) {
@@ -201,13 +212,14 @@ private:
             dy *= inv_sqrt2;
         }
 
+
         float target_x = transform.x + dx * speed * dt;
-        if (!is_solid_box(target_x, transform.y, transform.width, transform.height, tiles, network)) {
+        if (!is_solid_feet(target_x, transform.y, tiles, network)) {
             transform.x = target_x;
         }
 
         float target_y = transform.y + dy * speed * dt;
-        if (!is_solid_box(transform.x, target_y, transform.width, transform.height, tiles, network)) {
+        if (!is_solid_feet(transform.x, target_y, tiles, network)) {
             transform.y = target_y;
         }
     }
@@ -265,20 +277,36 @@ private:
         }
     }
 
-    // TODO: Refactor player movement collision to use a dedicated feet collision box/circle radius and radius-based fixture collisions in the future
-    bool is_solid_box(float x, float y, float width, float height, const Tiles& tiles, const Network& network) const {
-        int tile_size = tiles.get_tile_size();
+    bool is_solid_feet(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
+        Collision::Circle feet = get_feet_collision_circle(test_x, test_y);
+        float tile_size = static_cast<float>(tiles.get_tile_size());
 
-        int left   = static_cast<int>(x) / tile_size;
-        int right  = static_cast<int>(x + width - 0.01f) / tile_size;
-        int top    = static_cast<int>(y) / tile_size;
-        int bottom = static_cast<int>(y + height - 0.01f) / tile_size;
+        int min_tx = static_cast<int>(feet.cx - feet.radius) / tiles.get_tile_size();
+        int max_tx = static_cast<int>(feet.cx + feet.radius) / tiles.get_tile_size();
+        int min_ty = static_cast<int>(feet.cy - feet.radius) / tiles.get_tile_size();
+        int max_ty = static_cast<int>(feet.cy + feet.radius) / tiles.get_tile_size();
 
-        return tiles.is_wall(left, top)     ||
-               tiles.is_wall(right, top)    ||
-               tiles.is_wall(left, bottom)  ||
-               tiles.is_wall(right, bottom);
+        for (int ty = min_ty; ty <= max_ty; ++ty) {
+            for (int tx = min_tx; tx <= max_tx; ++tx) {
+                if (tiles.is_wall(tx, ty)) {
+                    if (Collision::circle_vs_aabb(feet, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
+                        return true;
+                    }
+                }
+                if (network.in_bounds(tx, ty)) {
+                    FixtureType ft = network.get_fixture(tx, ty).type;
+                    if (ft == FixtureType::Refiner || ft == FixtureType::Spire || ft == FixtureType::Seep) {
+                        Collision::Circle fixture_c{ tx * tile_size + tile_size / 2.0f, ty * tile_size + tile_size / 2.0f, 7.5f };
+                        if (Collision::circle_vs_circle(feet, fixture_c)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 };
 
 } // namespace alx
+

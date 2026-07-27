@@ -107,8 +107,26 @@ public:
             update_threat_cache();
         }
 
+        update_enemy_push_separation();
+
         if (player) {
             update_combat_and_loot(*player);
+        }
+    }
+
+    void update_enemy_push_separation() {
+        for (size_t i = 0; i < m_enemies.size(); ++i) {
+            for (size_t j = i + 1; j < m_enemies.size(); ++j) {
+                Collision::Circle c1 = m_enemies[i].get_movement_circle();
+                Collision::Circle c2 = m_enemies[j].get_movement_circle();
+                float push_x1 = 0.0f, push_y1 = 0.0f, push_x2 = 0.0f, push_y2 = 0.0f;
+                if (Collision::resolve_soft_circle_overlap(c1.cx, c1.cy, c1.radius, c2.cx, c2.cy, c2.radius, push_x1, push_y1, push_x2, push_y2)) {
+                    m_enemies[i].x += push_x1;
+                    m_enemies[i].y += push_y1;
+                    m_enemies[j].x += push_x2;
+                    m_enemies[j].y += push_y2;
+                }
+            }
         }
     }
 
@@ -117,15 +135,22 @@ public:
         if (player.is_attacking()) {
             if (!m_attack_hit_registered) {
                 m_attack_hit_registered = true;
-                Player::AttackHitbox hb = player.get_attack_hitbox();
+                Collision::Circle hit_c = player.get_attack_hit_circle();
 
                 for (auto& enemy : m_enemies) {
-                    bool hit = (hb.x < enemy.x + enemy.width &&
-                                hb.x + hb.width > enemy.x &&
-                                hb.y < enemy.y + enemy.height &&
-                                hb.y + hb.height > enemy.y);
-                    if (hit) {
-                        enemy.take_damage(1, player.facing_dx, player.facing_dy);
+                    if (Collision::circle_vs_circle(enemy.get_hurt_circle(), hit_c)) {
+                        float push_dx = enemy.center_x() - player.center_x();
+                        float push_dy = enemy.center_y() - player.center_y();
+                        float len_sq = push_dx * push_dx + push_dy * push_dy;
+                        if (len_sq > 0.0001f) {
+                            float inv_len = 1.0f / std::sqrt(len_sq);
+                            push_dx *= inv_len;
+                            push_dy *= inv_len;
+                        } else {
+                            push_dx = player.facing_dx;
+                            push_dy = player.facing_dy;
+                        }
+                        enemy.take_damage(1, push_dx, push_dy);
                     }
                 }
             }

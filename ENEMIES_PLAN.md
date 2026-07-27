@@ -16,11 +16,11 @@ This document outlines the detailed roadmap, technical specifications, and desig
 - **Player Health & i-Frames**:
   - Max Health: **10 HP** (`max_hp = 10`, `current_hp = 10`).
   - Damage Invulnerability: **0.5s i-frames** upon taking damage. Flash feedback handled in Phase 6.
-- **Hitbox Dimensions**: **16x8 px rectangle** (oriented along cardinal or diagonal facing direction):
-  - Extends **8px** deep along facing vector.
-  - Spans **16px** wide perpendicular to facing vector (centered on player).
-- **Hitbox Timing**:
-  - Active Hitbox Duration: **0.15s**.
+- **Attack Hit Circle**: Uses a **Circle** (`radius = 8.0px`) for 8-directional circle-vs-circle hit detection:
+  - Center offset: `cx = player.center_x() + facing_dx * 8.0f`, `cy = player.center_y() + facing_dy * 8.0f`.
+  - Supports 4 cardinal directions and 4 diagonal directions (`(±0.707, ±0.707)`).
+- **Hit Circle Timing**:
+  - Active Hit Circle Duration: **0.15s**.
   - Total Attack Cooldown: **0.25s** (~4 swipes/sec max rate).
 
 ### 3. Enemy AI, Movement & Spawning System
@@ -55,18 +55,18 @@ This document outlines the detailed roadmap, technical specifications, and desig
 
 ## Phased Implementation Roadmap
 
-### Phase 1: Generic Collision Radius Architecture
-1. Implement collision radius for Player movement offset near feet (combining with AABB wall sliding).
-2. Create generic circle-vs-circle and circle-vs-AABB collision math utilities for movement, hitboxes, hurtboxes, and fixtures.
-3. Implement Fixture collision radius for entity blocking.
-4. Implement Enemy soft circle push-separation algorithm for smooth crowd movement.
-5. Implement Player/Enemy body hurt radius (`hurt_radius`).
+### Phase 1: Generic Collision Radius Architecture [COMPLETED]
+1. Implement collision radius for Player movement offset near feet (combining with AABB wall sliding). [COMPLETED]
+2. Create generic circle-vs-circle and circle-vs-AABB collision math utilities for movement, hitboxes, hurtboxes, and fixtures. [COMPLETED]
+3. Implement Fixture collision radius for entity blocking. [COMPLETED]
+4. Implement Enemy soft circle push-separation algorithm for smooth crowd movement. [COMPLETED]
+5. Implement Player/Enemy body hurt radius (`hurt_radius`). [COMPLETED]
 
-### Phase 2: Player Melee Combat Refinement
-1. Implement diagonal attack direction calculation alongside 4 cardinal directions.
-2. Apply damage when player hit hitbox/radius collides with enemy hurt radius.
-3. Implement enemy knockback (2px) and HP deduction (`max_hp = 3`).
-4. Implement enemy defeat / removal and static Alloy Item drop at enemy position.
+### Phase 2: Player Melee Combat Refinement [COMPLETED]
+1. Implement diagonal attack direction calculation alongside 4 cardinal directions. [COMPLETED]
+2. Apply damage when player hit hitbox/radius collides with enemy hurt radius. [COMPLETED]
+3. Implement enemy knockback (2px) and HP deduction (`max_hp = 3`). [COMPLETED]
+4. Implement enemy defeat / removal and static Alloy Item drop at enemy position. [COMPLETED]
 
 ### Phase 3: Enemy Movement & Target Seeking
 1. Implement basic temporary random small path looped movement (idle wandering).
