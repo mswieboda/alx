@@ -38,15 +38,15 @@ namespace Draw {
                 return {
                     g_active_camera->to_screen_x(x),
                     g_active_camera->to_screen_y(y),
-                    std::max(1, static_cast<int>(std::round(w * g_active_camera->zoom))),
-                    std::max(1, static_cast<int>(std::round(h * g_active_camera->zoom)))
+                    std::max(1, static_cast<int>(std::floor(w * g_active_camera->zoom + 0.5f))),
+                    std::max(1, static_cast<int>(std::floor(h * g_active_camera->zoom + 0.5f)))
                 };
             }
             return {
-                static_cast<int>(std::round(x)),
-                static_cast<int>(std::round(y)),
-                std::max(1, static_cast<int>(std::round(w))),
-                std::max(1, static_cast<int>(std::round(h)))
+                static_cast<int>(std::floor(x + 0.5f)),
+                static_cast<int>(std::floor(y + 0.5f)),
+                std::max(1, static_cast<int>(std::floor(w + 0.5f))),
+                std::max(1, static_cast<int>(std::floor(h + 0.5f)))
             };
         }
 
@@ -59,7 +59,7 @@ namespace Draw {
         }
 
         inline float scale_dim(float dim) {
-            return g_active_camera ? std::max(1.0f, std::round(dim * g_active_camera->zoom)) : dim;
+            return g_active_camera ? std::max(1.0f, std::floor(dim * g_active_camera->zoom + 0.5f)) : dim;
         }
 
         inline int transform_sort_y_override(int sort_y_override) {

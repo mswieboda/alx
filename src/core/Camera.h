@@ -122,11 +122,11 @@ struct Camera {
     }
 
     int to_screen_x(float world_x) const {
-        return static_cast<int>(std::round((world_x - x) * zoom));
+        return static_cast<int>(std::floor((world_x - x) * zoom + 0.5f));
     }
 
     int to_screen_y(float world_y) const {
-        return static_cast<int>(std::round((world_y - y) * zoom));
+        return static_cast<int>(std::floor((world_y - y) * zoom + 0.5f));
     }
 
     float to_world_x(float screen_x) const {
