@@ -85,8 +85,10 @@ struct Player : public Entity {
     //   - 0.75f = 45px/s (3/4px/tick: steady 4-frame +1, +1, +0, +1 cadence)
     //   - 0.50f = 30px/s (1/2px/tick: steady 30Hz alternating +1, +0, +1, +0 cadence)
     //   - 0.25f = 15px/s (1/4px/tick: steady 15Hz 4-tick +1, +0, +0, +0 pulse)
-    float pixels_per_tick = 1.0f;
-    float speed = pixels_per_tick * static_cast<float>(Game::TARGET_FPS);
+    static constexpr float SPEED_PX_PER_TICK = 1.00f; // 1.00 px/tick at 60 FPS
+    static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 60.0 px/s
+
+    float speed = SPEED;
     int wand_radius = 96;
     bool is_panning = false;
 

@@ -94,11 +94,11 @@ public:
         int spawn_num = std::min(count, static_cast<int>(candidate_tiles.size()));
         for (int i = 0; i < spawn_num; ++i) {
             auto [tx, ty] = candidate_tiles[i];
-            float world_x = static_cast<float>(tx * tile_size + (tile_size - EnemyConstants::DEFAULT_WIDTH) / 2.0f);
-            float world_y = static_cast<float>(ty * tile_size + (tile_size - EnemyConstants::DEFAULT_HEIGHT) / 2.0f);
+            float world_x = static_cast<float>(tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) / 2.0f);
+            float world_y = static_cast<float>(ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) / 2.0f);
             Enemy& enemy = m_enemies.emplace_back(world_x, world_y);
             enemy.state = EnemyState::SpawnWander;
-            enemy.state_timer = EnemyConstants::SPAWN_WANDER_DURATION;
+            enemy.state_timer = Enemy::SPAWN_WANDER_DURATION;
             enemy.pick_random_wander_state(m_rng);
         }
 
@@ -211,15 +211,15 @@ public:
                             enemy.state = EnemyState::SeekTarget;
                             enemy.target_fixture_pos = target;
                             enemy.has_target = true;
-                            enemy.state_timer = EnemyConstants::SIEGE_MARCH_DURATION;
+                            enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
 
-                            std::uniform_real_distribution<float> reeval_dist(EnemyConstants::TARGET_REEVAL_MIN_TIME, EnemyConstants::TARGET_REEVAL_MAX_TIME);
+                            std::uniform_real_distribution<float> reeval_dist(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                             enemy.reeval_timer = reeval_dist(m_rng);
                             enemy.stuck_timer = 0.0f;
                         } else {
                             enemy.state = EnemyState::RestlessWander;
                             enemy.pick_random_wander_state(m_rng);
-                            enemy.state_timer = EnemyConstants::RESTLESS_WANDER_DURATION;
+                            enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                             enemy.has_target = false;
                         }
                     } else if (!enemy.is_moving) {
@@ -242,11 +242,11 @@ public:
                         if (new_target.x >= 0 && new_target.y >= 0) {
                             enemy.target_fixture_pos = new_target;
                             enemy.has_target = true;
-                            std::uniform_real_distribution<float> reeval_dist(EnemyConstants::TARGET_REEVAL_MIN_TIME, EnemyConstants::TARGET_REEVAL_MAX_TIME);
+                            std::uniform_real_distribution<float> reeval_dist(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                             enemy.reeval_timer = reeval_dist(m_rng);
                         } else if (!target_valid) {
                             enemy.state = EnemyState::SpawnWander;
-                            enemy.state_timer = EnemyConstants::POST_DESTROY_WANDER_TIME;
+                            enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
                             enemy.pick_random_wander_state(m_rng);
                             enemy.has_target = false;
                             break;
@@ -255,7 +255,7 @@ public:
 
                     if (enemy.state_timer <= 0.0f) {
                         enemy.state = EnemyState::RestlessWander;
-                        enemy.state_timer = EnemyConstants::RESTLESS_WANDER_DURATION;
+                        enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                         enemy.pick_random_wander_state(m_rng);
                         break;
                     }
@@ -312,10 +312,10 @@ public:
                 if (blocked_x || blocked_y) {
                     if (enemy.state == EnemyState::SeekTarget) {
                         enemy.stuck_timer += dt;
-                        if (enemy.stuck_timer >= EnemyConstants::OBSTACLE_STUCK_THRESHOLD) {
+                        if (enemy.stuck_timer >= Enemy::OBSTACLE_STUCK_THRESHOLD) {
                             enemy.stuck_timer = 0.0f;
                             enemy.state = EnemyState::DetourWander;
-                            enemy.state_timer = EnemyConstants::DETOUR_WANDER_DURATION;
+                            enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
                             enemy.pick_random_wander_state(m_rng);
                         }
                     } else {

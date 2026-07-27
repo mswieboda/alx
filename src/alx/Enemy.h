@@ -15,7 +15,16 @@
 
 namespace alx {
 
-struct EnemyConstants {
+enum class EnemyState : uint8_t {
+    SpawnWander,
+    SeekTarget,
+    RestlessWander,
+    DetourWander,
+    HitStun
+};
+
+struct Enemy : public Entity {
+    // --- Enemy Constants ---
     static constexpr float DEFAULT_WIDTH = 16.0f;
     static constexpr float DEFAULT_HEIGHT = 16.0f;
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
@@ -26,7 +35,8 @@ struct EnemyConstants {
     static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
 
-    static constexpr float DEFAULT_SPEED = 15.0f;          // 0.25 px/tick at 60 FPS
+    static constexpr float SPEED_PX_PER_TICK = 0.25f; // 0.25 px/tick at 60 FPS
+    static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 15.0 px/s
     static constexpr float HIT_STUN_DURATION = 0.3f;
     static constexpr float MIN_IDLE_TIME = 0.5f;
     static constexpr float MAX_IDLE_TIME = 1.5f;
@@ -42,23 +52,13 @@ struct EnemyConstants {
     static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
     static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
     static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
-};
 
-enum class EnemyState : uint8_t {
-    SpawnWander,
-    SeekTarget,
-    RestlessWander,
-    DetourWander,
-    HitStun
-};
+    int hp = DEFAULT_MAX_HP;
 
-struct Enemy : public Entity {
-    int hp = EnemyConstants::DEFAULT_MAX_HP;
-
-    float speed = EnemyConstants::DEFAULT_SPEED;
+    float speed = SPEED;
     float move_dx = 0.0f;
     float move_dy = 0.0f;
-    float state_timer = EnemyConstants::SPAWN_WANDER_DURATION;
+    float state_timer = SPAWN_WANDER_DURATION;
     float reeval_timer = 0.0f;
     float stuck_timer = 0.0f;
     bool is_moving = false;
@@ -67,7 +67,7 @@ struct Enemy : public Entity {
     GridPos target_fixture_pos{-1, -1};
     bool has_target = false;
 
-    Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR, int max_hp = EnemyConstants::DEFAULT_MAX_HP)
+    Enemy(float px = 0.0f, float py = 0.0f, float w = DEFAULT_WIDTH, float h = DEFAULT_HEIGHT, uint32_t col = COLOR, int max_hp = DEFAULT_MAX_HP)
         : Entity(
             Transform{ px, py, w, h, Layer::WorldObj },
             RectangleRender{ col, true, 1 },
@@ -88,8 +88,8 @@ struct Enemy : public Entity {
     }
 
     Collision::Circle ground_circle(float px, float py) const {
-        float r = transform.width * EnemyConstants::GROUND_RADIUS_RATIO;
-        float cy = py + (transform.height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
+        float r = transform.width * GROUND_RADIUS_RATIO;
+        float cy = py + (transform.height * GROUND_OFFSET_Y_RATIO) - r;
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
@@ -98,8 +98,8 @@ struct Enemy : public Entity {
     }
 
     Collision::Circle hurt_circle(float px, float py) const {
-        float r = transform.width * EnemyConstants::HURT_RADIUS_RATIO;
-        float cy = py + (transform.height * EnemyConstants::HURT_OFFSET_Y_RATIO);
+        float r = transform.width * HURT_RADIUS_RATIO;
+        float cy = py + (transform.height * HURT_OFFSET_Y_RATIO);
         return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
@@ -147,7 +147,7 @@ struct Enemy : public Entity {
             is_moving = false;
             move_dx = 0.0f;
             move_dy = 0.0f;
-            std::uniform_real_distribution<float> idle_dist(EnemyConstants::MIN_IDLE_TIME, EnemyConstants::MAX_IDLE_TIME);
+            std::uniform_real_distribution<float> idle_dist(MIN_IDLE_TIME, MAX_IDLE_TIME);
             state_timer = idle_dist(rng);
         } else {
             is_moving = true;
@@ -161,20 +161,20 @@ struct Enemy : public Entity {
             auto [dx, dy] = dirs[dir_dist(rng)];
             move_dx = dx;
             move_dy = dy;
-            std::uniform_real_distribution<float> move_time_dist(EnemyConstants::MIN_MOVE_TIME, EnemyConstants::MAX_MOVE_TIME);
+            std::uniform_real_distribution<float> move_time_dist(MIN_MOVE_TIME, MAX_MOVE_TIME);
             state_timer = move_time_dist(rng);
         }
     }
 
     void take_damage(int amount, float push_dx, float push_dy) {
         hp -= amount;
-        transform.x += push_dx * EnemyConstants::KNOCKBACK_DIST;
-        transform.y += push_dy * EnemyConstants::KNOCKBACK_DIST;
+        transform.x += push_dx * KNOCKBACK_DIST;
+        transform.y += push_dy * KNOCKBACK_DIST;
         is_moving = false;
         move_dx = 0.0f;
         move_dy = 0.0f;
         state = EnemyState::HitStun;
-        state_timer = EnemyConstants::HIT_STUN_DURATION;
+        state_timer = HIT_STUN_DURATION;
     }
 
     bool is_dead() const {
