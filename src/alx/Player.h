@@ -31,6 +31,11 @@ struct Player : public Entity {
     static constexpr float HURT_RADIUS_RATIO = 0.50f;     // 50% of transform.width (6.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * 0.5)
 
+    // visuals
+    static constexpr float SHADOW_RX_RATIO = 0.8f;
+    static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
+
+
     float attack_active_timer = 0.0f;
     float attack_cooldown_timer = 0.0f;
 
@@ -120,6 +125,27 @@ struct Player : public Entity {
         int draw_w = std::max(1, static_cast<int>(std::round(transform.width * camera.get_zoom())));
         int draw_h = std::max(1, static_cast<int>(std::round(transform.height * camera.get_zoom())));
 
+        int bottom_y = draw_y + draw_h;
+        float shadow_cx = draw_x + (draw_w / 2.0f);
+        float shadow_cy = static_cast<float>(bottom_y);
+
+        // TODO: make these radius values/ratios constants
+        float shadow_rx = std::max(1.0f, std::round((transform.width * SHADOW_RX_RATIO) * camera.get_zoom()));
+        float shadow_ry = std::max(1.0f, std::round(shadow_rx * SHADOW_RY_RATIO_OF_RX));
+
+        // Player shadow underneath player at bottom Y edge (foreshortened oval)
+        Draw::oval(
+            shadow_cx,
+            shadow_cy,
+            shadow_rx,
+            shadow_ry,
+            0x60000000, // Translucent dark shadow
+            true,
+            1,
+            transform.z_index,
+            bottom_y
+        );
+
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
                 draw_x,
@@ -129,7 +155,8 @@ struct Player : public Entity {
                 rect->color,
                 rect->fill,
                 rect->thickness,
-                transform.z_index
+                transform.z_index,
+                bottom_y
             );
         }
 
@@ -165,7 +192,8 @@ struct Player : public Entity {
             0xFF990099,
             true,
             1,
-            transform.z_index
+            transform.z_index,
+            bottom_y
         );
     }
 

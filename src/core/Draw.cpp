@@ -83,42 +83,63 @@ namespace Draw {
             }
         }
 
-        void draw_circle_immediate(std::vector<uint32_t>& buf, int cx, int cy, int radius, uint32_t color, bool fill, int thickness) {
-            if (radius <= 0) return;
+        void draw_oval_immediate(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness) {
+            if (rx <= 0.0f || ry <= 0.0f) return;
 
             uint32_t alpha = (color >> 24) & 0xFF;
-
             if (alpha == 0) return;
 
-            int r_sq = radius * radius - radius;
+            float rx_sq = rx * rx - rx;
+            if (rx_sq < 0.0f) rx_sq = 0.0f;
 
-            if (r_sq < 0) r_sq = 0;
+            float ry_sq = ry * ry - ry;
+            if (ry_sq < 0.0f) ry_sq = 0.0f;
 
-            int inner_r = radius - thickness;
-            int inner_r_sq = 0;
+            float max_val = rx_sq * ry_sq;
 
-            if (inner_r > 0) {
-                inner_r_sq = inner_r * inner_r - inner_r;
-                if (inner_r_sq < 0) inner_r_sq = 0;
+            float inner_rx = rx - static_cast<float>(thickness);
+            float inner_ry = ry - static_cast<float>(thickness);
+            float inner_max_val = 0.0f;
+            float inner_rx_sq = 0.0f;
+            float inner_ry_sq = 0.0f;
+
+            if (inner_rx > 0.0f && inner_ry > 0.0f) {
+                inner_rx_sq = inner_rx * inner_rx - inner_rx;
+                if (inner_rx_sq < 0.0f) inner_rx_sq = 0.0f;
+
+                inner_ry_sq = inner_ry * inner_ry - inner_ry;
+                if (inner_ry_sq < 0.0f) inner_ry_sq = 0.0f;
+
+                inner_max_val = inner_rx_sq * inner_ry_sq;
             }
 
-            int start_x = std::max(0, cx - radius);
-            int end_x = std::min(Game::WIDTH, cx + radius + 1);
-            int start_y = std::max(0, cy - radius);
-            int end_y = std::min(Game::HEIGHT, cy + radius + 1);
+            int start_x = std::max(0, static_cast<int>(std::floor(cx - rx)));
+            int end_x = std::min(Game::WIDTH, static_cast<int>(std::ceil(cx + rx + 1.0f)));
+            int start_y = std::max(0, static_cast<int>(std::floor(cy - ry)));
+            int end_y = std::min(Game::HEIGHT, static_cast<int>(std::ceil(cy + ry + 1.0f)));
 
             for (int y = start_y; y < end_y; ++y) {
-                int dy = y - cy;
-                int dy_sq = dy * dy;
+                float dy = (static_cast<float>(y) + 0.5f) - cy;
+                float dy_sq_rx = dy * dy * rx_sq;
+                float dy_sq_inner = (inner_rx_sq > 0.0f && inner_ry_sq > 0.0f) ? (dy * dy * inner_rx_sq) : 0.0f;
 
                 for (int x = start_x; x < end_x; ++x) {
-                    int dx = x - cx;
-                    int dist_sq = dx * dx + dy_sq;
+                    float dx = (static_cast<float>(x) + 0.5f) - cx;
+                    float val = dx * dx * ry_sq + dy_sq_rx;
 
-                    if (dist_sq <= r_sq) {
-                        if (fill || dist_sq >= inner_r_sq) {
+                    if (val <= max_val) {
+                        bool draw_pixel = fill;
+                        if (!draw_pixel) {
+                            if (inner_rx <= 0.0f || inner_ry <= 0.0f) {
+                                draw_pixel = true;
+                            } else {
+                                float inner_val = dx * dx * inner_ry_sq + dy_sq_inner;
+                                draw_pixel = (inner_val >= inner_max_val);
+                            }
+                        }
+
+                        if (draw_pixel) {
                             uint32_t idx = y * Game::WIDTH + x;
-
                             if (alpha == 0xFF) {
                                 buf[idx] = color;
                             } else {
@@ -323,46 +344,43 @@ namespace Draw {
         return width;
     }
 
-    void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font) {
+    static inline int calc_sort_y(int base_y, int height, int sort_y_override, int top_y_offset = 0) {
+        if (sort_y_override != NO_SORT_Y_OVERRIDE) {
+            return sort_y_override;
+        }
+        if (g_y_sort_mode == YSortMode::TopY) {
+            return base_y + top_y_offset;
+        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
+            return base_y + height;
+        }
+        return 0;
+    }
+
+    void text(int x, int y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override) {
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = y;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = y + f->size * scale;
-        }
-        g_queue.push_back({ x, y, z_index, sort_y, TextData{ text, color, scale, f } });
+        int sort_y = calc_sort_y(y, f->size * scale, sort_y_override);
+        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y, TextData{ text, color, scale, f } });
     }
 
-    void rect(int x, int y, int width, int height, uint32_t color, bool fill, int thickness, int z_index) {
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = y;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = y + height;
-        }
-        g_queue.push_back({ x, y, z_index, sort_y, RectData{ width, height, color, fill, thickness } });
+    void rect(int x, int y, int width, int height, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
+        int sort_y = calc_sort_y(y, height, sort_y_override);
+        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y, RectData{ width, height, color, fill, thickness } });
     }
 
-    void circle(int x, int y, int radius, uint32_t color, bool fill, int thickness, int z_index) {
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = y - radius;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = y + radius;
-        }
-        g_queue.push_back({ x, y, z_index, sort_y, CircleData{ radius, color, fill, thickness } });
+    void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
+        int base_y = static_cast<int>(std::round(cy));
+        int base_ry = static_cast<int>(std::round(ry));
+        int sort_y = calc_sort_y(base_y, base_ry, sort_y_override, -base_ry);
+        g_queue.push_back({ cx, cy, z_index, sort_y, OvalData{ cx, cy, rx, ry, color, fill, thickness } });
     }
 
-    void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index) {
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = y;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = y + height;
-        }
-        g_queue.push_back({
-            x, y, z_index, sort_y,
+    void circle(float cx, float cy, float radius, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
+        oval(cx, cy, radius, radius, color, fill, thickness, z_index, sort_y_override);
+    }
+
+    void sprite(int x, int y, const uint8_t* pixel_data, uint32_t pixel_data_size, int width, int height, int z_index, int sort_y_override) {
+        int sort_y = calc_sort_y(y, height, sort_y_override);
+        g_queue.push_back({ static_cast<float>(x), static_cast<float>(y), z_index, sort_y,
             SpriteData{ pixel_data, pixel_data_size, width, height, 0, 0, width, height }
         });
     }
@@ -372,16 +390,11 @@ namespace Draw {
         const uint8_t* pixels, uint32_t pixels_size,
         int width, int height,
         int src_x, int src_y, int src_w, int src_h,
-        int z_index
+        int z_index,
+        int sort_y_override
     ) {
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = screen_y;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = screen_y + src_h;
-        }
-        g_queue.push_back({
-            screen_x, screen_y, z_index, sort_y,
+        int sort_y = calc_sort_y(screen_y, src_h, sort_y_override);
+        g_queue.push_back({ static_cast<float>(screen_x), static_cast<float>(screen_y), z_index, sort_y,
             SpriteData{ pixels, pixels_size, width, height, src_x, src_y, src_w, src_h }
         });
     }
@@ -390,16 +403,11 @@ namespace Draw {
         int screen_x, int screen_y,
         const uint32_t* pixel_data, uint32_t pixel_data_size,
         int width, int height,
-        int z_index
+        int z_index,
+        int sort_y_override
     ) {
-        int sort_y = 0;
-        if (g_y_sort_mode == YSortMode::TopY) {
-            sort_y = screen_y;
-        } else if (g_y_sort_mode == YSortMode::YPlusHeight) {
-            sort_y = screen_y + height;
-        }
-        g_queue.push_back({
-            screen_x, screen_y, z_index, sort_y,
+        int sort_y = calc_sort_y(screen_y, height, sort_y_override);
+        g_queue.push_back({ static_cast<float>(screen_x), static_cast<float>(screen_y), z_index, sort_y,
             BlendPixelsData{ pixel_data, pixel_data_size, width, height }
         });
     }
@@ -423,13 +431,13 @@ namespace Draw {
                 using T = std::decay_t<decltype(arg)>;
 
                 if constexpr (std::is_same_v<T, TextData>) {
-                    draw_text_immediate(buffer, cmd.x, cmd.y, arg.text, arg.color, arg.scale, arg.font);
+                    draw_text_immediate(buffer, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.text, arg.color, arg.scale, arg.font);
                 }
                 else if constexpr (std::is_same_v<T, RectData>) {
-                    draw_rect_immediate(buffer, cmd.x, cmd.y, arg.width, arg.height, arg.color, arg.fill, arg.thickness);
+                    draw_rect_immediate(buffer, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.width, arg.height, arg.color, arg.fill, arg.thickness);
                 }
-                else if constexpr (std::is_same_v<T, CircleData>) {
-                    draw_circle_immediate(buffer, cmd.x, cmd.y, arg.radius, arg.color, arg.fill, arg.thickness);
+                else if constexpr (std::is_same_v<T, OvalData>) {
+                    draw_oval_immediate(buffer, arg.cx, arg.cy, arg.rx, arg.ry, arg.color, arg.fill, arg.thickness);
                 }
                 else if constexpr (std::is_same_v<T, SpriteData>) {
                     draw_sprite_frame_immediate(
