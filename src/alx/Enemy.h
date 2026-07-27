@@ -2,14 +2,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <random>
+#include <utility>
 #include <vector>
 #include "core/Draw.h"
+#include "core/Entity.h"
+#include "core/Collision.h"
 #include "alx/Camera.h"
 #include "alx/Layer.h"
-
-#include "core/Collision.h"
-
-#include <random>
 #include "alx/DrawFX.h"
 #include "Game.h"
 
@@ -34,12 +34,7 @@ struct EnemyConstants {
     static constexpr float MAX_MOVE_TIME = 2.5f;
 };
 
-struct Enemy {
-    float x = 0.0f;
-    float y = 0.0f;
-    float width = EnemyConstants::DEFAULT_WIDTH;
-    float height = EnemyConstants::DEFAULT_HEIGHT;
-    uint32_t color = EnemyConstants::COLOR;
+struct Enemy : public Entity {
     int hp = EnemyConstants::DEFAULT_MAX_HP;
 
     float speed = EnemyConstants::DEFAULT_SPEED;
@@ -49,30 +44,47 @@ struct Enemy {
     bool is_moving = false;
 
     Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR, int max_hp = EnemyConstants::DEFAULT_MAX_HP)
-        : x(px), y(py), width(w), height(h), color(col), hp(max_hp) {}
+        : Entity(
+            Transform{ px, py, w, h, Layer::WorldObj },
+            RectangleRender{ col, true, 1 },
+            true,
+            "enemy"
+          ),
+          hp(max_hp)
+    {}
 
-    float center_x() const {
-        return x + (width / 2.0f);
+    float center_x(float alpha = 1.0f) const {
+        float draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
+        return draw_x + (transform.width / 2.0f);
     }
 
-    float center_y() const {
-        return y + (height / 2.0f);
+    float center_y(float alpha = 1.0f) const {
+        float draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        return draw_y + (transform.height / 2.0f);
     }
 
     Collision::Circle get_ground_circle(float px, float py) const {
-        float r = width * EnemyConstants::GROUND_RADIUS_RATIO;
-        float cy = py + (height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
-        return Collision::Circle{ px + (width / 2.0f), cy, r };
+        float r = transform.width * EnemyConstants::GROUND_RADIUS_RATIO;
+        float cy = py + (transform.height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
+        return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
     Collision::Circle get_ground_circle() const {
-        return get_ground_circle(x, y);
+        return get_ground_circle(transform.x, transform.y);
+    }
+
+    Collision::Circle get_hurt_circle(float px, float py) const {
+        float r = transform.width * EnemyConstants::HURT_RADIUS_RATIO;
+        float cy = py + (transform.height * EnemyConstants::HURT_OFFSET_Y_RATIO);
+        return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
     Collision::Circle get_hurt_circle() const {
-        float r = width * EnemyConstants::HURT_RADIUS_RATIO;
-        float cy = y + (height * EnemyConstants::HURT_OFFSET_Y_RATIO);
-        return Collision::Circle{ x + (width / 2.0f), cy, r };
+        return get_hurt_circle(transform.x, transform.y);
+    }
+
+    void sync_prev_transforms() {
+        transform_prev = transform;
     }
 
     void pick_random_wander_state(std::mt19937& rng) {
@@ -102,8 +114,8 @@ struct Enemy {
 
     void take_damage(int amount, float push_dx, float push_dy) {
         hp -= amount;
-        x += push_dx * EnemyConstants::KNOCKBACK_DIST;
-        y += push_dy * EnemyConstants::KNOCKBACK_DIST;
+        transform.x += push_dx * EnemyConstants::KNOCKBACK_DIST;
+        transform.y += push_dy * EnemyConstants::KNOCKBACK_DIST;
         is_moving = false;
         move_dx = 0.0f;
         move_dy = 0.0f;
@@ -115,30 +127,40 @@ struct Enemy {
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
+        if (!active) return;
+
+        float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
+        float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        float world_draw_w = transform.width;
+        float world_draw_h = transform.height;
+        float world_bottom_y = world_draw_y + world_draw_h;
+
         // Enemy shadow underneath enemy at bottom Y edge (foreshortened oval)
         DrawFX::shadow(
-            x,
-            y,
-            width,
-            height,
-            Layer::WorldObj
+            world_draw_x,
+            world_draw_y,
+            world_draw_w,
+            world_draw_h,
+            transform.z_index
         );
 
-        Draw::rect(
-            x,
-            y,
-            width,
-            height,
-            color,
-            true, // fill
-            1,    // thickness
-            Layer::WorldObj,
-            static_cast<int>(y + height)
-        );
+        if (auto* rect = std::get_if<RectangleRender>(&visual)) {
+            Draw::rect(
+                world_draw_x,
+                world_draw_y,
+                world_draw_w,
+                world_draw_h,
+                rect->color,
+                rect->fill,
+                rect->thickness,
+                transform.z_index,
+                static_cast<int>(world_bottom_y)
+            );
+        }
 
         // Ground feet collision circle outline (cyan debug)
         if (Game::DRAW_DEBUG_COLLISION_AREAS) {
-            Collision::Circle ground = get_ground_circle();
+            Collision::Circle ground = get_ground_circle(world_draw_x, world_draw_y);
             Draw::oval(
                 ground.cx,
                 ground.cy,
@@ -147,8 +169,8 @@ struct Enemy {
                 0xFF00FFFF, // Bright Cyan debug outline
                 false,      // fill = false (outline only)
                 1,          // thickness = 1
-                Layer::WorldObj + 1,
-                static_cast<int>(y + height)
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
             );
         }
     }

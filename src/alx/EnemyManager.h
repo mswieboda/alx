@@ -147,6 +147,8 @@ public:
 
     void update_enemy_wander(float dt, const Tiles& tiles, const Network& network) {
         for (auto& enemy : m_enemies) {
+            enemy.sync_prev_transforms();
+
             if (enemy.state_timer > 0.0f) {
                 enemy.state_timer -= dt;
             }
@@ -160,18 +162,18 @@ public:
                 bool blocked_y = false;
 
                 if (enemy.move_dx != 0.0f) {
-                    float target_x = enemy.x + enemy.move_dx * enemy.speed * dt;
-                    if (!is_enemy_solid_ground(enemy, target_x, enemy.y, tiles, network)) {
-                        enemy.x = target_x;
+                    float target_x = enemy.transform.x + enemy.move_dx * enemy.speed * dt;
+                    if (!is_enemy_solid_ground(enemy, target_x, enemy.transform.y, tiles, network)) {
+                        enemy.transform.x = target_x;
                     } else {
                         blocked_x = true;
                     }
                 }
 
                 if (enemy.move_dy != 0.0f) {
-                    float target_y = enemy.y + enemy.move_dy * enemy.speed * dt;
-                    if (!is_enemy_solid_ground(enemy, enemy.x, target_y, tiles, network)) {
-                        enemy.y = target_y;
+                    float target_y = enemy.transform.y + enemy.move_dy * enemy.speed * dt;
+                    if (!is_enemy_solid_ground(enemy, enemy.transform.x, target_y, tiles, network)) {
+                        enemy.transform.y = target_y;
                     } else {
                         blocked_y = true;
                     }
@@ -194,10 +196,10 @@ public:
                 Collision::Circle c2 = m_enemies[j].get_ground_circle();
                 float push_x1 = 0.0f, push_y1 = 0.0f, push_x2 = 0.0f, push_y2 = 0.0f;
                 if (Collision::resolve_soft_circle_overlap(c1.cx, c1.cy, c1.radius, c2.cx, c2.cy, c2.radius, push_x1, push_y1, push_x2, push_y2)) {
-                    m_enemies[i].x += push_x1;
-                    m_enemies[i].y += push_y1;
-                    m_enemies[j].x += push_x2;
-                    m_enemies[j].y += push_y2;
+                    m_enemies[i].transform.x += push_x1;
+                    m_enemies[i].transform.y += push_y1;
+                    m_enemies[j].transform.x += push_x2;
+                    m_enemies[j].transform.y += push_y2;
                 }
             }
         }
