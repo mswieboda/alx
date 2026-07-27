@@ -117,8 +117,8 @@ public:
     void update_enemy_push_separation() {
         for (size_t i = 0; i < m_enemies.size(); ++i) {
             for (size_t j = i + 1; j < m_enemies.size(); ++j) {
-                Collision::Circle c1 = m_enemies[i].get_movement_circle();
-                Collision::Circle c2 = m_enemies[j].get_movement_circle();
+                Collision::Circle c1 = m_enemies[i].get_ground_circle();
+                Collision::Circle c2 = m_enemies[j].get_ground_circle();
                 float push_x1 = 0.0f, push_y1 = 0.0f, push_x2 = 0.0f, push_y2 = 0.0f;
                 if (Collision::resolve_soft_circle_overlap(c1.cx, c1.cy, c1.radius, c2.cx, c2.cy, c2.radius, push_x1, push_y1, push_x2, push_y2)) {
                     m_enemies[i].x += push_x1;

@@ -1,8 +1,14 @@
 #pragma once
-
 #include <cstdint>
+#include "core/Collision.h"
 
 namespace alx {
+
+struct FixtureConstants {
+    static constexpr float GROUND_WIDTH_RATIO  = 1.00f; // 100% tile width (16.0px for 16px tile)
+    static constexpr float GROUND_HEIGHT_RATIO = 0.50f; // 50% tile height (8.0px for 16px tile)
+    static constexpr float GROUND_OFFSET_Y_RATIO = 0.50f; // Sits in bottom 50% of tile (y + 8.0px)
+};
 
 enum class FixtureType : uint8_t {
     None = 0,
@@ -42,4 +48,14 @@ struct Fixture {
     [[nodiscard]] constexpr bool is_empty() const noexcept { return type == FixtureType::None; }
 };
 
+inline Collision::AABB get_fixture_ground_aabb(int tx, int ty, float tile_size) {
+    float w = tile_size * FixtureConstants::GROUND_WIDTH_RATIO;
+    float h = tile_size * FixtureConstants::GROUND_HEIGHT_RATIO;
+    float x = static_cast<float>(tx) * tile_size + (tile_size - w) / 2.0f;
+    float y = static_cast<float>(ty) * tile_size + (tile_size * FixtureConstants::GROUND_OFFSET_Y_RATIO);
+    return Collision::AABB{ x, y, w, h };
+}
+
+
 } // namespace alx
+

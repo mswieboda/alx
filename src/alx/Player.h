@@ -24,6 +24,12 @@ struct Player : public Entity {
     static constexpr float ATTACK_HIT_RADIUS = 10.0f;
     static constexpr float ATTACK_HIT_OFFSET = 10.0f;
 
+    // Relative collision ratio constants
+    static constexpr float GROUND_RADIUS_RATIO = 0.50f;   // 50% of transform.width (6.0px)
+    static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
+    static constexpr float HURT_RADIUS_RATIO = 0.50f;     // 50% of transform.width (6.0px)
+    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * 0.5)
+
     float attack_active_timer = 0.0f;
     float attack_cooldown_timer = 0.0f;
 
@@ -54,16 +60,20 @@ struct Player : public Entity {
         return draw_y + (transform.height / 2.0f);
     }
 
-    Collision::Circle get_feet_collision_circle(float px, float py) const {
-        return Collision::Circle{ px + (transform.width / 2.0f), py + transform.height, 6.0f };
+    Collision::Circle get_ground_circle(float px, float py) const {
+        float r = transform.width * GROUND_RADIUS_RATIO;
+        float cy = py + (transform.height * GROUND_OFFSET_Y_RATIO) - r;
+        return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
-    Collision::Circle get_feet_collision_circle() const {
-        return get_feet_collision_circle(transform.x, transform.y);
+    Collision::Circle get_ground_circle() const {
+        return get_ground_circle(transform.x, transform.y);
     }
 
     Collision::Circle get_hurt_circle(float px, float py) const {
-        return Collision::Circle{ px + (transform.width / 2.0f), py + (transform.height / 2.0f), 6.0f };
+        float r = transform.width * HURT_RADIUS_RATIO;
+        float cy = py + (transform.height * HURT_OFFSET_Y_RATIO);
+        return Collision::Circle{ px + (transform.width / 2.0f), cy, r };
     }
 
     Collision::Circle get_hurt_circle() const {
@@ -83,7 +93,6 @@ struct Player : public Entity {
         float cy = center_y(1.0f) + facing_dy * ATTACK_HIT_OFFSET;
         return Collision::Circle{ cx, cy, ATTACK_HIT_RADIUS };
     }
-
 
     void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
         sync_prev_transforms();
@@ -212,14 +221,13 @@ private:
             dy *= inv_sqrt2;
         }
 
-
         float target_x = transform.x + dx * speed * dt;
-        if (!is_solid_feet(target_x, transform.y, tiles, network)) {
+        if (!is_solid_ground(target_x, transform.y, tiles, network)) {
             transform.x = target_x;
         }
 
         float target_y = transform.y + dy * speed * dt;
-        if (!is_solid_feet(transform.x, target_y, tiles, network)) {
+        if (!is_solid_ground(transform.x, target_y, tiles, network)) {
             transform.y = target_y;
         }
     }
@@ -277,35 +285,37 @@ private:
         }
     }
 
-    bool is_solid_feet(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
-        Collision::Circle feet = get_feet_collision_circle(test_x, test_y);
+    bool is_solid_ground(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
+        Collision::Circle ground = get_ground_circle(test_x, test_y);
         float tile_size = static_cast<float>(tiles.get_tile_size());
 
-        int min_tx = static_cast<int>(feet.cx - feet.radius) / tiles.get_tile_size();
-        int max_tx = static_cast<int>(feet.cx + feet.radius) / tiles.get_tile_size();
-        int min_ty = static_cast<int>(feet.cy - feet.radius) / tiles.get_tile_size();
-        int max_ty = static_cast<int>(feet.cy + feet.radius) / tiles.get_tile_size();
+        int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.get_tile_size();
+        int max_tx = static_cast<int>(ground.cx + ground.radius) / tiles.get_tile_size();
+        int min_ty = static_cast<int>(ground.cy - ground.radius) / tiles.get_tile_size();
+        int max_ty = static_cast<int>(ground.cy + ground.radius) / tiles.get_tile_size();
 
         for (int ty = min_ty; ty <= max_ty; ++ty) {
             for (int tx = min_tx; tx <= max_tx; ++tx) {
                 if (tiles.is_wall(tx, ty)) {
-                    if (Collision::circle_vs_aabb(feet, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
+                    if (Collision::circle_vs_aabb(ground, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
                         return true;
                     }
                 }
                 if (network.in_bounds(tx, ty)) {
                     FixtureType ft = network.get_fixture(tx, ty).type;
                     if (ft == FixtureType::Refiner || ft == FixtureType::Spire || ft == FixtureType::Seep) {
-                        Collision::Circle fixture_c{ tx * tile_size + tile_size / 2.0f, ty * tile_size + tile_size / 2.0f, 7.5f };
-                        if (Collision::circle_vs_circle(feet, fixture_c)) {
+                        Collision::AABB fixture_aabb = get_fixture_ground_aabb(tx, ty, tile_size);
+                        if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
                             return true;
                         }
                     }
                 }
+
             }
         }
         return false;
     }
+
 };
 
 } // namespace alx

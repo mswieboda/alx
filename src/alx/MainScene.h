@@ -45,6 +45,8 @@ public:
             m_twilight_pixel_buffer.resize(Game::WIDTH * Game::HEIGHT);
         }
 
+        Draw::set_y_sort_mode(Draw::YSortMode::YPlusHeight);
+
         load_level(m_current_level_id);
     }
 

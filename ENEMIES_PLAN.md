@@ -8,7 +8,7 @@ This document outlines the detailed roadmap, technical specifications, and desig
 
 ### 1. Collision & Physics System
 - **Map Wall Collisions**: Uses **Grid AABB Tile Sliding** ($O(1)$ corner tile checks) for fast, lightweight wall collision handling.
-- **Entity & Fixture Interactions**: Uses **Generic Circle Radius Overlap**.
+- **Entity & Fixture Interactions**: Uses **Circle-vs-Circle Overlap** for entity-vs-entity movement and **Circle-vs-AABB Ground Rectangles** for solid structure blocking (Refiners, Spires, Seeps), allowing 2.5D depth where characters can walk behind the top of structures.
 - **Enemy Push Separation**: Uses **Iterative Soft Circle Separation** (Position-Based Overlap Displacement) to cleanly push overlapping enemies apart during movement without complex physics engines.
 
 ### 2. Player Facing Vector, Health & Attack Mechanics

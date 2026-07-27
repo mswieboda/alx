@@ -16,8 +16,10 @@ struct EnemyConstants {
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
     static constexpr int DEFAULT_MAX_HP = 3;
     static constexpr float KNOCKBACK_DIST = 2.0f;
-    static constexpr float MOVEMENT_RADIUS = 6.0f;
-    static constexpr float HURT_RADIUS = 7.0f;
+    static constexpr float GROUND_RADIUS_RATIO = 0.375f;   // 37.5% of width (6.0px)
+    static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (y + height - r)
+    static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
+    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
 };
 
 struct Enemy {
@@ -39,12 +41,16 @@ struct Enemy {
         return y + (height / 2.0f);
     }
 
-    Collision::Circle get_movement_circle() const {
-        return Collision::Circle{ x + (width / 2.0f), y + 12.0f, EnemyConstants::MOVEMENT_RADIUS };
+    Collision::Circle get_ground_circle() const {
+        float r = width * EnemyConstants::GROUND_RADIUS_RATIO;
+        float cy = y + (height * EnemyConstants::GROUND_OFFSET_Y_RATIO) - r;
+        return Collision::Circle{ x + (width / 2.0f), cy, r };
     }
 
     Collision::Circle get_hurt_circle() const {
-        return Collision::Circle{ x + (width / 2.0f), y + (height / 2.0f), EnemyConstants::HURT_RADIUS };
+        float r = width * EnemyConstants::HURT_RADIUS_RATIO;
+        float cy = y + (height * EnemyConstants::HURT_OFFSET_Y_RATIO);
+        return Collision::Circle{ x + (width / 2.0f), cy, r };
     }
 
     void take_damage(int amount, float push_dx, float push_dy) {

@@ -9,6 +9,13 @@ namespace Collision {
         float radius = 0.0f;
     };
 
+    struct AABB {
+        float x = 0.0f;
+        float y = 0.0f;
+        float w = 0.0f;
+        float h = 0.0f;
+    };
+
     inline bool aabb(float x1, float y1, float w1, float h1,
                      float x2, float y2, float w2, float h2) {
         return (x1 < x2 + w2 && x1 + w1 > x2 &&
@@ -44,6 +51,11 @@ namespace Collision {
         float dy = cy - closest_y;
         return (dx * dx + dy * dy) < (r * r);
     }
+
+    inline bool circle_vs_aabb(const Circle& c, const AABB& b) {
+        return circle_vs_aabb(c.cx, c.cy, c.radius, b.x, b.y, b.w, b.h);
+    }
+
 
     inline bool resolve_soft_circle_overlap(float cx1, float cy1, float r1,
                                             float cx2, float cy2, float r2,
