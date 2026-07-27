@@ -69,8 +69,11 @@ This document outlines the detailed roadmap, technical specifications, and desig
 4. Implement enemy defeat / removal and static Alloy Item drop at enemy position. [COMPLETED]
 
 ### Phase 3: Enemy Movement & Target Seeking
-1. Implement basic temporary random small path looped movement (idle wandering).
-2. Implement vector steering movement toward fixtures, prioritizing Refiners & Spires over Pipes, re-evaluating targets every 1.0s to 3.0s.
+1. Implement basic temporary random small path looped movement (idle wandering). [COMPLETED]
+2. Implement vector steering movement toward fixtures, prioritizing Refiners & Spires over Pipes, re-evaluating targets every 1.0s to 3.0s. [COMPLETED]
+  1. **Spawn Orientation & Post-Destruction Wandering**: On spawn (and upon destroying a targeted fixture), enemies use the wander state for 5.0s before target-locking a fixture (telegraphs spawns and prevents rapid pipe-chain wipes using shared constants/mechanics). [COMPLETED]
+  2. **Siege & Restless Wander Cycle**: Once targeting a fixture, mobs march/attack for 6.0s–8.0s, then enter a 2.0s–3.0s restless wander state to re-evaluate surrounding targets and prevent mechanical mob stacking. [COMPLETED]
+  3. **Obstacle Detour Handling**: If an enemy is blocked by any obstacle (wall tiles, fixtures, or impassable terrain) for > 1.5s without forward progress, automatically trigger a 3.0s wander state to break free and maneuver around obstructions. [COMPLETED]
 3. Implement player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range.
 4. Implement timed wave spawning near outer map wall floor tiles.
 
@@ -101,3 +104,4 @@ This document outlines the detailed roadmap, technical specifications, and desig
 
 - **Seep Node Spawning vs. Outer Wall Spawning**: Re-evaluate whether enemies should eventually spawn directly from Dark Seep nodes. *Design note*: Spawning directly from Seeps may undermine player wand visibility range and map panning mechanics, so outer wall wave spawning is preferred for now.
 - **Wave Tuning**: Fine-tune wave spawn intervals, wave sizes, and Twilight-based difficulty scaling.
+- **Purification Enrage & Rubber-Band Equilibrium**: As players refine dark mana into light energy (reducing room Twilight level from default ~90% down toward 0%), dark entities become threatened and enraged by the cleansing of their domain (wander duration drops, target march duration increases, and aggro radius expands slightly). Conversely, if pipes break and dark mana spills back into the room (raising Twilight), enemies temporarily revert toward wandering, acting as a rubber-band recovery mechanism so players can repair broken conduits without facing instant death-spiral game-overs.

@@ -95,6 +95,8 @@ public:
             float world_x = static_cast<float>(tx * tile_size + (tile_size - EnemyConstants::DEFAULT_WIDTH) / 2.0f);
             float world_y = static_cast<float>(ty * tile_size + (tile_size - EnemyConstants::DEFAULT_HEIGHT) / 2.0f);
             Enemy& enemy = m_enemies.emplace_back(world_x, world_y);
+            enemy.state = EnemyState::SpawnWander;
+            enemy.state_timer = EnemyConstants::SPAWN_WANDER_DURATION;
             enemy.pick_random_wander_state(m_rng);
         }
 
@@ -108,7 +110,7 @@ public:
             update_threat_cache();
         }
 
-        update_enemy_wander(dt, tiles, network);
+        update_enemy_ai(dt, tiles, network);
         update_enemy_push_separation();
 
         if (player) {
@@ -144,7 +146,52 @@ public:
         return false;
     }
 
-    void update_enemy_wander(float dt, const Tiles& tiles, const Network& network) {
+    static GridPos find_priority_target(float enemy_center_x, float enemy_center_y, const Network& network) {
+        float tile_size = static_cast<float>(network.tile_size());
+
+        std::vector<GridPos> tier1_candidates; // Refiners & Spires
+        std::vector<GridPos> tier2_candidates; // Pipes
+
+        for (int32_t idx : network.active_indices()) {
+            int tx = idx % network.width();
+            int ty = idx / network.width();
+            const Fixture& fix = network.fixture(tx, ty);
+
+            if (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) {
+                tier1_candidates.push_back(GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) });
+            } else if (fix.type == FixtureType::Pipe) {
+                tier2_candidates.push_back(GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) });
+            }
+        }
+
+        const auto& candidates = !tier1_candidates.empty() ? tier1_candidates : tier2_candidates;
+        if (candidates.empty()) {
+            return GridPos{ -1, -1 };
+        }
+
+        GridPos best_pos{ -1, -1 };
+        float min_dist_sq = 1e18f;
+
+        for (const auto& pos : candidates) {
+            Collision::AABB fix_aabb = fixture_ground_aabb(pos.x, pos.y, tile_size);
+            float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
+            float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
+            float dx = target_cx - enemy_center_x;
+            float dy = target_cy - enemy_center_y;
+            float dist_sq = dx * dx + dy * dy;
+
+            if (dist_sq < min_dist_sq) {
+                min_dist_sq = dist_sq;
+                best_pos = pos;
+            }
+        }
+
+        return best_pos;
+    }
+
+    void update_enemy_ai(float dt, const Tiles& tiles, const Network& network) {
+        float tile_size = static_cast<float>(tiles.tile_size());
+
         for (auto& enemy : m_enemies) {
             enemy.sync_prev_transforms();
 
@@ -152,11 +199,93 @@ public:
                 enemy.state_timer -= dt;
             }
 
-            if (enemy.state_timer <= 0.0f) {
-                enemy.pick_random_wander_state(m_rng);
+            switch (enemy.state) {
+                case EnemyState::SpawnWander:
+                case EnemyState::RestlessWander:
+                case EnemyState::DetourWander: {
+                    if (enemy.state_timer <= 0.0f) {
+                        GridPos target = find_priority_target(enemy.center_x(), enemy.center_y(), network);
+                        if (target.x >= 0 && target.y >= 0) {
+                            enemy.state = EnemyState::SeekTarget;
+                            enemy.target_fixture_pos = target;
+                            enemy.has_target = true;
+                            enemy.state_timer = EnemyConstants::SIEGE_MARCH_DURATION;
+
+                            std::uniform_real_distribution<float> reeval_dist(EnemyConstants::TARGET_REEVAL_MIN_TIME, EnemyConstants::TARGET_REEVAL_MAX_TIME);
+                            enemy.reeval_timer = reeval_dist(m_rng);
+                            enemy.stuck_timer = 0.0f;
+                        } else {
+                            enemy.state = EnemyState::RestlessWander;
+                            enemy.pick_random_wander_state(m_rng);
+                            enemy.state_timer = EnemyConstants::RESTLESS_WANDER_DURATION;
+                            enemy.has_target = false;
+                        }
+                    } else if (!enemy.is_moving) {
+                        enemy.pick_random_wander_state(m_rng);
+                    }
+                    break;
+                }
+
+                case EnemyState::SeekTarget: {
+                    enemy.reeval_timer -= dt;
+
+                    bool target_valid = false;
+                    if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos)) {
+                        const Fixture& fix = network.fixture(enemy.target_fixture_pos);
+                        target_valid = (!fix.is_empty() && fix.type != FixtureType::Seep);
+                    }
+
+                    if (!target_valid || enemy.reeval_timer <= 0.0f) {
+                        GridPos new_target = find_priority_target(enemy.center_x(), enemy.center_y(), network);
+                        if (new_target.x >= 0 && new_target.y >= 0) {
+                            enemy.target_fixture_pos = new_target;
+                            enemy.has_target = true;
+                            std::uniform_real_distribution<float> reeval_dist(EnemyConstants::TARGET_REEVAL_MIN_TIME, EnemyConstants::TARGET_REEVAL_MAX_TIME);
+                            enemy.reeval_timer = reeval_dist(m_rng);
+                        } else if (!target_valid) {
+                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state_timer = EnemyConstants::POST_DESTROY_WANDER_TIME;
+                            enemy.pick_random_wander_state(m_rng);
+                            enemy.has_target = false;
+                            break;
+                        }
+                    }
+
+                    if (enemy.state_timer <= 0.0f) {
+                        enemy.state = EnemyState::RestlessWander;
+                        enemy.state_timer = EnemyConstants::RESTLESS_WANDER_DURATION;
+                        enemy.pick_random_wander_state(m_rng);
+                        break;
+                    }
+
+                    if (enemy.has_target) {
+                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                        float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
+                        float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
+
+                        if (Collision::circle_vs_aabb(enemy.ground_circle(), fix_aabb)) {
+                            enemy.is_moving = false;
+                            enemy.move_dx = 0.0f;
+                            enemy.move_dy = 0.0f;
+                            enemy.stuck_timer = 0.0f;
+                            break;
+                        }
+
+                        enemy.set_steering_vector_8way(target_cx, target_cy);
+                    }
+                    break;
+                }
+
+                case EnemyState::HitStun: {
+                    if (enemy.state_timer <= 0.0f) {
+                        enemy.state = EnemyState::SpawnWander;
+                        enemy.state_timer = 0.0f;
+                    }
+                    break;
+                }
             }
 
-            if (enemy.is_moving && enemy.state_timer > 0.0f) {
+            if (enemy.is_moving && enemy.state != EnemyState::HitStun) {
                 bool blocked_x = false;
                 bool blocked_y = false;
 
@@ -179,10 +308,22 @@ public:
                 }
 
                 if (blocked_x || blocked_y) {
-                    enemy.is_moving = false;
-                    enemy.move_dx = 0.0f;
-                    enemy.move_dy = 0.0f;
-                    enemy.state_timer = 0.0f;
+                    if (enemy.state == EnemyState::SeekTarget) {
+                        enemy.stuck_timer += dt;
+                        if (enemy.stuck_timer >= EnemyConstants::OBSTACLE_STUCK_THRESHOLD) {
+                            enemy.stuck_timer = 0.0f;
+                            enemy.state = EnemyState::DetourWander;
+                            enemy.state_timer = EnemyConstants::DETOUR_WANDER_DURATION;
+                            enemy.pick_random_wander_state(m_rng);
+                        }
+                    } else {
+                        enemy.is_moving = false;
+                        enemy.move_dx = 0.0f;
+                        enemy.move_dy = 0.0f;
+                        enemy.state_timer = 0.0f;
+                    }
+                } else {
+                    enemy.stuck_timer = 0.0f;
                 }
             }
         }

@@ -32,6 +32,24 @@ struct EnemyConstants {
     static constexpr float MAX_IDLE_TIME = 1.5f;
     static constexpr float MIN_MOVE_TIME = 1.0f;
     static constexpr float MAX_MOVE_TIME = 2.5f;
+
+    // --- Phase 3 AI Movement Constants ---
+    static constexpr float SPAWN_WANDER_DURATION     = 5.0f;  // Initial spawn delay before target locking
+    static constexpr float POST_DESTROY_WANDER_TIME  = 5.0f;  // Search pause when target fixture is destroyed
+    static constexpr float SIEGE_MARCH_DURATION      = 7.0f;  // Active march duration toward target fixture
+    static constexpr float RESTLESS_WANDER_DURATION  = 2.5f;  // Intermission wander duration
+    static constexpr float OBSTACLE_STUCK_THRESHOLD  = 1.5f;  // Seconds spent against obstacle before detour wander
+    static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
+    static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
+    static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
+};
+
+enum class EnemyState : uint8_t {
+    SpawnWander,
+    SeekTarget,
+    RestlessWander,
+    DetourWander,
+    HitStun
 };
 
 struct Enemy : public Entity {
@@ -40,8 +58,14 @@ struct Enemy : public Entity {
     float speed = EnemyConstants::DEFAULT_SPEED;
     float move_dx = 0.0f;
     float move_dy = 0.0f;
-    float state_timer = 0.0f;
+    float state_timer = EnemyConstants::SPAWN_WANDER_DURATION;
+    float reeval_timer = 0.0f;
+    float stuck_timer = 0.0f;
     bool is_moving = false;
+
+    EnemyState state = EnemyState::SpawnWander;
+    GridPos target_fixture_pos{-1, -1};
+    bool has_target = false;
 
     Enemy(float px = 0.0f, float py = 0.0f, float w = EnemyConstants::DEFAULT_WIDTH, float h = EnemyConstants::DEFAULT_HEIGHT, uint32_t col = EnemyConstants::COLOR, int max_hp = EnemyConstants::DEFAULT_MAX_HP)
         : Entity(
@@ -87,6 +111,36 @@ struct Enemy : public Entity {
         transform_prev = transform;
     }
 
+    void set_steering_vector_8way(float target_world_x, float target_world_y) {
+        float dx = target_world_x - (transform.x + transform.width * 0.5f);
+        float dy = target_world_y - (transform.y + transform.height * 0.5f);
+
+        float len_sq = dx * dx + dy * dy;
+        if (len_sq < 0.0001f) {
+            move_dx = 0.0f;
+            move_dy = 0.0f;
+            is_moving = false;
+            return;
+        }
+
+        float angle = std::atan2(dy, dx);
+        constexpr float pi = 3.14159265358979323846f;
+        constexpr float inv_sqrt2 = 0.70710678118f;
+
+        static constexpr std::pair<float, float> dirs8[8] = {
+            {1.0f, 0.0f}, {inv_sqrt2, inv_sqrt2}, {0.0f, 1.0f}, {-inv_sqrt2, inv_sqrt2},
+            {-1.0f, 0.0f}, {-inv_sqrt2, -inv_sqrt2}, {0.0f, -1.0f}, {inv_sqrt2, -inv_sqrt2}
+        };
+
+        float normalized_angle = angle;
+        if (normalized_angle < 0.0f) normalized_angle += 2.0f * pi;
+
+        int index = static_cast<int>(std::round(8.0f * (normalized_angle / (2.0f * pi)))) % 8;
+        move_dx = dirs8[index].first;
+        move_dy = dirs8[index].second;
+        is_moving = true;
+    }
+
     void pick_random_wander_state(std::mt19937& rng) {
         std::uniform_real_distribution<float> prob_dist(0.0f, 1.0f);
         if (prob_dist(rng) < 0.3f) {
@@ -119,6 +173,7 @@ struct Enemy : public Entity {
         is_moving = false;
         move_dx = 0.0f;
         move_dy = 0.0f;
+        state = EnemyState::HitStun;
         state_timer = EnemyConstants::HIT_STUN_DURATION;
     }
 
