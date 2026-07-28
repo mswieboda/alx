@@ -20,9 +20,7 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"build_tile",     BuildTile},
     {"cancel",         Cancel},
     {"b",              Cancel},
-    {"cycle_right",    CycleNext},
-    {"cycle_next",     CycleNext},
-    {"cycle_prev",     CyclePrev},
+    {"build_cycle",    BuildCycle},
     {"pan_mode",       PanMode},
     {"menu",           Menu},
     {"map",            Map},
@@ -48,8 +46,7 @@ std::string type_to_string(Type type) {
         case Build:         return "build";
         case BuildTile:     return "build_tile";
         case Cancel:        return "cancel";
-        case CycleNext:     return "cycle_next";
-        case CyclePrev:     return "cycle_prev";
+        case BuildCycle:    return "build_cycle";
         case PanMode:       return "pan_mode";
         case Menu:          return "menu";
         case Map:           return "map";
@@ -66,13 +63,13 @@ std::string type_to_string(Type type) {
 // - D-Pad (Up/Down/Left/Right): W / A / S / D  or  Arrow Keys
 // - Button A: J or Z (Primary Attack / Action)
 // - Button B: K or X (Cancel / Secondary Action)
-// - L-Shoulder (L): Left Shift or Q (Pan Mode / Camera Scouting)
-// - R-Shoulder (R): Right Shift or E (Modifier for Build / Cycle commands)
+// - L-Shoulder (L): Q (Pan Mode / Camera Scouting)
+// - R-Shoulder (R): O (Modifier for Build mode)
 //
-// Combos via R-Shoulder (Right Shift / E):
+// Combos via R-Shoulder (O):
 // - R-Shoulder + Button A (J/Z)  -> Build Tile
-// - R-Shoulder + Right / D       -> Cycle Build Type Forward
-// - R-Shoulder + Left / A        -> Cycle Build Type Backward
+// - R-Shoulder + Button B (K/X)  -> Remove Tile
+// - R-Shoulder + L-Shoulder (Q)  -> Cycle Build Type
 // =========================================================================
 
 static std::vector<int> s_bindings[static_cast<size_t>(Count)];
@@ -101,8 +98,7 @@ void reset_default_bindings() {
 
     s_bindings[static_cast<size_t>(PanMode)]       = GBA::L_SHOULDER;
     s_bindings[static_cast<size_t>(Build)]         = GBA::R_SHOULDER;
-    s_bindings[static_cast<size_t>(CycleNext)]     = GBA::DPAD_RIGHT;
-    s_bindings[static_cast<size_t>(CyclePrev)]     = GBA::DPAD_LEFT;
+    s_bindings[static_cast<size_t>(BuildCycle)]    = GBA::L_SHOULDER;
 
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
     s_bindings[static_cast<size_t>(Map)]           = GBA::SELECT;
@@ -172,12 +168,12 @@ bool is_remove_tile() {
     return is_pressed(Build) && is_just_pressed(Cancel);
 }
 
-bool is_cycle_right() {
-    return is_pressed(Build) && (is_just_pressed(MoveRight));
+bool is_build_cycle() {
+    return is_pressed(Build) && is_just_pressed(BuildCycle);
 }
 
-bool is_cycle_left() {
-    return is_pressed(Build) && is_just_pressed(MoveLeft);
+bool is_pan_mode_active() {
+    return !is_pressed(Build) && is_pressed(PanMode);
 }
 
 bool is_pressed(const std::string& action_str) {

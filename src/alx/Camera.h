@@ -27,7 +27,7 @@ struct Camera : public core::Camera {
     }
 
     void update(float dt) {
-        bool is_panning_held = Action::is_pressed(Action::PanMode);
+        bool is_panning_held = Action::is_pan_mode_active();
 
         if (is_panning_held) {
             start_panning();

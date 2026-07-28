@@ -162,17 +162,28 @@ struct Player : public Entity {
         float cy = 0.0f;
     };
 
-    PlacementPoint placement_center(float px, float py, float tile_size = 16.0f) const {
+    PlacementPoint placement_fixture_center(float px, float py, float tile_size = 16.0f) const {
         Collision::Circle g = ground_circle(px, py);
-        float offset = tile_size / 2.0f;
-        return PlacementPoint{
-            g.cx + facing_dx * offset,
-            g.cy + facing_dy * offset
-        };
+        float fallback_cx = g.cx + facing_dx * tile_size;
+        float fallback_cy = g.cy + facing_dy * tile_size;
+
+        for (float d = tile_size * 0.5f; d <= tile_size * 2.5f; d += tile_size * 0.25f) {
+            float test_cx = g.cx + facing_dx * d;
+            float test_cy = g.cy + facing_dy * d;
+            int tx = static_cast<int>(std::floor(test_cx / tile_size));
+            int ty = static_cast<int>(std::floor(test_cy / tile_size));
+
+            Collision::AABB proposed_aabb = fixture_ground_aabb(tx, ty, tile_size);
+            if (!Collision::circle_vs_aabb(g, proposed_aabb)) {
+                return PlacementPoint{ test_cx, test_cy };
+            }
+        }
+
+        return PlacementPoint{ fallback_cx, fallback_cy };
     }
 
-    PlacementPoint placement_center(float tile_size = 16.0f) const {
-        return placement_center(transform.x, transform.y, tile_size);
+    PlacementPoint placement_fixture_center(float tile_size = 16.0f) const {
+        return placement_fixture_center(transform.x, transform.y, tile_size);
     }
 
     Collision::Circle hurt_circle(float px, float py) const {
@@ -204,12 +215,17 @@ struct Player : public Entity {
         if (m_cursed_alloy < cost) return false;
 
         float tile_sz = static_cast<float>(tiles.tile_size());
-        PlacementPoint pt = placement_center(tile_sz);
-        int tsize = tiles.tile_size();
+        PlacementPoint pt = placement_fixture_center(tile_sz);
         GridPos target_pos{
-            static_cast<int16_t>(static_cast<int>(pt.cx) / tsize),
-            static_cast<int16_t>(static_cast<int>(pt.cy) / tsize)
+            static_cast<int16_t>(static_cast<int>(std::floor(pt.cx / tile_sz))),
+            static_cast<int16_t>(static_cast<int>(std::floor(pt.cy / tile_sz)))
         };
+
+        // Self-overlap guard: reject placement if fixture's solid ground box intersects player's ground circle
+        Collision::AABB proposed_aabb = fixture_ground_aabb(target_pos.x, target_pos.y, tile_sz);
+        if (Collision::circle_vs_aabb(ground_circle(), proposed_aabb)) {
+            return false;
+        }
 
         if (network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
             m_cursed_alloy -= cost;
@@ -221,11 +237,10 @@ struct Player : public Entity {
 
     bool try_remove_tile(const Tiles& tiles, Network& network) {
         float tile_sz = static_cast<float>(tiles.tile_size());
-        PlacementPoint pt = placement_center(tile_sz);
-        int tsize = tiles.tile_size();
+        PlacementPoint pt = placement_fixture_center(tile_sz);
         GridPos target_pos{
-            static_cast<int16_t>(static_cast<int>(pt.cx) / tsize),
-            static_cast<int16_t>(static_cast<int>(pt.cy) / tsize)
+            static_cast<int16_t>(static_cast<int>(std::floor(pt.cx / tile_sz))),
+            static_cast<int16_t>(static_cast<int>(std::floor(pt.cy / tile_sz)))
         };
 
         if (network.in_bounds(target_pos)) {
@@ -322,24 +337,24 @@ struct Player : public Entity {
             );
         }
 
-        // Indicator where tile build/remove happens
-        float size = std::round(world_draw_h / 4.0f);
+        if (Action::is_pressed(Action::Build)) {
+            PlacementPoint pt = placement_fixture_center(world_draw_x, world_draw_y, 16.0f);
 
-        PlacementPoint pt = placement_center(world_draw_x, world_draw_y, 16.0f);
-        float box_x = pt.cx - (size / 2.0f);
-        float box_y = pt.cy - (size / 2.0f);
-
-        Draw::rect(
-            box_x,
-            box_y,
-            size,
-            size,
-            0xFF990099,
-            true,
-            1,
-            transform.z_index,
-            static_cast<int>(world_bottom_y)
-        );
+            float tile_sz = 16.0f;
+            float tile_x = std::floor(pt.cx / tile_sz) * tile_sz;
+            float tile_y = std::floor(pt.cy / tile_sz) * tile_sz;
+            Draw::rect(
+                tile_x,
+                tile_y,
+                tile_sz,
+                tile_sz,
+                0xFF00FFFF, // 1px Cyan border outline
+                false,      // fill = false
+                1,          // thickness = 1
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
+            );
+        }
     }
 
     int cursed_alloy() const { return m_cursed_alloy; }
@@ -360,13 +375,9 @@ private:
     FixtureType m_selected_fixture_type = FixtureType::Pipe;
 
     void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera) {
-        is_panning = Action::is_pressed(Action::PanMode);
+        is_panning = Action::is_pan_mode_active();
 
         if (camera.is_player_movement_locked()) {
-            return;
-        }
-
-        if (Action::is_pressed(Action::Build)) {
             return;
         }
 
@@ -406,19 +417,11 @@ private:
             attack_cooldown_timer = ATTACK_COOLDOWN_DURATION;
         }
 
-        if (Action::is_cycle_right()) {
+        if (Action::is_build_cycle()) {
             if (m_selected_fixture_type == FixtureType::Pipe) {
                 m_selected_fixture_type = FixtureType::Refiner;
             } else if (m_selected_fixture_type == FixtureType::Refiner) {
                 m_selected_fixture_type = FixtureType::Spire;
-            } else {
-                m_selected_fixture_type = FixtureType::Pipe;
-            }
-        } else if (Action::is_cycle_left()) {
-            if (m_selected_fixture_type == FixtureType::Pipe) {
-                m_selected_fixture_type = FixtureType::Spire;
-            } else if (m_selected_fixture_type == FixtureType::Spire) {
-                m_selected_fixture_type = FixtureType::Refiner;
             } else {
                 m_selected_fixture_type = FixtureType::Pipe;
             }
