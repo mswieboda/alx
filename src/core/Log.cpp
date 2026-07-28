@@ -20,6 +20,24 @@ namespace Log {
         return ss.str();
     }
 
+    // Internal helper for variadic string formatting with optional prefix and timestamp
+    static void vfmt(const char* prefix, bool use_timestamp, const char* format, va_list args) {
+        va_list args_copy;
+        va_copy(args_copy, args);
+        int size = vsnprintf(nullptr, 0, format, args_copy);
+        va_end(args_copy);
+
+        if (size > 0) {
+            std::vector<char> buf(size + 1);
+            vsnprintf(buf.data(), buf.size(), format, args);
+            if (use_timestamp) {
+                std::cout << "[" << timestamp() << "] " << (prefix ? prefix : "") << buf.data() << std::endl;
+            } else {
+                std::cout << (prefix ? prefix : "") << buf.data() << std::endl;
+            }
+        }
+    }
+
     void msg(const std::string& message) {
         std::cout << message << std::endl;
     }
@@ -31,40 +49,18 @@ namespace Log {
     void fmt(const char* format, ...) {
         va_list args;
         va_start(args, format);
-
-        // Determine required buffer size
-        va_list args_copy;
-        va_copy(args_copy, args);
-        int size = vsnprintf(nullptr, 0, format, args_copy);
-        va_end(args_copy);
-
-        if (size > 0) {
-            std::vector<char> buf(size + 1);
-            vsnprintf(buf.data(), buf.size(), format, args);
-            std::cout << buf.data() << std::endl;
-        }
-
+        vfmt("", false, format, args);
         va_end(args);
     }
 
     void fmt_t(const char* format, ...) {
         va_list args;
         va_start(args, format);
-
-        // Determine required buffer size
-        va_list args_copy;
-        va_copy(args_copy, args);
-        int size = vsnprintf(nullptr, 0, format, args_copy);
-        va_end(args_copy);
-
-        if (size > 0) {
-            std::vector<char> buf(size + 1);
-            vsnprintf(buf.data(), buf.size(), format, args);
-            std::cout << "[" << timestamp() << "] " << buf.data() << std::endl;
-        }
-
+        vfmt("", true, format, args);
         va_end(args);
     }
+
+    // --- type msg
 
     void info(const std::string& message) {
         msg("[INFO] " + message);
@@ -82,6 +78,8 @@ namespace Log {
         msg("[ERROR] " + message);
     }
 
+    // --- type msg with timestamp
+
     void info_t(const std::string& message) {
         msg_t("[INFO] " + message);
     }
@@ -96,5 +94,65 @@ namespace Log {
 
     void error_t(const std::string& message) {
         msg_t("[ERROR] " + message);
+    }
+
+    // --- type fmt
+
+    void info_fmt(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[INFO] ", false, format, args);
+        va_end(args);
+    }
+
+    void debug_fmt(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[DEBUG] ", false, format, args);
+        va_end(args);
+    }
+
+    void warn_fmt(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[WARN] ", false, format, args);
+        va_end(args);
+    }
+
+    void error_fmt(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[ERROR] ", false, format, args);
+        va_end(args);
+    }
+
+    // --- type fmt with timestamp
+
+    void info_fmt_t(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[INFO] ", true, format, args);
+        va_end(args);
+    }
+
+    void debug_fmt_t(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[DEBUG] ", true, format, args);
+        va_end(args);
+    }
+
+    void warn_fmt_t(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[WARN] ", true, format, args);
+        va_end(args);
+    }
+
+    void error_fmt_t(const char* format, ...) {
+        va_list args;
+        va_start(args, format);
+        vfmt("[ERROR] ", true, format, args);
+        va_end(args);
     }
 }

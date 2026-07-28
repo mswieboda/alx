@@ -36,7 +36,7 @@ struct Enemy : public Entity {
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
 
     // Speed
-    static constexpr float SPEED_PX_PER_TICK = 0.25f; // 0.25 px/tick at 60 FPS
+    static constexpr float SPEED_PX_PER_TICK = 1.0f; // 0.25 px/tick at 60 FPS
     static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 15.0 px/s
 
     static constexpr int DEFAULT_MAX_HP = 3;

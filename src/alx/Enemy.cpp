@@ -3,6 +3,7 @@
 #include "alx/Random.h"
 #include "alx/Tiles.h"
 #include "alx/Network.h"
+#include "alx/WorldCollision.h"
 
 namespace alx {
 
@@ -30,7 +31,7 @@ void Enemy::pick_random_wander_state(const Tiles* tiles, const Network* network)
                 auto [dx, dy] = dirs[idx];
                 float test_x = transform.x + dx * (speed * 0.2f);
                 float test_y = transform.y + dy * (speed * 0.2f);
-                if (!EnemyManager::is_solid_ground(ground_circle(test_x, test_y), *tiles, *network)) {
+                if (!WorldCollision::is_solid_ground(ground_circle(test_x, test_y), *tiles, *network)) {
                     chosen_idx = idx;
                     break;
                 }

@@ -14,15 +14,27 @@ namespace Log {
     // with prepended timestamp
     void fmt_t(const char* format, ...);
 
-    // with prepended log type
+    // msg with prepended log type
     void info(const std::string& message);
     void debug(const std::string& message);
     void warn(const std::string& message);
     void error(const std::string& message);
 
-    // with prepended log type, timestamp
+    // msg with prepended log type, timestamp
     void info_t(const std::string& message);
     void debug_t(const std::string& message);
     void warn_t(const std::string& message);
     void error_t(const std::string& message);
+
+    // fmt with prepended log type
+    void info_fmt(const char* format, ...);
+    void debug_fmt(const char* format, ...);
+    void warn_fmt(const char* format, ...);
+    void error_fmt(const char* format, ...);
+
+    // fmt with prepended log type, timestamp
+    void info_fmt_t(const char* format, ...);
+    void debug_fmt_t(const char* format, ...);
+    void warn_fmt_t(const char* format, ...);
+    void error_fmt_t(const char* format, ...);
 }

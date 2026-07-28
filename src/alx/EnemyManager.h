@@ -9,6 +9,7 @@
 #include "alx/Camera.h"
 #include "alx/Player.h"
 #include "alx/AlloyItem.h"
+#include "alx/WorldCollision.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -221,85 +222,11 @@ public:
     }
 
     static bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
-        float tile_size = static_cast<float>(tiles.tile_size());
-
-        int min_tx = static_cast<int>(std::floor((ground.cx - ground.radius) / tile_size));
-        int max_tx = static_cast<int>(std::floor((ground.cx + ground.radius) / tile_size));
-        int min_ty = static_cast<int>(std::floor((ground.cy - ground.radius) / tile_size));
-        int max_ty = static_cast<int>(std::floor((ground.cy + ground.radius) / tile_size));
-
-        for (int ty = min_ty; ty <= max_ty; ++ty) {
-            for (int tx = min_tx; tx <= max_tx; ++tx) {
-                if (tiles.is_wall(tx, ty)) {
-                    if (Collision::circle_vs_aabb(ground, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
-                        return true;
-                    }
-                }
-                if (network.in_bounds(tx, ty)) {
-                    if (network.is_solid(tx, ty)) {
-                        Collision::AABB fixture_aabb = fixture_ground_aabb(tx, ty, tile_size);
-                        if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
+        return WorldCollision::is_solid_ground(ground, tiles, network);
     }
 
     static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network) {
-        if (!is_solid_ground(enemy.ground_circle(), tiles, network)) {
-            return;
-        }
-
-        int tile_size = tiles.tile_size();
-        int current_tx = static_cast<int>(enemy.center_x() / tile_size);
-        int current_ty = static_cast<int>(enemy.center_y() / tile_size);
-
-        int best_tx = -1, best_ty = -1;
-        float min_dist_sq = 1e9f;
-
-        for (int r = 0; r <= 5; ++r) {
-            for (int dy = -r; dy <= r; ++dy) {
-                for (int dx = -r; dx <= r; ++dx) {
-                    int tx = current_tx + dx;
-                    int ty = current_ty + dy;
-                    if (tiles.in_bounds(tx, ty) && tiles.is_floor(tx, ty)) {
-                        float fcx = tx * tile_size + tile_size * 0.5f;
-                        float fcy = ty * tile_size + tile_size * 0.5f;
-                        float dsq = (fcx - enemy.center_x()) * (fcx - enemy.center_x()) + (fcy - enemy.center_y()) * (fcy - enemy.center_y());
-                        if (dsq < min_dist_sq) {
-                            min_dist_sq = dsq;
-                            best_tx = tx;
-                            best_ty = ty;
-                        }
-                    }
-                }
-            }
-            if (best_tx >= 0) break;
-        }
-
-        if (best_tx >= 0 && best_ty >= 0) {
-            float target_x = best_tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) * 0.5f;
-            float target_y = best_ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) * 0.5f;
-
-            float dir_x = target_x - enemy.transform.x;
-            float dir_y = target_y - enemy.transform.y;
-            float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
-            if (len > 0.001f) {
-                dir_x /= len;
-                dir_y /= len;
-            }
-
-            for (int step = 0; step < 16; ++step) {
-                enemy.transform.x += dir_x * 1.0f;
-                enemy.transform.y += dir_y * 1.0f;
-                if (!is_solid_ground(enemy.ground_circle(), tiles, network)) {
-                    break;
-                }
-            }
-        }
+        WorldCollision::enforce_solid_ground_ejection(enemy.transform.x, enemy.transform.y, enemy.ground_circle(), tiles, network, 2.0f, enemy.tag);
     }
 
     GridPos find_priority_target(const Enemy& enemy, const Network& network) const {
@@ -363,7 +290,10 @@ public:
         float tile_size = static_cast<float>(tiles.tile_size());
 
         for (auto& enemy : m_enemies) {
-            enforce_solid_ground_ejection(enemy, tiles, network);
+            // NOTE: WorldCollision::try_move() prevents geometry penetration during normal gameplay.
+            // Enable ejection safety net if adding heavy knockback, teleports, or phase-dashes.
+            // enforce_solid_ground_ejection(enemy, tiles, network);
+
             enemy.sync_prev_transforms();
 
             if (enemy.state_timer > 0.0f) {
@@ -446,7 +376,9 @@ public:
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
 
-                        if (Collision::circle_vs_aabb(enemy.ground_circle(), fix_aabb)) {
+                        // Fix 3: Outer Reach Padding (+2.0px) so mobs trigger attack before penetrating solid AABB
+                        Collision::AABB padded_aabb{ fix_aabb.x - 2.0f, fix_aabb.y - 2.0f, fix_aabb.w + 4.0f, fix_aabb.h + 4.0f };
+                        if (Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb)) {
                             enemy.state = EnemyState::AttackWindup;
                             enemy.state_timer = Enemy::ATTACK_WINDUP_TIME;
                             enemy.is_moving = false;
@@ -463,6 +395,7 @@ public:
 
                 case EnemyState::AttackWindup: {
                     enemy.is_moving = false;
+                    enemy.stuck_timer = 0.0f; // Fix 1: Reset stuck_timer during attack windup
                     if (enemy.state_timer <= 0.0f) {
                         float twilight_inc = 0.0f;
                         bool destroyed = network.damage_fixture(enemy.target_fixture_pos, 1, twilight_inc);
@@ -503,6 +436,7 @@ public:
 
                 case EnemyState::AttackRecoilRest: {
                     enemy.is_moving = false;
+                    enemy.stuck_timer = 0.0f; // Fix 1: Reset stuck_timer during recoil rest
 
                     if (enemy.recoil_dist_remaining > 0.0f) {
                         float step = std::min(enemy.recoil_dist_remaining, Enemy::RECOIL_SLIDE_SPEED * dt);
@@ -572,12 +506,24 @@ public:
 
                 if (blocked_x || blocked_y) {
                     if (enemy.state == EnemyState::SeekTarget) {
-                        enemy.stuck_timer += dt;
-                        if (enemy.stuck_timer >= Enemy::OBSTACLE_STUCK_THRESHOLD) {
+                        // Fix 2: If enemy is already within reach of its target fixture, ignore stuck counting
+                        bool near_target = false;
+                        if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos)) {
+                            Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                            Collision::AABB padded_aabb{ fix_aabb.x - 4.0f, fix_aabb.y - 4.0f, fix_aabb.w + 8.0f, fix_aabb.h + 8.0f };
+                            near_target = Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb);
+                        }
+
+                        if (near_target) {
                             enemy.stuck_timer = 0.0f;
-                            enemy.state = EnemyState::DetourWander;
-                            enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
-                            enemy.pick_random_wander_state(&tiles, &network);
+                        } else {
+                            enemy.stuck_timer += dt;
+                            if (enemy.stuck_timer >= Enemy::OBSTACLE_STUCK_THRESHOLD) {
+                                enemy.stuck_timer = 0.0f;
+                                enemy.state = EnemyState::DetourWander;
+                                enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
+                                enemy.pick_random_wander_state(&tiles, &network);
+                            }
                         }
                     } else {
                         enemy.is_moving = false;

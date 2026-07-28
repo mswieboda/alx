@@ -5,6 +5,7 @@
 #include "alx/Network.h"
 #include "alx/Layer.h"
 #include "alx/DrawFX.h"
+#include "alx/WorldCollision.h"
 #include "core/Collision.h"
 
 namespace alx {
@@ -333,15 +334,11 @@ private:
             dy *= DIAGONAL_SPEED_SCALE;
         }
 
-        float target_x = transform.x + dx * speed * dt;
-        if (!is_solid_ground(target_x, transform.y, tiles, network)) {
-            transform.x = target_x;
-        }
+        // NOTE: WorldCollision::try_move() prevents geometry penetration during normal gameplay.
+        // Enable ejection safety net if adding heavy knockback, teleports, or phase-dashes.
+        // WorldCollision::enforce_solid_ground_ejection(transform.x, transform.y, ground_circle(), tiles, network, 2.0f, tag);
 
-        float target_y = transform.y + dy * speed * dt;
-        if (!is_solid_ground(transform.x, target_y, tiles, network)) {
-            transform.y = target_y;
-        }
+        WorldCollision::try_move(transform.x, transform.y, dx * speed * dt, dy * speed * dt, ground_circle(), tiles, network);
     }
 
     void update_actions(float dt, const Tiles& tiles, Network& network) {
@@ -395,36 +392,6 @@ private:
                 }
             }
         }
-    }
-
-    bool is_solid_ground(float test_x, float test_y, const Tiles& tiles, const Network& network) const {
-        Collision::Circle ground = ground_circle(test_x, test_y);
-        float tile_size = static_cast<float>(tiles.tile_size());
-
-        int min_tx = static_cast<int>(ground.cx - ground.radius) / tiles.tile_size();
-        int max_tx = static_cast<int>(ground.cx + ground.radius) / tiles.tile_size();
-        int min_ty = static_cast<int>(ground.cy - ground.radius) / tiles.tile_size();
-        int max_ty = static_cast<int>(ground.cy + ground.radius) / tiles.tile_size();
-
-        for (int ty = min_ty; ty <= max_ty; ++ty) {
-            for (int tx = min_tx; tx <= max_tx; ++tx) {
-                if (tiles.is_wall(tx, ty)) {
-                    if (Collision::circle_vs_aabb(ground, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
-                        return true;
-                    }
-                }
-                if (network.in_bounds(tx, ty)) {
-                    if (network.is_solid(tx, ty)) {
-                        Collision::AABB fixture_aabb = fixture_ground_aabb(tx, ty, tile_size);
-                        if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
-                            return true;
-                        }
-                    }
-                }
-
-            }
-        }
-        return false;
     }
 
 };
