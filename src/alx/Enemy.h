@@ -13,13 +13,14 @@
 #include "alx/Layer.h"
 #include "alx/Network.h"
 #include "alx/Random.h"
+#include "alx/EnemyMovement.h"
 #include "Game.h"
 #include "Debug.h"
 
 namespace alx {
 
 enum class EnemyState : uint8_t {
-    SpawnWander,
+    Wander,
     SeekTarget,
     RestlessWander,
     DetourWander,
@@ -36,7 +37,7 @@ struct Enemy : public Entity {
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
 
     // Speed
-    static constexpr float SPEED_PX_PER_TICK = 1.0f; // 0.25 px/tick at 60 FPS
+    static constexpr float SPEED_PX_PER_TICK = 0.5f; // 0.25 px/tick at 60 FPS
     static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 15.0 px/s
 
     static constexpr int DEFAULT_MAX_HP = 3;
@@ -54,8 +55,9 @@ struct Enemy : public Entity {
     static constexpr float MAX_MOVE_TIME = 2.5f;
 
     // Movement & Combat
-    static constexpr float SPAWN_WANDER_DURATION     = 5.0f;  // Initial spawn delay before target locking
-    static constexpr float POST_DESTROY_WANDER_TIME  = 5.0f;  // Search pause when target fixture is destroyed
+    static constexpr float WANDER_DURATION           = 5.0f;  // Initial spawn delay / wander duration
+    static constexpr float POST_DESTROY_WANDER_TIME  = 2.0f;  // Search pause when target fixture is destroyed
+    static constexpr float MARCH_INTERMISSION_WANDER_TIME = 1.5f; // Intermission micro-wander when march timer expires
     static constexpr float SIEGE_MARCH_DURATION      = 7.0f;  // Active march duration toward target fixture
     static constexpr float RESTLESS_WANDER_DURATION  = 2.5f;  // Intermission wander duration
     static constexpr float OBSTACLE_STUCK_THRESHOLD  = 1.5f;  // Seconds spent against obstacle before detour wander
@@ -76,12 +78,13 @@ struct Enemy : public Entity {
     float recoil_dx = 0.0f;
     float recoil_dy = 0.0f;
     float recoil_dist_remaining = 0.0f;
-    float state_timer = SPAWN_WANDER_DURATION;
+    float state_timer = WANDER_DURATION;
     float reeval_timer = 0.0f;
     float stuck_timer = 0.0f;
     bool is_moving = false;
 
-    EnemyState state = EnemyState::SpawnWander;
+    EnemyState state = EnemyState::Wander;
+    EnemyMovement::MovementState move_state;
     GridPos target_fixture_pos{-1, -1};
     bool has_target = false;
 
@@ -158,8 +161,6 @@ struct Enemy : public Entity {
         move_dy = dirs8[index].second;
         is_moving = true;
     }
-
-    void pick_random_wander_state(const class Tiles* tiles = nullptr, const class Network* network = nullptr);
 
     void take_damage(int amount, float push_dx, float push_dy) {
         hp -= amount;

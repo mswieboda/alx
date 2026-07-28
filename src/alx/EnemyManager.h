@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include "alx/Enemy.h"
+#include "alx/EnemyMovement.h"
 #include "alx/Tiles.h"
 #include "alx/Camera.h"
 #include "alx/Player.h"
@@ -198,9 +199,9 @@ public:
             }
 
             Enemy& enemy = m_enemies.emplace_back(final_x, final_y);
-            enemy.state = EnemyState::SpawnWander;
+            enemy.state = EnemyState::Wander;
             enemy.state_timer = Random::get_float(4.0f, 6.0f);
-            enemy.pick_random_wander_state(&tiles, network);
+            EnemyMovement::reset_wander_state(enemy.move_state);
         }
 
         update_threat_cache();
@@ -240,46 +241,36 @@ public:
         for (int32_t idx : network.active_indices()) {
             int tx = idx % network.width();
             int ty = idx / network.width();
-            const Fixture& fix = network.fixture(tx, ty);
-
-            if (fix.is_empty() || fix.type == FixtureType::Seep) continue;
-
-            int base_val = TARGET_PRIO_BASE;
-            if (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) {
-                base_val += TARGET_PRIO_HIGH;
+            const Fixture& fixture = network.fixture(tx, ty);
+            if (fixture.type == FixtureType::None || fixture.type == FixtureType::Seep) {
+                continue;
             }
 
-            Collision::AABB fix_aabb = fixture_ground_aabb(tx, ty, tile_size);
-            float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
-            float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
-            float dx = target_cx - enemy_cx;
-            float dy = target_cy - enemy_cy;
-            float dist = std::sqrt(dx * dx + dy * dy);
-            if (dist < 1.0f) dist = 1.0f;
+            GridPos pos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) };
+            float fcx = pos.x * tile_size + tile_size * 0.5f;
+            float fcy = pos.y * tile_size + tile_size * 0.5f;
 
-            int pipe_mana_bonus = 0;
-            if (fix.type == FixtureType::Pipe) {
-                if (fix.mana_state == ManaState::Dark) {
-                    pipe_mana_bonus = TARGET_PRIO_BONUS_PIPE_DARK_MANA;
-                } else if (fix.mana_state == ManaState::Light) {
-                    pipe_mana_bonus = TARGET_PRIO_BONUS_PIPE_LIGHT_MANA;
-                }
+            float dist = std::sqrt((fcx - enemy_cx) * (fcx - enemy_cx) + (fcy - enemy_cy) * (fcy - enemy_cy));
+            dist = std::max(dist, 1.0f);
+
+            float base_value = (fixture.type == FixtureType::Pipe) ? 100.0f : 300.0f;
+            float score = base_value / dist;
+
+            if (fixture.type == FixtureType::Pipe && fixture.mana_state == ManaState::Dark) {
+                score += 50.0f;
             }
 
             int crowd_count = 0;
             for (const auto& other : m_enemies) {
-                if (&other != &enemy && other.has_target && other.target_fixture_pos.x == tx && other.target_fixture_pos.y == ty) {
+                if (other.active && other.has_target && other.target_fixture_pos == pos) {
                     crowd_count++;
                 }
             }
-            float crowd_penalty = crowd_count * 80.0f;
-
-            float total_val = base_val + pipe_mana_bonus;
-            float score = (total_val / dist) - crowd_penalty;
+            score -= (crowd_count * 80.0f);
 
             if (score > max_score) {
                 max_score = score;
-                best_pos = GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) };
+                best_pos = pos;
             }
         }
 
@@ -293,7 +284,6 @@ public:
             // NOTE: WorldCollision::try_move() prevents geometry penetration during normal gameplay.
             // Enable ejection safety net if adding heavy knockback, teleports, or phase-dashes.
             // enforce_solid_ground_ejection(enemy, tiles, network);
-
             enemy.sync_prev_transforms();
 
             if (enemy.state_timer > 0.0f) {
@@ -322,7 +312,7 @@ public:
             */
 
             switch (enemy.state) {
-                case EnemyState::SpawnWander:
+                case EnemyState::Wander:
                 case EnemyState::RestlessWander:
                 case EnemyState::DetourWander: {
                     if (enemy.state_timer <= 0.0f) {
@@ -335,20 +325,30 @@ public:
 
                             enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                             enemy.stuck_timer = 0.0f;
+                            EnemyMovement::reset_wander_state(enemy.move_state);
                         } else {
                             enemy.state = EnemyState::RestlessWander;
-                            enemy.pick_random_wander_state(&tiles, &network);
                             enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                             enemy.has_target = false;
+                            EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network);
                         }
-                    } else if (!enemy.is_moving) {
-                        enemy.pick_random_wander_state(&tiles, &network);
+                    } else {
+                        EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network);
                     }
                     break;
                 }
 
                 case EnemyState::SeekTarget: {
                     enemy.reeval_timer -= dt;
+
+                    // Expiration of SIEGE_MARCH_DURATION -> intermission micro-wander
+                    if (enemy.state_timer <= 0.0f) {
+                        enemy.state = EnemyState::Wander;
+                        enemy.state_timer = Enemy::MARCH_INTERMISSION_WANDER_TIME;
+                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        enemy.has_target = false;
+                        break;
+                    }
 
                     bool target_valid = false;
                     if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos)) {
@@ -363,9 +363,9 @@ public:
                             enemy.has_target = true;
                             enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                         } else if (!target_valid) {
-                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state = EnemyState::Wander;
                             enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            enemy.pick_random_wander_state(&tiles, &network);
+                            EnemyMovement::reset_wander_state(enemy.move_state);
                             enemy.has_target = false;
                             break;
                         }
@@ -422,9 +422,9 @@ public:
                         enemy.recoil_dist_remaining = Enemy::RECOIL_DIST;
 
                         if (destroyed) {
-                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state = EnemyState::Wander;
                             enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            enemy.pick_random_wander_state(&tiles, &network);
+                            EnemyMovement::reset_wander_state(enemy.move_state);
                             enemy.has_target = false;
                         } else {
                             enemy.state = EnemyState::AttackRecoilRest;
@@ -457,9 +457,9 @@ public:
                             enemy.state = EnemyState::SeekTarget;
                             enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
                         } else {
-                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state = EnemyState::Wander;
                             enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            enemy.pick_random_wander_state(&tiles, &network);
+                            EnemyMovement::reset_wander_state(enemy.move_state);
                             enemy.has_target = false;
                         }
                     }
@@ -475,7 +475,7 @@ public:
 
                 case EnemyState::HitStun: {
                     if (enemy.state_timer <= 0.0f) {
-                        enemy.state = EnemyState::SpawnWander;
+                        enemy.state = EnemyState::Wander;
                         enemy.state_timer = 0.0f;
                     }
                     break;
@@ -522,9 +522,11 @@ public:
                                 enemy.stuck_timer = 0.0f;
                                 enemy.state = EnemyState::DetourWander;
                                 enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
-                                enemy.pick_random_wander_state(&tiles, &network);
+                                EnemyMovement::reset_wander_state(enemy.move_state);
                             }
                         }
+                    } else if (enemy.state == EnemyState::Wander || enemy.state == EnemyState::RestlessWander || enemy.state == EnemyState::DetourWander) {
+                        EnemyMovement::handle_wall_collision(enemy, enemy.move_state, tiles, network);
                     } else {
                         enemy.is_moving = false;
                         enemy.move_dx = 0.0f;
