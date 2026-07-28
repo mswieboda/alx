@@ -15,9 +15,14 @@ namespace alx {
 
 namespace SpawnerConstants {
     constexpr int DEFAULT_SPAWN_COUNT = 2;
+    constexpr int DEFAULT_WAVE_MIN = 2;
+    constexpr int DEFAULT_WAVE_MAX = 4;
+    constexpr int MAX_ACTIVE_ENEMIES = 20;
     constexpr int MIN_BORDER_OFFSET = 1;
     constexpr int MAX_BORDER_OFFSET = 3;
-    constexpr float MIN_PLAYER_DISTANCE = 96.0f;
+    constexpr float MIN_PLAYER_DISTANCE = 128.0f; // Clearance distance from player in pixels (8 tiles @ 16px)
+    constexpr int CLUSTER_SEARCH_RADIUS = 3;       // Max tile radius around origin for grouped wave spawn
+    constexpr float SUBTILE_JITTER_MAX = 4.0f;     // Sub-tile random position jitter (in pixels)
 }
 
 struct ThreatIndicatorConstants {
@@ -45,16 +50,23 @@ public:
         m_attack_hit_registered = false;
     }
 
-    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
+    void spawn_enemy_wave(const Tiles& tiles, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false) {
         if (clear_existing) {
             clear();
         }
+
+        int current_count = static_cast<int>(m_enemies.size());
+        if (current_count >= SpawnerConstants::MAX_ACTIVE_ENEMIES) {
+            return;
+        }
+
+        int spawn_num = (count > 0) ? count : Random::get_int(SpawnerConstants::DEFAULT_WAVE_MIN, SpawnerConstants::DEFAULT_WAVE_MAX);
 
         int grid_w = tiles.width();
         int grid_h = tiles.height();
         int tile_size = tiles.tile_size();
 
-        std::vector<std::pair<int, int>> candidate_tiles;
+        std::vector<std::pair<int, int>> candidate_border_tiles;
 
         for (int ty = 0; ty < grid_h; ++ty) {
             for (int tx = 0; tx < grid_w; ++tx) {
@@ -62,46 +74,111 @@ public:
                     continue;
                 }
 
-                int dist_west = tx - 1;
-                int dist_east = (grid_w - 2) - tx;
-                int dist_north = ty - 1;
-                int dist_south = (grid_h - 2) - ty;
+                int dist_west = tx;
+                int dist_east = (grid_w - 1) - tx;
+                int dist_north = ty;
+                int dist_south = (grid_h - 1) - ty;
 
                 int min_dist = std::min({dist_west, dist_east, dist_north, dist_south});
 
                 if (min_dist >= SpawnerConstants::MIN_BORDER_OFFSET && min_dist <= SpawnerConstants::MAX_BORDER_OFFSET) {
-                    float world_x = static_cast<float>(tx * tile_size);
-                    float world_y = static_cast<float>(ty * tile_size);
+                    float world_x = static_cast<float>(tx * tile_size + tile_size / 2);
+                    float world_y = static_cast<float>(ty * tile_size + tile_size / 2);
 
                     if (player_start_x >= 0.0f && player_start_y >= 0.0f) {
                         float dx = world_x - player_start_x;
                         float dy = world_y - player_start_y;
-                        if ((dx * dx + dy * dy) < static_cast<float>((tile_size * 3) * (tile_size * 3))) {
+                        if ((dx * dx + dy * dy) < (SpawnerConstants::MIN_PLAYER_DISTANCE * SpawnerConstants::MIN_PLAYER_DISTANCE)) {
                             continue;
                         }
                     }
 
-                    candidate_tiles.push_back({tx, ty});
+                    candidate_border_tiles.push_back({tx, ty});
                 }
             }
         }
 
-        if (candidate_tiles.empty()) return;
+        if (candidate_border_tiles.empty()) return;
 
-        std::shuffle(candidate_tiles.begin(), candidate_tiles.end(), Random::engine());
+        std::shuffle(candidate_border_tiles.begin(), candidate_border_tiles.end(), Random::engine());
+        auto [origin_tx, origin_ty] = candidate_border_tiles.front();
 
-        int spawn_num = std::min(count, static_cast<int>(candidate_tiles.size()));
-        for (int i = 0; i < spawn_num; ++i) {
-            auto [tx, ty] = candidate_tiles[i];
-            float world_x = static_cast<float>(tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) / 2.0f);
-            float world_y = static_cast<float>(ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) / 2.0f);
-            Enemy& enemy = m_enemies.emplace_back(world_x, world_y);
+        struct ClusteredTile {
+            int tx;
+            int ty;
+            int dist_sq;
+        };
+
+        std::vector<ClusteredTile> local_cluster;
+        int rad = SpawnerConstants::CLUSTER_SEARCH_RADIUS;
+
+        for (int dy = -rad; dy <= rad; ++dy) {
+            for (int dx = -rad; dx <= rad; ++dx) {
+                int tx = origin_tx + dx;
+                int ty = origin_ty + dy;
+                if (tx >= 0 && tx < grid_w && ty >= 0 && ty < grid_h && tiles.is_floor(tx, ty)) {
+                    local_cluster.push_back({tx, ty, dx * dx + dy * dy});
+                }
+            }
+        }
+
+        if (static_cast<int>(local_cluster.size()) < spawn_num) {
+            local_cluster.clear();
+            for (int ty = 0; ty < grid_h; ++ty) {
+                for (int tx = 0; tx < grid_w; ++tx) {
+                    if (tiles.is_floor(tx, ty)) {
+                        int dx = tx - origin_tx;
+                        int dy = ty - origin_ty;
+                        local_cluster.push_back({tx, ty, dx * dx + dy * dy});
+                    }
+                }
+            }
+        }
+
+        std::sort(local_cluster.begin(), local_cluster.end(), [](const ClusteredTile& a, const ClusteredTile& b) {
+            return a.dist_sq < b.dist_sq;
+        });
+
+        std::vector<std::pair<int, int>> selected_tiles;
+        size_t start_idx = 0;
+        while (start_idx < local_cluster.size() && static_cast<int>(selected_tiles.size()) < spawn_num) {
+            size_t end_idx = start_idx;
+            while (end_idx < local_cluster.size() && local_cluster[end_idx].dist_sq == local_cluster[start_idx].dist_sq) {
+                end_idx++;
+            }
+            std::vector<std::pair<int, int>> tier;
+            for (size_t k = start_idx; k < end_idx; ++k) {
+                tier.push_back({local_cluster[k].tx, local_cluster[k].ty});
+            }
+            std::shuffle(tier.begin(), tier.end(), Random::engine());
+            for (const auto& t : tier) {
+                selected_tiles.push_back(t);
+                if (static_cast<int>(selected_tiles.size()) == spawn_num) break;
+            }
+            start_idx = end_idx;
+        }
+
+        for (const auto& [tx, ty] : selected_tiles) {
+            float base_x = static_cast<float>(tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) / 2.0f);
+            float base_y = static_cast<float>(ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) / 2.0f);
+
+            float jitter_x = Random::get_float(-SpawnerConstants::SUBTILE_JITTER_MAX, SpawnerConstants::SUBTILE_JITTER_MAX);
+            float jitter_y = Random::get_float(-SpawnerConstants::SUBTILE_JITTER_MAX, SpawnerConstants::SUBTILE_JITTER_MAX);
+
+            float final_x = base_x + jitter_x;
+            float final_y = base_y + jitter_y;
+
+            Enemy& enemy = m_enemies.emplace_back(final_x, final_y);
             enemy.state = EnemyState::SpawnWander;
-            enemy.state_timer = Enemy::SPAWN_WANDER_DURATION;
+            enemy.state_timer = Random::get_float(4.0f, 6.0f);
             enemy.pick_random_wander_state();
         }
 
         update_threat_cache();
+    }
+
+    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
+        spawn_enemy_wave(tiles, count, player_start_x, player_start_y, clear_existing);
     }
 
     void update(float dt, Player* player, const Tiles& tiles, const Network& network) {
