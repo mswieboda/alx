@@ -319,7 +319,7 @@ public:
 
             int base_val = TARGET_PRIO_BASE;
             if (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) {
-                base_val = TARGET_PRIO_HIGH;
+                base_val += TARGET_PRIO_HIGH;
             }
 
             Collision::AABB fix_aabb = fixture_ground_aabb(tx, ty, tile_size);
@@ -347,7 +347,8 @@ public:
             }
             float crowd_penalty = crowd_count * 80.0f;
 
-            float score = (base_val / dist) + pipe_mana_bonus - crowd_penalty;
+            float total_val = base_val + pipe_mana_bonus;
+            float score = (total_val / dist) - crowd_penalty;
 
             if (score > max_score) {
                 max_score = score;

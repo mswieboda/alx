@@ -30,26 +30,30 @@ enum class EnemyState : uint8_t {
 };
 
 struct Enemy : public Entity {
-    // --- Enemy Constants ---
+    // Default size, color
     static constexpr float DEFAULT_WIDTH = 16.0f;
     static constexpr float DEFAULT_HEIGHT = 16.0f;
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
+
+    // Speed
+    static constexpr float SPEED_PX_PER_TICK = 0.25f; // 0.25 px/tick at 60 FPS
+    static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 15.0 px/s
+
     static constexpr int DEFAULT_MAX_HP = 3;
+
     static constexpr float KNOCKBACK_DIST = 2.0f;
     static constexpr float GROUND_RADIUS_RATIO = 0.375f;   // 37.5% of width (6.0px)
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (y + height - r)
     static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
 
-    static constexpr float SPEED_PX_PER_TICK = 0.25f; // 0.25 px/tick at 60 FPS
-    static constexpr float SPEED = SPEED_PX_PER_TICK * Game::TARGET_FPS; // 15.0 px/s
     static constexpr float HIT_STUN_DURATION = 0.3f;
     static constexpr float MIN_IDLE_TIME = 0.5f;
     static constexpr float MAX_IDLE_TIME = 1.5f;
     static constexpr float MIN_MOVE_TIME = 1.0f;
     static constexpr float MAX_MOVE_TIME = 2.5f;
 
-    // --- Phase 3 AI Movement & Combat Constants ---
+    // Movement & Combat
     static constexpr float SPAWN_WANDER_DURATION     = 5.0f;  // Initial spawn delay before target locking
     static constexpr float POST_DESTROY_WANDER_TIME  = 5.0f;  // Search pause when target fixture is destroyed
     static constexpr float SIEGE_MARCH_DURATION      = 7.0f;  // Active march duration toward target fixture
@@ -66,7 +70,6 @@ struct Enemy : public Entity {
     static constexpr float RECOVERY_REST_MAX_TIME    = 2.0f;  // Recoil rest max time
 
     int hp = DEFAULT_MAX_HP;
-
     float speed = SPEED;
     float move_dx = 0.0f;
     float move_dy = 0.0f;
