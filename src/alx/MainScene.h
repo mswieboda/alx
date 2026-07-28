@@ -150,6 +150,11 @@ public:
         m_player.update(dt, m_tiles, m_network, m_camera);
         m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
 
+        float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
+        if (tw_inc > 0.0f) {
+            m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
+        }
+
         if (Action::is_just_pressed(Action::DebugEnemyWave)) {
             m_enemy_manager.spawn_enemy_wave(m_tiles, &m_network, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
         }

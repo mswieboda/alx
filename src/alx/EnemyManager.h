@@ -14,32 +14,47 @@
 namespace alx {
 
 namespace SpawnerConstants {
-    constexpr int DEFAULT_SPAWN_COUNT = 2;
-    constexpr int DEFAULT_WAVE_MIN = 2;
-    constexpr int DEFAULT_WAVE_MAX = 4;
-    constexpr int MAX_ACTIVE_ENEMIES = 20;
-    constexpr int MIN_BORDER_OFFSET = 1;
-    constexpr int MAX_BORDER_OFFSET = 3;
-    constexpr float MIN_PLAYER_DISTANCE = 128.0f; // Clearance distance from player in pixels (8 tiles @ 16px)
-    constexpr int CLUSTER_SEARCH_RADIUS = 3;       // Max tile radius around origin for grouped wave spawn
-    constexpr float SUBTILE_JITTER_MAX = 4.0f;     // Sub-tile random position jitter (in pixels)
+
 }
 
 struct ThreatIndicatorConstants {
-    static constexpr int INDICATOR_SIZE = 8;
-    static constexpr int MARGIN = 4;
-    static constexpr uint32_t COLOR = 0xFFFF0000; // Bright Red
-    static constexpr int Z_INDEX = 101;
-    static constexpr float SCAN_INTERVAL_SEC = 0.5f;
+
 };
 
 class EnemyManager {
 private:
+
+    // Spawning
+    static constexpr int SPAWN_WAVE_MIN = 2;
+    static constexpr int SPAWN_WAVE_MAX = 4;
+    static constexpr int SPAWN_MIN_BORDER_OFFSET = 1;
+    static constexpr int SPAWN_MAX_BORDER_OFFSET = 3;
+    static constexpr int MAX_ACTIVE_ENEMIES = 20;
+    static constexpr float SPAWN_MIN_PLAYER_DISTANCE = 128.0f; // Clearance distance from player in pixels (8 tiles @ 16px)
+    static constexpr int SPAWN_CLUSTER_SEARCH_RADIUS = 3;       // Max tile radius around origin for grouped wave spawn
+    static constexpr float SPAWN_TILE_OFFSET = 4.0f;     // Sub-tile random tile offset (in pixels)
+
+    // Target Priority weighted values
+    static constexpr int TARGET_PRIO_BASE = 50;
+    static constexpr int TARGET_PRIO_HIGH = 200;
+    static constexpr int TARGET_PRIO_BONUS_PIPE_DARK_MANA = 100;
+    static constexpr int TARGET_PRIO_BONUS_PIPE_LIGHT_MANA = 25;
+
+    // Threat Indicator
+    // TODO: will move to Network in favor of damaged fixtures)
+    static constexpr int INDICATOR_SIZE = 6;
+    static constexpr int INDICATOR_MARGIN = 4;
+    static constexpr uint32_t INDICATOR_COLOR = 0x33AA0000; // Dim Red
+    static constexpr int INDICATOR_Z_INDEX = 101;
+    static constexpr float INDICATOR_SCAN_INTERVAL_SEC = 2.0f;
+
     std::vector<Enemy> m_enemies;
     std::vector<AlloyItem> m_alloy_items;
     float m_scan_timer = 0.0f;
     std::vector<size_t> m_cached_offscreen_indices;
     bool m_attack_hit_registered = false;
+    float m_pending_twilight_increase = 0.0f;
+
 
 public:
     void clear() {
@@ -48,6 +63,13 @@ public:
         m_cached_offscreen_indices.clear();
         m_scan_timer = 0.0f;
         m_attack_hit_registered = false;
+        m_pending_twilight_increase = 0.0f;
+    }
+
+    float consume_pending_twilight_increase() {
+        float val = m_pending_twilight_increase;
+        m_pending_twilight_increase = 0.0f;
+        return val;
     }
 
     void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false) {
@@ -56,11 +78,11 @@ public:
         }
 
         int current_count = static_cast<int>(m_enemies.size());
-        if (current_count >= SpawnerConstants::MAX_ACTIVE_ENEMIES) {
+        if (current_count >= MAX_ACTIVE_ENEMIES) {
             return;
         }
 
-        int spawn_num = (count > 0) ? count : Random::get_int(SpawnerConstants::DEFAULT_WAVE_MIN, SpawnerConstants::DEFAULT_WAVE_MAX);
+        int spawn_num = (count > 0) ? count : Random::get_int(SPAWN_WAVE_MIN, SPAWN_WAVE_MAX);
 
         int grid_w = tiles.width();
         int grid_h = tiles.height();
@@ -81,14 +103,14 @@ public:
 
                 int min_dist = std::min({dist_west, dist_east, dist_north, dist_south});
 
-                if (min_dist >= SpawnerConstants::MIN_BORDER_OFFSET && min_dist <= SpawnerConstants::MAX_BORDER_OFFSET) {
+                if (min_dist >= SPAWN_MIN_BORDER_OFFSET && min_dist <= SPAWN_MAX_BORDER_OFFSET) {
                     float world_x = static_cast<float>(tx * tile_size + tile_size / 2);
                     float world_y = static_cast<float>(ty * tile_size + tile_size / 2);
 
                     if (player_start_x >= 0.0f && player_start_y >= 0.0f) {
                         float dx = world_x - player_start_x;
                         float dy = world_y - player_start_y;
-                        if ((dx * dx + dy * dy) < (SpawnerConstants::MIN_PLAYER_DISTANCE * SpawnerConstants::MIN_PLAYER_DISTANCE)) {
+                        if ((dx * dx + dy * dy) < (SPAWN_MIN_PLAYER_DISTANCE * SPAWN_MIN_PLAYER_DISTANCE)) {
                             continue;
                         }
                     }
@@ -110,7 +132,7 @@ public:
         };
 
         std::vector<ClusteredTile> local_cluster;
-        int rad = SpawnerConstants::CLUSTER_SEARCH_RADIUS;
+        int rad = SPAWN_CLUSTER_SEARCH_RADIUS;
 
         for (int dy = -rad; dy <= rad; ++dy) {
             for (int dx = -rad; dx <= rad; ++dx) {
@@ -162,11 +184,11 @@ public:
             float base_x = static_cast<float>(tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) / 2.0f);
             float base_y = static_cast<float>(ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) / 2.0f);
 
-            float jitter_x = Random::get_float(-SpawnerConstants::SUBTILE_JITTER_MAX, SpawnerConstants::SUBTILE_JITTER_MAX);
-            float jitter_y = Random::get_float(-SpawnerConstants::SUBTILE_JITTER_MAX, SpawnerConstants::SUBTILE_JITTER_MAX);
+            float offset_x = Random::get_float(-SPAWN_TILE_OFFSET, SPAWN_TILE_OFFSET);
+            float offset_y = Random::get_float(-SPAWN_TILE_OFFSET, SPAWN_TILE_OFFSET);
 
-            float final_x = base_x + jitter_x;
-            float final_y = base_y + jitter_y;
+            float final_x = base_x + offset_x;
+            float final_y = base_y + offset_y;
 
             Enemy temp_enemy(final_x, final_y);
             if (network && is_solid_ground(temp_enemy.ground_circle(), tiles, *network)) {
@@ -183,18 +205,14 @@ public:
         update_threat_cache();
     }
 
-    void spawn_random_enemies(const Tiles& tiles, const Network* network = nullptr, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
-        spawn_enemy_wave(tiles, network, count, player_start_x, player_start_y, clear_existing);
-    }
-
-    void update(float dt, Player* player, const Tiles& tiles, const Network& network) {
+    void update(float dt, Player* player, const Tiles& tiles, Network& network) {
         m_scan_timer += dt;
-        if (m_scan_timer >= ThreatIndicatorConstants::SCAN_INTERVAL_SEC) {
+        if (m_scan_timer >= INDICATOR_SCAN_INTERVAL_SEC) {
             m_scan_timer = 0.0f;
             update_threat_cache();
         }
 
-        update_enemy_ai(dt, tiles, network);
+        update_enemy_ai(dt, player, tiles, network);
         update_enemy_push_separation(tiles, network);
 
         if (player) {
@@ -284,50 +302,63 @@ public:
         }
     }
 
-    static GridPos find_priority_target(float enemy_center_x, float enemy_center_y, const Network& network) {
+    GridPos find_priority_target(const Enemy& enemy, const Network& network) const {
         float tile_size = static_cast<float>(network.tile_size());
+        float enemy_cx = enemy.center_x();
+        float enemy_cy = enemy.center_y();
 
-        std::vector<GridPos> tier1_candidates; // Refiners & Spires
-        std::vector<GridPos> tier2_candidates; // Pipes
+        GridPos best_pos{ -1, -1 };
+        float max_score = -1e9f;
 
         for (int32_t idx : network.active_indices()) {
             int tx = idx % network.width();
             int ty = idx / network.width();
             const Fixture& fix = network.fixture(tx, ty);
 
+            if (fix.is_empty() || fix.type == FixtureType::Seep) continue;
+
+            int base_val = TARGET_PRIO_BASE;
             if (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) {
-                tier1_candidates.push_back(GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) });
-            } else if (fix.type == FixtureType::Pipe) {
-                tier2_candidates.push_back(GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) });
+                base_val = TARGET_PRIO_HIGH;
             }
-        }
 
-        const auto& candidates = !tier1_candidates.empty() ? tier1_candidates : tier2_candidates;
-        if (candidates.empty()) {
-            return GridPos{ -1, -1 };
-        }
-
-        GridPos best_pos{ -1, -1 };
-        float min_dist_sq = 1e18f;
-
-        for (const auto& pos : candidates) {
-            Collision::AABB fix_aabb = fixture_ground_aabb(pos.x, pos.y, tile_size);
+            Collision::AABB fix_aabb = fixture_ground_aabb(tx, ty, tile_size);
             float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
             float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
-            float dx = target_cx - enemy_center_x;
-            float dy = target_cy - enemy_center_y;
-            float dist_sq = dx * dx + dy * dy;
+            float dx = target_cx - enemy_cx;
+            float dy = target_cy - enemy_cy;
+            float dist = std::sqrt(dx * dx + dy * dy);
+            if (dist < 1.0f) dist = 1.0f;
 
-            if (dist_sq < min_dist_sq) {
-                min_dist_sq = dist_sq;
-                best_pos = pos;
+            int pipe_mana_bonus = 0;
+            if (fix.type == FixtureType::Pipe) {
+                if (fix.mana_state == ManaState::Dark) {
+                    pipe_mana_bonus = TARGET_PRIO_BONUS_PIPE_DARK_MANA;
+                } else if (fix.mana_state == ManaState::Light) {
+                    pipe_mana_bonus = TARGET_PRIO_BONUS_PIPE_LIGHT_MANA;
+                }
+            }
+
+            int crowd_count = 0;
+            for (const auto& other : m_enemies) {
+                if (&other != &enemy && other.has_target && other.target_fixture_pos.x == tx && other.target_fixture_pos.y == ty) {
+                    crowd_count++;
+                }
+            }
+            float crowd_penalty = crowd_count * 80.0f;
+
+            float score = (base_val / dist) + pipe_mana_bonus - crowd_penalty;
+
+            if (score > max_score) {
+                max_score = score;
+                best_pos = GridPos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) };
             }
         }
 
         return best_pos;
     }
 
-    void update_enemy_ai(float dt, const Tiles& tiles, const Network& network) {
+    void update_enemy_ai(float dt, Player* player, const Tiles& tiles, Network& network) {
         float tile_size = static_cast<float>(tiles.tile_size());
 
         for (auto& enemy : m_enemies) {
@@ -338,12 +369,33 @@ public:
                 enemy.state_timer -= dt;
             }
 
+            // --- Player Aggro Interception (TEMPORARILY DISABLED for fixture combat testing) ---
+            /*
+            if (player != nullptr && enemy.state != EnemyState::HitStun) {
+                float px = player->center_x();
+                float py = player->center_y();
+                float edx = px - enemy.center_x();
+                float edy = py - enemy.center_y();
+                float dist_sq = edx * edx + edy * edy;
+
+                if (dist_sq <= Enemy::AGGRO_DETECTION_RADIUS * Enemy::AGGRO_DETECTION_RADIUS) {
+                    enemy.state = EnemyState::ChasePlayer;
+                    enemy.set_steering_vector_8way(px, py);
+                } else if (enemy.state == EnemyState::ChasePlayer) {
+                    enemy.state = EnemyState::RestlessWander;
+                    enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
+                    enemy.pick_random_wander_state(&tiles, &network);
+                    enemy.has_target = false;
+                }
+            }
+            */
+
             switch (enemy.state) {
                 case EnemyState::SpawnWander:
                 case EnemyState::RestlessWander:
                 case EnemyState::DetourWander: {
                     if (enemy.state_timer <= 0.0f) {
-                        GridPos target = find_priority_target(enemy.center_x(), enemy.center_y(), network);
+                        GridPos target = find_priority_target(enemy, network);
                         if (target.x >= 0 && target.y >= 0) {
                             enemy.state = EnemyState::SeekTarget;
                             enemy.target_fixture_pos = target;
@@ -374,7 +426,7 @@ public:
                     }
 
                     if (!target_valid || enemy.reeval_timer <= 0.0f) {
-                        GridPos new_target = find_priority_target(enemy.center_x(), enemy.center_y(), network);
+                        GridPos new_target = find_priority_target(enemy, network);
                         if (new_target.x >= 0 && new_target.y >= 0) {
                             enemy.target_fixture_pos = new_target;
                             enemy.has_target = true;
@@ -388,19 +440,14 @@ public:
                         }
                     }
 
-                    if (enemy.state_timer <= 0.0f) {
-                        enemy.state = EnemyState::RestlessWander;
-                        enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                        enemy.pick_random_wander_state(&tiles, &network);
-                        break;
-                    }
-
                     if (enemy.has_target) {
                         Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
 
                         if (Collision::circle_vs_aabb(enemy.ground_circle(), fix_aabb)) {
+                            enemy.state = EnemyState::AttackWindup;
+                            enemy.state_timer = Enemy::ATTACK_WINDUP_TIME;
                             enemy.is_moving = false;
                             enemy.move_dx = 0.0f;
                             enemy.move_dy = 0.0f;
@@ -409,6 +456,84 @@ public:
                         }
 
                         enemy.set_steering_vector_8way(target_cx, target_cy);
+                    }
+                    break;
+                }
+
+                case EnemyState::AttackWindup: {
+                    enemy.is_moving = false;
+                    if (enemy.state_timer <= 0.0f) {
+                        float twilight_inc = 0.0f;
+                        bool destroyed = network.damage_fixture(enemy.target_fixture_pos, 1, twilight_inc);
+                        if (twilight_inc > 0.0f) {
+                            m_pending_twilight_increase += twilight_inc;
+                        }
+
+                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                        float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
+                        float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
+                        float rdx = enemy.center_x() - target_cx;
+                        float rdy = enemy.center_y() - target_cy;
+                        float rlen = std::sqrt(rdx * rdx + rdy * rdy);
+                        if (rlen > 0.001f) {
+                            rdx /= rlen;
+                            rdy /= rlen;
+                        } else {
+                            rdx = 0.0f;
+                            rdy = -1.0f;
+                        }
+
+                        enemy.recoil_dx = rdx;
+                        enemy.recoil_dy = rdy;
+                        enemy.recoil_dist_remaining = Enemy::RECOIL_DIST;
+
+                        if (destroyed) {
+                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
+                            enemy.pick_random_wander_state(&tiles, &network);
+                            enemy.has_target = false;
+                        } else {
+                            enemy.state = EnemyState::AttackRecoilRest;
+                            enemy.state_timer = Random::get_float(Enemy::RECOVERY_REST_MIN_TIME, Enemy::RECOVERY_REST_MAX_TIME);
+                        }
+                    }
+                    break;
+                }
+
+                case EnemyState::AttackRecoilRest: {
+                    enemy.is_moving = false;
+
+                    if (enemy.recoil_dist_remaining > 0.0f) {
+                        float step = std::min(enemy.recoil_dist_remaining, Enemy::RECOIL_SLIDE_SPEED * dt);
+                        float target_x = enemy.transform.x + enemy.recoil_dx * step;
+                        float target_y = enemy.transform.y + enemy.recoil_dy * step;
+
+                        if (!is_solid_ground(enemy.ground_circle(target_x, target_y), tiles, network)) {
+                            enemy.transform.x = target_x;
+                            enemy.transform.y = target_y;
+                            enemy.recoil_dist_remaining -= step;
+                        } else {
+                            enemy.recoil_dist_remaining = 0.0f;
+                        }
+                    }
+
+                    if (enemy.state_timer <= 0.0f) {
+                        if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos) && !network.fixture(enemy.target_fixture_pos).is_empty()) {
+                            enemy.state = EnemyState::SeekTarget;
+                            enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
+                        } else {
+                            enemy.state = EnemyState::SpawnWander;
+                            enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
+                            enemy.pick_random_wander_state(&tiles, &network);
+                            enemy.has_target = false;
+                        }
+                    }
+                    break;
+                }
+
+                case EnemyState::ChasePlayer: {
+                    if (player != nullptr) {
+                        enemy.set_steering_vector_8way(player->center_x(), player->center_y());
                     }
                     break;
                 }
@@ -584,10 +709,10 @@ public:
         float csx = sw / 2.0f;
         float csy = sh / 2.0f;
 
-        float margin_x_min = static_cast<float>(ThreatIndicatorConstants::MARGIN);
-        float margin_x_max = sw - ThreatIndicatorConstants::MARGIN - ThreatIndicatorConstants::INDICATOR_SIZE;
-        float margin_y_min = static_cast<float>(ThreatIndicatorConstants::MARGIN);
-        float margin_y_max = sh - ThreatIndicatorConstants::MARGIN - ThreatIndicatorConstants::INDICATOR_SIZE;
+        float margin_x_min = static_cast<float>(INDICATOR_MARGIN);
+        float margin_x_max = sw - INDICATOR_MARGIN - INDICATOR_SIZE;
+        float margin_y_min = static_cast<float>(INDICATOR_MARGIN);
+        float margin_y_max = sh - INDICATOR_MARGIN - INDICATOR_SIZE;
 
         for (const auto& enemy : m_enemies) {
             float enemy_cx = enemy.center_x();
@@ -634,12 +759,12 @@ public:
                 Draw::rect(
                     static_cast<int>(std::round(ix)),
                     static_cast<int>(std::round(iy)),
-                    ThreatIndicatorConstants::INDICATOR_SIZE,
-                    ThreatIndicatorConstants::INDICATOR_SIZE,
-                    ThreatIndicatorConstants::COLOR,
+                    INDICATOR_SIZE,
+                    INDICATOR_SIZE,
+                    INDICATOR_COLOR,
                     true, // fill
                     1,    // thickness
-                    ThreatIndicatorConstants::Z_INDEX
+                    INDICATOR_Z_INDEX
                 );
             }
         }

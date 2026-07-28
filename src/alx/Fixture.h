@@ -10,6 +10,12 @@ struct FixtureConstants {
     static constexpr float GROUND_OFFSET_Y_RATIO = 0.50f; // Sits in bottom 50% of tile (y + 8.0px)
 };
 
+struct FixtureHPConstants {
+    static constexpr int PIPE_MAX_HP = 10;
+    static constexpr int REFINER_MAX_HP = 30;
+    static constexpr int SPIRE_MAX_HP = 30;
+};
+
 enum class FixtureType : uint8_t {
     None = 0,
     Pipe,
@@ -44,6 +50,8 @@ struct Fixture {
     int8_t out_dy           = 0;           // Outgoing flow delta Y for corner rendering
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
     uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
+    int hp                  = 0;     // Current HP pool
+    int max_hp              = 0;     // Max HP pool
 
     [[nodiscard]] constexpr bool is_empty() const noexcept { return type == FixtureType::None; }
 };

@@ -64,6 +64,14 @@ bool Network::place_fixture(GridPos pos, FixtureType type) {
     fix.mana_ttl = 0;
     fix.is_powered = false;
 
+    int max_hp = 0;
+    if (type == FixtureType::Pipe) max_hp = FixtureHPConstants::PIPE_MAX_HP;
+    else if (type == FixtureType::Refiner) max_hp = FixtureHPConstants::REFINER_MAX_HP;
+    else if (type == FixtureType::Spire) max_hp = FixtureHPConstants::SPIRE_MAX_HP;
+
+    fix.max_hp = max_hp;
+    fix.hp = max_hp;
+
     if (type == FixtureType::Seep) {
         fix.is_powered = true;
         fix.mana_state = ManaState::Dark;
@@ -90,6 +98,26 @@ bool Network::remove_fixture(GridPos pos) {
     m_fixtures[idx] = Fixture{};
     update_neighbor_masks(pos);
     return true;
+}
+
+bool Network::damage_fixture(GridPos pos, int amount, float& out_twilight_increase) {
+    out_twilight_increase = 0.0f;
+    if (!in_bounds(pos)) return false;
+    Fixture& fix = fixture(pos);
+    if (fix.is_empty()) return false;
+
+    fix.hp -= amount;
+    if (fix.hp <= 0) {
+        FixtureType t = fix.type;
+        if (t == FixtureType::Pipe) {
+            out_twilight_increase = 0.05f;
+        } else if (t == FixtureType::Refiner || t == FixtureType::Spire) {
+            out_twilight_increase = 0.15f;
+        }
+        remove_fixture(pos);
+        return true;
+    }
+    return false;
 }
 
 bool Network::is_solid(GridPos pos) const noexcept {

@@ -81,4 +81,20 @@ namespace Log {
     void error(const std::string& message) {
         msg("[ERROR] " + message);
     }
+
+    void info_t(const std::string& message) {
+        msg_t("[INFO] " + message);
+    }
+
+    void debug_t(const std::string& message) {
+        msg_t("[DEBUG] " + message);
+    }
+
+    void warn_t(const std::string& message) {
+        msg_t("[WARN] " + message);
+    }
+
+    void error_t(const std::string& message) {
+        msg_t("[ERROR] " + message);
+    }
 }

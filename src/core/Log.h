@@ -19,4 +19,10 @@ namespace Log {
     void debug(const std::string& message);
     void warn(const std::string& message);
     void error(const std::string& message);
+
+    // with prepended log type, timestamp
+    void info_t(const std::string& message);
+    void debug_t(const std::string& message);
+    void warn_t(const std::string& message);
+    void error_t(const std::string& message);
 }

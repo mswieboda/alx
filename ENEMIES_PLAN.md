@@ -75,15 +75,15 @@ This document outlines the detailed roadmap, technical specifications, and desig
   2. **Siege & Restless Wander Cycle**: Once targeting a fixture, mobs march/attack for 6.0s–8.0s, then enter a 2.0s–3.0s restless wander state to re-evaluate surrounding targets and prevent mechanical mob stacking. [COMPLETED]
   3. **Obstacle Detour Handling**: If an enemy is blocked by any obstacle (wall tiles, fixtures, or impassable terrain) for > 1.5s without forward progress, automatically trigger a 3.0s wander state to break free and maneuver around obstructions. [COMPLETED]
 3. Implement grouped enemy spawn waves, spawning near each other in a tighter group, rather than all randomly around the outer walls. [COMPLETED]
-4. Implement player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range.
+4. Implement player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range. [COMPLETED]
 5. Threat indicators should no longer track all enemies, they should only track when any fixture is being damaged. once a fixture is damaged it should add an indicator, and pulse/flash red on/off and have a timer for like 1.5s. any further damage resets the timer. once timer is off, the only way to determine a damaged fixture is to look at the graphics (different sprite frames), but for now we will interpolate it towards red in damaged increments, etc.
 
 ### Phase 4: Enemy Attacking & Fixture Destruction
 1. Implement enemy melee attack against Player when within reach (0.3s attack windup, 1.0s attack cycle, 1 damage, triggering 0.5s i-frames).
-2. Implement enemy attack against targeted Fixture when within reach (0.3s attack windup, 1.0s attack cycle, 1 damage).
-3. Retargeting: Mid-attack switch to player if player enters smaller *Threat Radius*; return to target fixture if player escapes.
-4. Implement Fixture health pools (**10 HP Pipes**, **30 HP Refiners/Spires**) and apply attack damage over time.
-5. Implement Fixture destruction: clear cell, break mana network, trigger Dark Mana Spill cloud effect, and increase global Twilight level.
+2. Implement enemy attack against targeted Fixture when within reach (0.3s attack windup, 1.0s attack cycle, 1 damage). [COMPLETED]
+3. Retargeting: Mid-attack switch to player if player enters smaller *Threat Radius*; return to target fixture if player escapes. [COMPLETED]
+4. Implement Fixture health pools (**10 HP Pipes**, **30 HP Refiners/Spires**) and apply attack damage over time. [COMPLETED]
+5. Implement Fixture destruction: clear cell, break mana network, trigger Dark Mana Spill cloud effect, and increase global Twilight level. [COMPLETED]
 6. Implement Player defeat state at 0 HP (temporarily disable drawing and player input while scene runs).
 
 ### Phase 5: Directional Mana Spark Projectiles

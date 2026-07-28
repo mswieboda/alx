@@ -23,7 +23,10 @@ enum class EnemyState : uint8_t {
     SeekTarget,
     RestlessWander,
     DetourWander,
-    HitStun
+    HitStun,
+    AttackWindup,
+    AttackRecoilRest,
+    ChasePlayer
 };
 
 struct Enemy : public Entity {
@@ -46,7 +49,7 @@ struct Enemy : public Entity {
     static constexpr float MIN_MOVE_TIME = 1.0f;
     static constexpr float MAX_MOVE_TIME = 2.5f;
 
-    // --- Phase 3 AI Movement Constants ---
+    // --- Phase 3 AI Movement & Combat Constants ---
     static constexpr float SPAWN_WANDER_DURATION     = 5.0f;  // Initial spawn delay before target locking
     static constexpr float POST_DESTROY_WANDER_TIME  = 5.0f;  // Search pause when target fixture is destroyed
     static constexpr float SIEGE_MARCH_DURATION      = 7.0f;  // Active march duration toward target fixture
@@ -55,12 +58,21 @@ struct Enemy : public Entity {
     static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
     static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
     static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
+    static constexpr float AGGRO_DETECTION_RADIUS    = 64.0f; // 4 tiles (64px)
+    static constexpr float ATTACK_WINDUP_TIME        = 0.3f;  // Attack windup telegraph
+    static constexpr float RECOIL_DIST               = 8.0f;  // Recoil step-back distance (px)
+    static constexpr float RECOIL_SLIDE_SPEED        = 50.0f; // Recoil slide speed (px/s)
+    static constexpr float RECOVERY_REST_MIN_TIME    = 1.0f;  // Recoil rest min time
+    static constexpr float RECOVERY_REST_MAX_TIME    = 2.0f;  // Recoil rest max time
 
     int hp = DEFAULT_MAX_HP;
 
     float speed = SPEED;
     float move_dx = 0.0f;
     float move_dy = 0.0f;
+    float recoil_dx = 0.0f;
+    float recoil_dy = 0.0f;
+    float recoil_dist_remaining = 0.0f;
     float state_timer = SPAWN_WANDER_DURATION;
     float reeval_timer = 0.0f;
     float stuck_timer = 0.0f;

@@ -53,6 +53,7 @@ public:
     bool can_place_fixture(GridPos pos, FixtureType type, const Tiles& tiles) const noexcept;
     bool place_fixture(GridPos pos, FixtureType type);
     bool remove_fixture(GridPos pos);
+    bool damage_fixture(GridPos pos, int amount, float& out_twilight_increase);
 
     // --- Fixture Collision ---
     [[nodiscard]] bool is_solid(GridPos pos) const noexcept;
