@@ -168,6 +168,10 @@ bool is_build_tile() {
     return is_pressed(Build) && is_just_pressed(ActionBtn);
 }
 
+bool is_remove_tile() {
+    return is_pressed(Build) && is_just_pressed(Cancel);
+}
+
 bool is_cycle_right() {
     return is_pressed(Build) && (is_just_pressed(MoveRight));
 }

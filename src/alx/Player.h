@@ -157,6 +157,24 @@ struct Player : public Entity {
         return ground_circle(transform.x, transform.y);
     }
 
+    struct PlacementPoint {
+        float cx = 0.0f;
+        float cy = 0.0f;
+    };
+
+    PlacementPoint placement_center(float px, float py, float tile_size = 16.0f) const {
+        Collision::Circle g = ground_circle(px, py);
+        float offset = tile_size / 2.0f;
+        return PlacementPoint{
+            g.cx + facing_dx * offset,
+            g.cy + facing_dy * offset
+        };
+    }
+
+    PlacementPoint placement_center(float tile_size = 16.0f) const {
+        return placement_center(transform.x, transform.y, tile_size);
+    }
+
     Collision::Circle hurt_circle(float px, float py) const {
         float r = transform.width * HURT_RADIUS_RATIO;
         float cy = py + (transform.height * HURT_OFFSET_Y_RATIO);
@@ -179,6 +197,47 @@ struct Player : public Entity {
         float cx = center_x(1.0f) + facing_dx * ATTACK_HIT_OFFSET;
         float cy = center_y(1.0f) + facing_dy * ATTACK_HIT_OFFSET;
         return Collision::Circle{ cx, cy, ATTACK_HIT_RADIUS };
+    }
+
+    bool try_build_tile(const Tiles& tiles, Network& network) {
+        int cost = fixture_cost(m_selected_fixture_type);
+        if (m_cursed_alloy < cost) return false;
+
+        float tile_sz = static_cast<float>(tiles.tile_size());
+        PlacementPoint pt = placement_center(tile_sz);
+        int tsize = tiles.tile_size();
+        GridPos target_pos{
+            static_cast<int16_t>(static_cast<int>(pt.cx) / tsize),
+            static_cast<int16_t>(static_cast<int>(pt.cy) / tsize)
+        };
+
+        if (network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
+            m_cursed_alloy -= cost;
+            network.place_fixture(target_pos, m_selected_fixture_type);
+            return true;
+        }
+        return false;
+    }
+
+    bool try_remove_tile(const Tiles& tiles, Network& network) {
+        float tile_sz = static_cast<float>(tiles.tile_size());
+        PlacementPoint pt = placement_center(tile_sz);
+        int tsize = tiles.tile_size();
+        GridPos target_pos{
+            static_cast<int16_t>(static_cast<int>(pt.cx) / tsize),
+            static_cast<int16_t>(static_cast<int>(pt.cy) / tsize)
+        };
+
+        if (network.in_bounds(target_pos)) {
+            const Fixture& fix = network.fixture(target_pos);
+            if (fix.type != FixtureType::None && fix.type != FixtureType::Seep) {
+                int refund = fixture_cost(fix.type);
+                m_cursed_alloy += refund;
+                network.remove_fixture(target_pos);
+                return true;
+            }
+        }
+        return false;
     }
 
     void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
@@ -265,10 +324,10 @@ struct Player : public Entity {
 
         // Indicator where tile build/remove happens
         float size = std::round(world_draw_h / 4.0f);
-        float target_center_x = world_draw_x + (world_draw_w / 2.0f);
-        float target_center_y = world_draw_y + std::round(world_draw_h / 1.25f);
-        float box_x = target_center_x - (size / 2.0f);
-        float box_y = target_center_y - (size / 2.0f);
+
+        PlacementPoint pt = placement_center(world_draw_x, world_draw_y, 16.0f);
+        float box_x = pt.cx - (size / 2.0f);
+        float box_y = pt.cy - (size / 2.0f);
 
         Draw::rect(
             box_x,
@@ -369,28 +428,12 @@ private:
             m_cursed_alloy += 10;
         }
 
-        float center_x = transform.x + (transform.width / 2.0f);
-        float center_y = transform.y + (transform.height / 1.25f);
-        int tile_size = tiles.tile_size();
-        GridPos target_pos{ static_cast<int16_t>(static_cast<int>(center_x) / tile_size), static_cast<int16_t>(static_cast<int>(center_y) / tile_size) };
-
         if (Action::is_build_tile()) {
-            int cost = fixture_cost(m_selected_fixture_type);
-            if (m_cursed_alloy >= cost && network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
-                m_cursed_alloy -= cost;
-                network.place_fixture(target_pos, m_selected_fixture_type);
-            }
+            try_build_tile(tiles, network);
         }
 
-        if (Action::is_just_pressed(Action::Cancel)) {
-            if (network.in_bounds(target_pos)) {
-                const Fixture& fix = network.fixture(target_pos);
-                if (fix.type != FixtureType::None && fix.type != FixtureType::Seep) {
-                    int refund = fixture_cost(fix.type);
-                    m_cursed_alloy += refund;
-                    network.remove_fixture(target_pos);
-                }
-            }
+        if (Action::is_remove_tile()) {
+            try_remove_tile(tiles, network);
         }
     }
 

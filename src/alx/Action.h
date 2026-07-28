@@ -17,6 +17,7 @@ namespace alx {
 //
 // Combos via R-Shoulder (Right Shift / E):
 // - R-Shoulder + Button A (J/Z)  -> Build Tile
+// - R-Shoulder + Button B (K/X)  -> Remove Tile
 // - R-Shoulder + Right / D       -> Cycle Build Type Forward
 // - R-Shoulder + Left / A        -> Cycle Build Type Backward
 // =========================================================================
@@ -68,6 +69,7 @@ namespace Action {
     // Semantic Combo Helpers (GBA R-Shoulder + D-Pad / Button A)
     bool is_attack();           // Button A without R-Shoulder (Build) held
     bool is_build_tile();       // R-Shoulder (Build) held + Button A
+    bool is_remove_tile();      // R-Shoulder (Build) held + Button B (Cancel)
     bool is_cycle_right();      // R-Shoulder (Build) held + D-Pad Right
     bool is_cycle_left();       // R-Shoulder (Build) held + D-Pad Left
 
