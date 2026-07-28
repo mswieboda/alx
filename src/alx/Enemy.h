@@ -9,7 +9,9 @@
 #include "core/Entity.h"
 #include "core/Collision.h"
 #include "alx/Camera.h"
+#include "alx/DrawFX.h"
 #include "alx/Layer.h"
+#include "alx/Network.h"
 #include "alx/Random.h"
 #include "Game.h"
 #include "Debug.h"
@@ -142,30 +144,7 @@ struct Enemy : public Entity {
         is_moving = true;
     }
 
-    void pick_random_wander_state() {
-        if (Random::chance(0.3f)) {
-            is_moving = false;
-            move_dx = 0.0f;
-            move_dy = 0.0f;
-            state_timer = Random::get_float(MIN_IDLE_TIME, MAX_IDLE_TIME);
-        } else {
-            is_moving = true;
-            constexpr float inv_sqrt2 = 0.70710678118f;
-            static constexpr std::pair<float, float> dirs[8] = {
-                {1.0f, 0.0f}, {-1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, -1.0f},
-                {inv_sqrt2, inv_sqrt2}, {-inv_sqrt2, inv_sqrt2},
-                {inv_sqrt2, -inv_sqrt2}, {-inv_sqrt2, -inv_sqrt2}
-            };
-            auto [dx, dy] = dirs[Random::get_int(0, 7)];
-            move_dx = dx;
-            move_dy = dy;
-            state_timer = Random::get_float(MIN_MOVE_TIME, MAX_MOVE_TIME);
-        }
-    }
-
-    void pick_random_wander_state(std::mt19937& /*rng*/) {
-        pick_random_wander_state();
-    }
+    void pick_random_wander_state(const class Tiles* tiles = nullptr, const class Network* network = nullptr);
 
     void take_damage(int amount, float push_dx, float push_dy) {
         hp -= amount;

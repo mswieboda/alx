@@ -151,7 +151,7 @@ public:
         m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
 
         if (Action::is_just_pressed(Action::DebugEnemyWave)) {
-            m_enemy_manager.spawn_enemy_wave(m_tiles, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
+            m_enemy_manager.spawn_enemy_wave(m_tiles, &m_network, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
         }
 
         if (Action::is_pressed(Action::DebugTwUp)) {

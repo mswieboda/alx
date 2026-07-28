@@ -50,7 +50,7 @@ public:
         m_attack_hit_registered = false;
     }
 
-    void spawn_enemy_wave(const Tiles& tiles, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false) {
+    void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false) {
         if (clear_existing) {
             clear();
         }
@@ -168,17 +168,23 @@ public:
             float final_x = base_x + jitter_x;
             float final_y = base_y + jitter_y;
 
+            Enemy temp_enemy(final_x, final_y);
+            if (network && is_solid_ground(temp_enemy.ground_circle(), tiles, *network)) {
+                final_x = base_x;
+                final_y = base_y;
+            }
+
             Enemy& enemy = m_enemies.emplace_back(final_x, final_y);
             enemy.state = EnemyState::SpawnWander;
             enemy.state_timer = Random::get_float(4.0f, 6.0f);
-            enemy.pick_random_wander_state();
+            enemy.pick_random_wander_state(&tiles, network);
         }
 
         update_threat_cache();
     }
 
-    void spawn_random_enemies(const Tiles& tiles, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
-        spawn_enemy_wave(tiles, count, player_start_x, player_start_y, clear_existing);
+    void spawn_random_enemies(const Tiles& tiles, const Network* network = nullptr, int count = SpawnerConstants::DEFAULT_SPAWN_COUNT, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = true) {
+        spawn_enemy_wave(tiles, network, count, player_start_x, player_start_y, clear_existing);
     }
 
     void update(float dt, Player* player, const Tiles& tiles, const Network& network) {
@@ -189,7 +195,7 @@ public:
         }
 
         update_enemy_ai(dt, tiles, network);
-        update_enemy_push_separation();
+        update_enemy_push_separation(tiles, network);
 
         if (player) {
             update_combat_and_loot(*player);
@@ -222,6 +228,60 @@ public:
             }
         }
         return false;
+    }
+
+    static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network) {
+        if (!is_solid_ground(enemy.ground_circle(), tiles, network)) {
+            return;
+        }
+
+        int tile_size = tiles.tile_size();
+        int current_tx = static_cast<int>(enemy.center_x() / tile_size);
+        int current_ty = static_cast<int>(enemy.center_y() / tile_size);
+
+        int best_tx = -1, best_ty = -1;
+        float min_dist_sq = 1e9f;
+
+        for (int r = 0; r <= 5; ++r) {
+            for (int dy = -r; dy <= r; ++dy) {
+                for (int dx = -r; dx <= r; ++dx) {
+                    int tx = current_tx + dx;
+                    int ty = current_ty + dy;
+                    if (tiles.in_bounds(tx, ty) && tiles.is_floor(tx, ty)) {
+                        float fcx = tx * tile_size + tile_size * 0.5f;
+                        float fcy = ty * tile_size + tile_size * 0.5f;
+                        float dsq = (fcx - enemy.center_x()) * (fcx - enemy.center_x()) + (fcy - enemy.center_y()) * (fcy - enemy.center_y());
+                        if (dsq < min_dist_sq) {
+                            min_dist_sq = dsq;
+                            best_tx = tx;
+                            best_ty = ty;
+                        }
+                    }
+                }
+            }
+            if (best_tx >= 0) break;
+        }
+
+        if (best_tx >= 0 && best_ty >= 0) {
+            float target_x = best_tx * tile_size + (tile_size - Enemy::DEFAULT_WIDTH) * 0.5f;
+            float target_y = best_ty * tile_size + (tile_size - Enemy::DEFAULT_HEIGHT) * 0.5f;
+
+            float dir_x = target_x - enemy.transform.x;
+            float dir_y = target_y - enemy.transform.y;
+            float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
+            if (len > 0.001f) {
+                dir_x /= len;
+                dir_y /= len;
+            }
+
+            for (int step = 0; step < 16; ++step) {
+                enemy.transform.x += dir_x * 1.0f;
+                enemy.transform.y += dir_y * 1.0f;
+                if (!is_solid_ground(enemy.ground_circle(), tiles, network)) {
+                    break;
+                }
+            }
+        }
     }
 
     static GridPos find_priority_target(float enemy_center_x, float enemy_center_y, const Network& network) {
@@ -271,6 +331,7 @@ public:
         float tile_size = static_cast<float>(tiles.tile_size());
 
         for (auto& enemy : m_enemies) {
+            enforce_solid_ground_ejection(enemy, tiles, network);
             enemy.sync_prev_transforms();
 
             if (enemy.state_timer > 0.0f) {
@@ -293,12 +354,12 @@ public:
                             enemy.stuck_timer = 0.0f;
                         } else {
                             enemy.state = EnemyState::RestlessWander;
-                            enemy.pick_random_wander_state();
+                            enemy.pick_random_wander_state(&tiles, &network);
                             enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                             enemy.has_target = false;
                         }
                     } else if (!enemy.is_moving) {
-                        enemy.pick_random_wander_state();
+                        enemy.pick_random_wander_state(&tiles, &network);
                     }
                     break;
                 }
@@ -321,7 +382,7 @@ public:
                         } else if (!target_valid) {
                             enemy.state = EnemyState::SpawnWander;
                             enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            enemy.pick_random_wander_state();
+                            enemy.pick_random_wander_state(&tiles, &network);
                             enemy.has_target = false;
                             break;
                         }
@@ -330,7 +391,7 @@ public:
                     if (enemy.state_timer <= 0.0f) {
                         enemy.state = EnemyState::RestlessWander;
                         enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                        enemy.pick_random_wander_state();
+                        enemy.pick_random_wander_state(&tiles, &network);
                         break;
                     }
 
@@ -390,7 +451,7 @@ public:
                             enemy.stuck_timer = 0.0f;
                             enemy.state = EnemyState::DetourWander;
                             enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
-                            enemy.pick_random_wander_state();
+                            enemy.pick_random_wander_state(&tiles, &network);
                         }
                     } else {
                         enemy.is_moving = false;
@@ -405,17 +466,36 @@ public:
         }
     }
 
-    void update_enemy_push_separation() {
+    void update_enemy_push_separation(const Tiles& tiles, const Network& network) {
         for (size_t i = 0; i < m_enemies.size(); ++i) {
             for (size_t j = i + 1; j < m_enemies.size(); ++j) {
                 Collision::Circle c1 = m_enemies[i].ground_circle();
                 Collision::Circle c2 = m_enemies[j].ground_circle();
                 float push_x1 = 0.0f, push_y1 = 0.0f, push_x2 = 0.0f, push_y2 = 0.0f;
                 if (Collision::resolve_soft_circle_overlap(c1.cx, c1.cy, c1.radius, c2.cx, c2.cy, c2.radius, push_x1, push_y1, push_x2, push_y2)) {
-                    m_enemies[i].transform.x += push_x1;
-                    m_enemies[i].transform.y += push_y1;
-                    m_enemies[j].transform.x += push_x2;
-                    m_enemies[j].transform.y += push_y2;
+                    bool i_can_move = !is_solid_ground(m_enemies[i].ground_circle(m_enemies[i].transform.x + push_x1, m_enemies[i].transform.y + push_y1), tiles, network);
+                    bool j_can_move = !is_solid_ground(m_enemies[j].ground_circle(m_enemies[j].transform.x + push_x2, m_enemies[j].transform.y + push_y2), tiles, network);
+
+                    if (i_can_move && j_can_move) {
+                        m_enemies[i].transform.x += push_x1;
+                        m_enemies[i].transform.y += push_y1;
+                        m_enemies[j].transform.x += push_x2;
+                        m_enemies[j].transform.y += push_y2;
+                    } else if (i_can_move && !j_can_move) {
+                        float full_push_x = push_x1 - push_x2;
+                        float full_push_y = push_y1 - push_y2;
+                        if (!is_solid_ground(m_enemies[i].ground_circle(m_enemies[i].transform.x + full_push_x, m_enemies[i].transform.y + full_push_y), tiles, network)) {
+                            m_enemies[i].transform.x += full_push_x;
+                            m_enemies[i].transform.y += full_push_y;
+                        }
+                    } else if (!i_can_move && j_can_move) {
+                        float full_push_x = push_x2 - push_x1;
+                        float full_push_y = push_y2 - push_y1;
+                        if (!is_solid_ground(m_enemies[j].ground_circle(m_enemies[j].transform.x + full_push_x, m_enemies[j].transform.y + full_push_y), tiles, network)) {
+                            m_enemies[j].transform.x += full_push_x;
+                            m_enemies[j].transform.y += full_push_y;
+                        }
+                    }
                 }
             }
         }
