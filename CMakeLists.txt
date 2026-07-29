@@ -102,20 +102,4 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
             COMMENT "Stripping all symbols from binary (-s)..."
         )
     endif()
-
-    # UPX compression (Disabled on macOS due to ARM64 SIP/dyld signature restrictions)
-    if(NOT APPLE)
-        find_program(UPX_EXECUTABLE upx)
-        if(UPX_EXECUTABLE)
-            # try --best if --ultra-brute is too much!
-            add_custom_command(TARGET ${GAME_BIN} POST_BUILD
-                COMMAND ${UPX_EXECUTABLE} --ultra-brute $<TARGET_FILE:${GAME_BIN}>
-                COMMENT "Compressing binary with UPX..."
-            )
-        else()
-            message(STATUS "UPX not found. Skipping executable compression.")
-        endif()
-    else()
-        message(STATUS "Skipping UPX on macOS to prevent SIP/arm64 SIGKILL issues.")
-    endif()
 endif()

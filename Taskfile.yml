@@ -5,11 +5,9 @@ vars:
   name: '{{.name | default "alx"}}'
   title: '{{.title | default "Aetherlux"}}'
   build: '{{.build | default "Debug"}}'
-  build_dir: 'build/{{.build}}'
 
   # Appends .exe on Windows
   exe: '{{if eq .OS "Windows_NT"}}.exe{{end}}'
-  binary: '{{.build_dir}}/{{.name}}{{.exe}}'
 
   assets_dir: assets
   assets_headers_dir: src/assets
@@ -20,7 +18,7 @@ vars:
 interval: 500ms
 
 # Suppresses show commands globally for all tasks in this Taskfile
-silent: false
+silent: true
 
 # Always prefixes every line with [task-name] (so deps, and cmds look alike)
 output: 'prefixed'
@@ -115,18 +113,20 @@ tasks:
         sh: test -e deps/pocketmod/.git
 
   # ==========================================
-  # C++ BUILD & RUN TARGETS (CMake)
+  # C++ BUILD CONFIG (CMake)
   # ==========================================
-  cmake-build-files:
-    desc: Create CMake build files
+  cmake-build-config:
+    desc: Create CMake config build files
     internal: true
+    vars:
+      build_dir: 'build/{{.build}}'
     sources:
       - 'CMakeLists.txt'
     generates:
       - '{{.build_dir}}/CMakeCache.txt'
       - '{{.build_dir}}/CMakeFiles/TargetDirectories.txt'
     cmds:
-      - echo "=> Creating ({{.build}}) CMake build files..."
+      - echo "=> Configuring ({{.build}}) CMake..."
       # If Ninja exists on system, use -G Ninja, otherwise fall back to CMake's default
       - cmd: |
           powershell -Command "
@@ -149,8 +149,14 @@ tasks:
           fi
         platforms: [linux, darwin]
 
+  # ==========================================
+  # C++ BUILD (CMake)
+  # ==========================================
   build:
     desc: Build game executable
+    vars:
+      build_dir: 'build/{{.build}}'
+      binary: '{{.build_dir}}/{{.name}}{{.exe}}'
     sources:
       - 'src/**/*'
       - 'CMakeLists.txt'
@@ -158,16 +164,172 @@ tasks:
       - '{{.binary}}'
     cmds:
       - task: check-deps
-      - task: cmake-build-files
+      - task: cmake-build-config
+        vars: { build: '{{.build}}' }
       - task: assets
       - echo "=> Building ({{.build}}) game executable..."
       - cmake --build {{.build_dir}} -j
 
-  clean:
+  # ==========================================
+  # RUN
+  # ==========================================
+  run:
+    desc: Run game
+    interactive: true
+    silent: true
+    vars:
+      build_dir: 'build/{{.build}}'
+      binary: '{{.build_dir}}/{{.name}}{{.exe}}'
     cmds:
-      - echo "=> Cleaning build folder..."
-      - rm -rf build
-      - echo "=> Cleaning asset src headers..."
+      - echo "=> Running {{.build}} {{.name}}..."
+      - ./{{.binary}}
+
+  # ==========================================
+  # CLEAN BUILD FOLDER OR ASSET HEADERS
+  # ==========================================
+  clean:
+    vars:
+      build_dir: 'build/{{.build}}'
+    cmds:
+      - echo "=> Cleaning {{.build_dir}} folder..."
+      - rm -rf "{{.build_dir}}"
+      - task: clean-assets
+
+  clean-assets:
+    desc: Clean all generated asset headers
+    cmds:
+      - task: clean-fonts
+      - task: clean-images
+      - task: clean-music
+
+  clean-fonts:
+    desc: Clean generated Fonts.h header
+    cmds:
+      - echo "=> Cleaning Fonts.h..."
       - rm -f '{{.assets_headers_dir}}/Fonts.h'
+
+  clean-images:
+    desc: Clean generated Images.h header
+    cmds:
+      - echo "=> Cleaning Images.h..."
       - rm -f '{{.assets_headers_dir}}/Images.h'
+
+  clean-music:
+    desc: Clean generated Music.h header
+    cmds:
+      - echo "=> Cleaning Music.h..."
       - rm -f '{{.assets_headers_dir}}/Music.h'
+
+  # ==========================================
+  # CMAKE RECONFIG / RESET SHORTCUTS
+  # ==========================================
+  reconfig:
+    desc: Reconfigure CMake from scratch (--fresh)
+    vars:
+      build_dir: 'build/{{.build}}'
+    cmds:
+      - echo "=> Reconfiguring ({{.build}}) CMake..."
+      # If Ninja exists on system, use -G Ninja, otherwise fall back to CMake's default
+      # NOTE: same as cmake-build-config but with --fresh (TODO: refactor to share task later!)
+      - cmd: |
+          powershell -Command "
+            if (Get-Command ninja -ErrorAction SilentlyContinue) {
+              cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+            } else {
+              Write-Host '[NOTE] Ninja generator not found. Falling back to default generator.' -ForegroundColor Yellow;
+              Write-Host '       For faster & consistent builds, see README to install Ninja.' -ForegroundColor Yellow;
+              cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} --fresh
+            }
+          "
+        platforms: [windows]
+      - cmd: |
+          if command -v ninja >/dev/null 2>&1; then
+            cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+          else
+            echo "\033[0;33m[NOTE] Ninja generator not found. Falling back to default generator.\033[0m"
+            echo "\033[0;33m       For faster & consistent builds, see README to install Ninja.\033[0m"
+            cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} --fresh
+          fi
+        platforms: [linux, darwin]
+
+  reset:
+    desc: Wipe build folder and reconfigure CMake
+    cmds:
+      - task: clean
+        vars: { build: '{{.build}}' }
+      - task: reconfig
+        vars: { build: '{{.build}}' }
+
+  # ==========================================
+  # RELEASE CONVENIENCE SHORTCUTS
+  # ==========================================
+  build-release:
+    desc: Build game executable in Release mode
+    cmds:
+      - task: build
+        vars: { build: Release }
+      - task: pack-bin
+        vars: { build: Release }
+
+  run-release:
+    desc: Run game executable in Release mode
+    interactive: true
+    silent: true
+    cmds:
+      - task: run
+        vars: { build: Release }
+
+  clean-release:
+    desc: Clean Release build directory
+    cmds:
+      - task: clean
+        vars: { build: Release }
+
+  release:
+    desc: Build and run the release executable
+    cmds:
+      - task: build-release
+      - task: run-release
+
+  # ==========================================
+  # BINARY PACKING (UPX)
+  # ==========================================
+  pack-bin:
+    desc: Compress release binary with UPX
+    internal: true
+    vars:
+      build_dir: 'build/{{.build}}'
+      binary: '{{.build_dir}}/{{.name}}{{.exe}}'
+    # sources:
+    #   - '{{.binary}}'
+    # If 'upx -t' succeeds (returns 0), the binary is ALREADY compressed, so skip task!
+    status:
+      - '{{if eq .OS "windows"}}powershell -NoProfile -Command "if (Get-Command upx -ErrorAction SilentlyContinue) { & upx -t \"{{.binary}}\" *> $null; if ($LASTEXITCODE -eq 0) { exit 0 } }; exit 1"{{else}}sh -c "command -v upx >/dev/null 2>&1 && upx -t \"{{.binary}}\" >/dev/null 2>&1"{{end}}'
+    cmds:
+      # Windows execution
+      - cmd: |
+          powershell -Command "
+            if (Get-Command upx -ErrorAction SilentlyContinue) {
+              Write-Host '=> Compressing binary with UPX (--ultra-brute)...' -ForegroundColor Cyan;
+              upx --ultra-brute '{{.binary}}';
+            } else {
+              Write-Host '[NOTE] UPX not found. Skipping binary compression.' -ForegroundColor Yellow;
+              Write-Host '       For significantly smaller executable size, see README to install UPX.' -ForegroundColor Yellow;
+            }
+          "
+        platforms: [windows]
+      # macOS / Linux execution
+      - cmd: |
+          if command -v upx >/dev/null 2>&1; then
+            echo "\033[0;36m=> Compressing binary with UPX (--ultra-brute)...\033[0m"
+            upx --ultra-brute "{{.binary}}"
+            # On macOS, re-sign the compressed Mach-O binary to satisfy ARM64 SIP requirements
+            if [ "$(uname)" = "Darwin" ]; then
+              echo "\033[0;36m=> Re-signing Mach-O binary for macOS ARM64...\033[0m"
+              codesign --force --deep -s - "{{.binary}}"
+            fi
+          else
+            echo "\033[0;33m[NOTE] UPX not found. Skipping binary compression.\033[0m"
+            echo "\033[0;33m       For significantly smaller executable size, see README to install UPX.\033[0m"
+          fi
+        platforms: [linux, darwin]
