@@ -74,7 +74,7 @@ if(MSVC)
 else()
     # GCC / CLANG FLAGS (macOS & Linux)
     # DEBUG FLAGS: Zero optimization (-O0) for fastest builds, keep symbols (-g)
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
 
     # RELEASE FLAGS: Maximize size minimization (-Os), drop unreferenced blocks
     set(CMAKE_CXX_FLAGS_RELEASE "-Os -ffunction-sections -fdata-sections -DNDEBUG")

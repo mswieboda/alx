@@ -26,13 +26,19 @@ Install the required tools using [Homebrew](https://brew.sh/):
 
 ```bash
 # Core build tools and compression utility
-brew install cmake make upx crystal ninja
+brew install cmake make upx ninja
+brew install go-task/tap/go-task
 
-# Optional: Version manager alternative if using .tool-versions (asdf / mise)
+# Optional: Version manager alternative for `crystal` if using .tool-versions (asdf / mise)
 brew install asdf
+
+# then use the `asdf` docs to install crystal version in `toolchain/.tool-versions` etc
+
+# otherwise for crystal:
+brew install crystal
 ```
 
-NOTE: `upx` is optional to reduce binary size, might not work on `macOS` `arm64` due to SIP/dyld signature restrictions.
+NOTE: `upx` is optional to reduce binary size, might not work on `macOS` `arm64` due to SIP/dyld signature restrictions. There's an attempt in the Taskfile, but it might not work
 
 ---
 
@@ -43,6 +49,12 @@ NOTE: `upx` is optional to reduce binary size, might not work on `macOS` `arm64`
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake make libx11-dev libgl1-mesa-dev upx ninja-build
+
+curl -1sLf 'https://dl.cloudsmith.io/public/task/task/setup.deb.sh' | sudo -E bash
+apt install task
+
+# make sure you install `crystal` via normal linux way (or maybe `asdf` like macOS)
+# to match `toolchain/.tool-versions` etc
 ```
 
 Install optional tools (to reduce binary size):
@@ -376,6 +388,15 @@ namespace Assets {
 ## 📦 Build & Run Usage
 
 ### Automated Asset Packing
+
+**NOTE: THIS IS BEING CHANGED TO `Taskfile` via `task` WIP** but very similar
+
+use:
+```
+task --help
+```
+
+to see all tasks etc!
 
 Force a manual asset repack across all categories:
 

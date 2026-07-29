@@ -300,8 +300,6 @@ tasks:
     vars:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
-    # sources:
-    #   - '{{.binary}}'
     # If 'upx -t' succeeds (returns 0), the binary is ALREADY compressed, so skip task!
     status:
       - '{{if eq .OS "windows"}}powershell -NoProfile -Command "if (Get-Command upx -ErrorAction SilentlyContinue) { & upx -t \"{{.binary}}\" *> $null; if ($LASTEXITCODE -eq 0) { exit 0 } }; exit 1"{{else}}sh -c "command -v upx >/dev/null 2>&1 && upx -t \"{{.binary}}\" >/dev/null 2>&1"{{end}}'
@@ -318,18 +316,19 @@ tasks:
             }
           "
         platforms: [windows]
-      # macOS / Linux execution
+      # NOTE: cannot use `upx` for macOS arm64, so not doing at all, or we could check for !arm64
+      #       and we already `strip -u -r {{.binary}}` in CMakeLists.txt
+      #       which is the best we can do
+      #       if we did do `upx` we have to: `codesign --force --deep -s - "{{.binary}}"`
+      #       after, however if we do it after just only `strip` it actually adds on 16KB
+      #       so we won't redo codesign for now, but putting this note here just in case!
+      # Linux
       - cmd: |
           if command -v upx >/dev/null 2>&1; then
             echo "\033[0;36m=> Compressing binary with UPX (--ultra-brute)...\033[0m"
             upx --ultra-brute "{{.binary}}"
-            # On macOS, re-sign the compressed Mach-O binary to satisfy ARM64 SIP requirements
-            if [ "$(uname)" = "Darwin" ]; then
-              echo "\033[0;36m=> Re-signing Mach-O binary for macOS ARM64...\033[0m"
-              codesign --force --deep -s - "{{.binary}}"
-            fi
           else
             echo "\033[0;33m[NOTE] UPX not found. Skipping binary compression.\033[0m"
             echo "\033[0;33m       For significantly smaller executable size, see README to install UPX.\033[0m"
           fi
-        platforms: [linux, darwin]
+        platforms: [linux]

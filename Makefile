@@ -1,3 +1,10 @@
+$(info )
+$(info [NOTICE] This project has migrated from Makefile to Taskfile!)
+$(info        Please use 'task' to run build automation targets.)
+$(info        Run 'task --help' or 'task -l' to view available tasks.)
+$(info )
+$(error Makefile is deprecated. Use 'task' instead)
+
 # --- CUSTOMIZE YOUR GAME NAMES HERE ---
 NAME ?= alx
 TITLE ?= Aetherlux
@@ -70,7 +77,7 @@ music: clean-music $(MUSIC_STAMP)
 build: assets
 	@echo "--- Compiling [$(NAME) | Mode: $(BUILD)] ---"
 	@if [ ! -d "$(BUILD_DIR)" ]; then \
-		cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME); \
+		cmake -B $(BUILD_DIR) -G Ninja -DCMAKE_BUILD_TYPE=$(BUILD) -DGAME_BIN=$(NAME); \
 	fi
 	@cmake --build $(BUILD_DIR) -j
 
