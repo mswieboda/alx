@@ -26,7 +26,7 @@ Install the required tools using [Homebrew](https://brew.sh/):
 
 ```bash
 # Core build tools and compression utility
-brew install cmake make upx crystal
+brew install cmake make upx crystal ninja
 
 # Optional: Version manager alternative if using .tool-versions (asdf / mise)
 brew install asdf
@@ -42,7 +42,7 @@ NOTE: `upx` is optional to reduce binary size, might not work on `macOS` `arm64`
 
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake make libx11-dev libgl1-mesa-dev upx
+sudo apt install -y build-essential cmake make libx11-dev libgl1-mesa-dev upx ninja-build
 ```
 
 Install optional tools (to reduce binary size):

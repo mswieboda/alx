@@ -123,12 +123,31 @@ tasks:
     sources:
       - 'CMakeLists.txt'
     generates:
-      - '{{.build_dir}}/CMakeFiles/generate.stamp'
-      - '{{.build_dir}}/CMakeFiles/generate.stamp.list'
-      - '{{.build_dir}}/CMakeFiles/generate.stamp.depend'
+      - '{{.build_dir}}/CMakeCache.txt'
+      - '{{.build_dir}}/CMakeFiles/TargetDirectories.txt'
     cmds:
       - echo "=> Creating ({{.build}}) CMake build files..."
-      - cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+      # If Ninja exists on system, use -G Ninja, otherwise fall back to CMake's default
+      - cmd: |
+          powershell -Command "
+            if (Get-Command ninja -ErrorAction SilentlyContinue) {
+              cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+            } else {
+              Write-Host '[NOTE] Ninja generator not found. Falling back to default generator.' -ForegroundColor Yellow;
+              Write-Host '       For faster & consistent builds, see README to install Ninja.' -ForegroundColor Yellow;
+              cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+            }
+          "
+        platforms: [windows]
+      - cmd: |
+          if command -v ninja >/dev/null 2>&1; then
+            cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+          else
+            echo "\033[0;33m[NOTE] Ninja generator not found. Falling back to default generator.\033[0m"
+            echo "\033[0;33m       For faster & consistent builds, see README to install Ninja.\033[0m"
+            cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+          fi
+        platforms: [linux, darwin]
 
   build:
     desc: Build game executable

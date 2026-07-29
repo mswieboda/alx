@@ -6,6 +6,12 @@
 #include <cstdint>
 #include "Font.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+  #define ALX_PRINTF_FORMAT(fmt_idx, arg_idx) __attribute__((format(printf, fmt_idx, arg_idx)))
+#else
+  #define ALX_PRINTF_FORMAT(fmt_idx, arg_idx)
+#endif
+
 namespace core { struct Camera; }
 using Camera = core::Camera;
 
@@ -84,7 +90,7 @@ namespace Draw {
     void set_palette(const uint32_t* palette);
 
     // Frame string arena: formats text directly into frame scratch pool and returns frame-valid std::string_view
-    std::string_view fmt(const char* format, ...) __attribute__((format(printf, 1, 2)));
+    std::string_view fmt(const char* format, ...) ALX_PRINTF_FORMAT(1, 2);
 
     int text_width(std::string_view text, int scale = 1, const FontData* font = &Font::DEFAULT_BLANK);
 
