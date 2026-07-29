@@ -7,7 +7,7 @@ module ImageExporter
   ASEPRITE_CMD = "aseprite"
   BUILD_DIR    = "build"
 
-  # __DIR__ points to "toolchain/src/export"
+  # __DIR__ points to "toolchain/src/export/images"
   # This resolves cleanly to the full path of "aseprite_to_bytes.lua"
   LUA_SCRIPT   = File.expand_path("aseprite_to_bytes.lua", __DIR__)
 

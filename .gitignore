@@ -8,3 +8,6 @@
 
 # Ignore the generated C++ asset headers
 src/assets/
+
+# Ignore the Taskfile checksums / other stuff
+/.task/

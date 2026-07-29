@@ -1,8 +1,8 @@
 require "file_utils"
-require "./export/font_txt"
-require "./export/font_psf"
-require "./export/music"
-require "./export/image"
+require "./export/fonts/font_txt"
+require "./export/fonts/font_psf"
+require "./export/music/music"
+require "./export/images/image"
 
 output_dir = "src/assets"
 Dir.mkdir_p(output_dir) unless Dir.exists?(output_dir)
@@ -15,7 +15,7 @@ ARGV.each do |arg|
   end
 end
 
-puts "==> Packing Game Assets#{target_filter ? " [Filter: #{target_filter}]" : ""}..."
+puts "==> Packing Game Asset#{target_filter ? " [Filter: #{target_filter.capitalize}]" : ""}..."
 
 # Helper check to see if a category should run
 def should_run?(category : String, filter : String?)

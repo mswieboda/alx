@@ -1,0 +1,157 @@
+# Taskfile.yml schema version - no need to change
+version: '3'
+
+vars:
+  name: '{{.name | default "alx"}}'
+  title: '{{.title | default "Aetherlux"}}'
+  build: '{{.build | default "Debug"}}'
+  build_dir: 'build/{{.build}}'
+
+  # Appends .exe on Windows
+  exe: '{{if eq .OS "Windows_NT"}}.exe{{end}}'
+  binary: '{{.build_dir}}/{{.name}}{{.exe}}'
+
+  assets_dir: assets
+  assets_headers_dir: src/assets
+  pack_assets_script_src: toolchain/src/pack_assets.cr
+  pack_assets_bin: 'build/pack_assets{{.exe}}'
+
+# File watching/globbing references used across tasks
+interval: 500ms
+
+# Suppresses show commands globally for all tasks in this Taskfile
+silent: false
+
+# Always prefixes every line with [task-name] (so deps, and cmds look alike)
+output: 'prefixed'
+
+tasks:
+  # ==========================================
+  # DEFAULT WORKFLOW
+  # ==========================================
+  default:
+    desc: Build assets, compile game, and run
+    cmds:
+      - task: build
+      - task: run
+
+  # ==========================================
+  # ASSET PACKER TOOL BUILD
+  # ==========================================
+  pack-assets-bin:
+    desc: Build the asset packing tool executable
+    run: once
+    sources:
+      - '{{.pack_assets_script_src}}'
+      - 'toolchain/src/**/*.cr'
+    generates:
+      - '{{.pack_assets_bin}}'
+    cmds:
+      - echo "=> Building pack assets script..."
+      - mkdir -p build
+      - crystal build {{.pack_assets_script_src}} -o {{.pack_assets_bin}}
+
+  # ==========================================
+  # ASSET PIPELINES
+  # ==========================================
+  assets:
+    desc: Pack all asset pipelines conditionally
+    cmds:
+      - task: pack-assets-bin
+      - task: assets-parallel
+
+  assets-parallel:
+    internal: true
+    deps:
+      - fonts
+      - images
+      - music
+
+  fonts:
+    desc: Pack font assets
+    deps:
+      - pack-assets-bin
+    sources:
+      - '{{.assets_dir}}/fonts/**/*'
+    generates:
+      - '{{.assets_headers_dir}}/Fonts.h'
+    cmds:
+      - '{{.pack_assets_bin}} -- --only=fonts'
+
+  images:
+    desc: Pack image assets
+    deps:
+      - pack-assets-bin
+    sources:
+      - '{{.assets_dir}}/images/**/*'
+    generates:
+      - '{{.assets_headers_dir}}/Images.h'
+    cmds:
+      - '{{.pack_assets_bin}} -- --only=images'
+
+  music:
+    desc: Pack music assets
+    deps:
+      - pack-assets-bin
+    sources:
+      - '{{.assets_dir}}/music/**/*'
+    generates:
+      - '{{.assets_headers_dir}}/Music.h'
+    cmds:
+      - '{{.pack_assets_bin}} --only=music'
+
+  # ==========================================
+  # SUBMODULE SANITY CHECK
+  # ==========================================
+  check-deps:
+    desc: Verify git submodules are checked out
+    internal: true
+    preconditions:
+      - msg: "Missing submodule 'deps/minifb'. Please run: git submodule update --init --recursive"
+        sh: test -e deps/minifb/.git
+      - msg: "Missing submodule 'deps/miniaudio'. Please run: git submodule update --init --recursive"
+        sh: test -e deps/miniaudio/.git
+      - msg: "Missing submodule 'deps/pocketmod'. Please run: git submodule update --init --recursive"
+        sh: test -e deps/pocketmod/.git
+
+  # ==========================================
+  # C++ BUILD & RUN TARGETS (CMake)
+  # ==========================================
+  cmake-build-files:
+    desc: Create CMake build files
+    internal: true
+    sources:
+      - 'CMakeLists.txt'
+    generates:
+      - '{{.build_dir}}/CMakeFiles/generate.stamp'
+      - '{{.build_dir}}/CMakeFiles/generate.stamp.list'
+      - '{{.build_dir}}/CMakeFiles/generate.stamp.depend'
+    cmds:
+      - echo "=> Creating ({{.build}}) CMake build files..."
+      - cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+
+  build:
+    desc: Build game executable
+    sources:
+      - 'src/**/*'
+      - 'CMakeLists.txt'
+    generates:
+      - '{{.binary}}'
+    cmds:
+      - task: check-deps
+      - task: cmake-build-files
+      - task: assets
+      - echo "=> Building ({{.build}}) game executable..."
+      - echo "=> WINDOWS C++ BUILD ERRORS!!!"
+      #- cmake --build {{.build_dir}} -j
+
+
+
+  clean:
+    cmds:
+      - echo "=> Cleaning build folder..."
+      - rm -rf build
+      - echo "=> Cleaning asset src headers..."
+      - rm -f '{{.assets_headers_dir}}/Fonts.h'
+      - rm -f '{{.assets_headers_dir}}/Images.h'
+      - rm -f '{{.assets_headers_dir}}/Music.h'
