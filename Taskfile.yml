@@ -142,10 +142,7 @@ tasks:
       - task: cmake-build-files
       - task: assets
       - echo "=> Building ({{.build}}) game executable..."
-      - echo "=> WINDOWS C++ BUILD ERRORS!!!"
-      #- cmake --build {{.build_dir}} -j
-
-
+      - cmake --build {{.build_dir}} -j
 
   clean:
     cmds:

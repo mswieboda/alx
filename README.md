@@ -32,16 +32,28 @@ brew install cmake make upx crystal
 brew install asdf
 ```
 
+NOTE: `upx` is optional to reduce binary size, might not work on `macOS` `arm64` due to SIP/dyld signature restrictions.
+
 ---
 
 ### Linux (Ubuntu/Debian) Setup
 
-1. **System Libraries & Build Tools:**
+**System Libraries & Build Tools:**
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential cmake make libx11-dev libgl1-mesa-dev upx
 ```
+
+Install optional tools (to reduce binary size):
+
+- `upx` get from latest https://github.com/upx/upx/releases/
+
+### Windows Setup
+
+Install optional tools (to reduce binary size):
+
+- `upx` get from latest https://github.com/upx/upx/releases/
 
 2. **Crystal Language:**
 
