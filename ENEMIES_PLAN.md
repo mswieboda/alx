@@ -86,13 +86,83 @@ This document outlines the detailed roadmap, technical specifications, and desig
 5. Implement Fixture destruction: clear cell, break mana network, trigger Dark Mana Spill cloud effect, and increase global Twilight level. [COMPLETED]
 6. Implement Player defeat state at 0 HP (temporarily disable drawing and player input while scene runs).
 
-### Phase 5: Directional Mana Spark Projectiles
+### Phase 5: Improved Player Melee
+Here is the updated implementation roadmap with Phase 1 combined, LaTeX completely stripped out in favor of C++ pseudo-code, and the requested list formatting.
+
+#### Sub Phase 1: Static Circle Conversion & Debug Visualizer
+
+1. **Static Circle Mechanics & 2px Outlined Debug Rendering**
+* **Goal:** Convert the instant attack from temporary rect math/rendering to a true circle-based hitbox drawn on-screen with a 2px outline.
+* Swap out the temporary debug rect drawing call for your 2px inner-outlined circle renderer.
+* Define the circle parameters (`center_x`, `center_y`, and `radius`) based on the player's current facing direction.
+* Compute directional offsets using pure integer lookup (e.g., Cardinal offset = `(16, 0)`, Diagonal offset = `(11, 11)`).
+* Replace rect collision checks with integer-only circle distance checks:
+```cpp
+// Pure integer distance check (no float, no sqrt)
+int dx = attack_cx - enemy_cx;
+int dy = attack_cy - enemy_cy;
+int combined_r = attack_radius + enemy_hurt_radius;
+
+bool is_hit = (dx * dx + dy * dy) <= (combined_r * combined_r);
+
+```
+
+* Add a simple `hit_enemies[]` boolean flag array per attack state so an enemy only takes damage once per swing.
+
+
+#### Sub Phase 2: Time-Based Arc Motion (The Moving Swept Circle)
+
+1. **Attack State Timer & Progress Tracking**
+* **Goal:** Transform the single-frame instant attack into a multi-frame timed state machine.
+* Add `swing_timer` and `swing_duration` (e.g., 6 frames) to the player's state.
+* Calculate normalized progress `t` during update ticks:
+```cpp
+float progress = (float)swing_timer / (float)swing_duration; // 0.0f to 1.0f
+
+```
+
+* Manage attack transitions (`IDLE` -> `ACTIVE_SWEEP` -> `RECOVERY` -> `IDLE`).
+
+
+2. **Arc Trajectory & Dynamic Center Lookup**
+* **Goal:** Sweep the attack circle center along an arc dynamically using your pre-computed fixed-point Trig LUT.
+* Map progress `t` to an angle offset relative to facing direction (e.g., -45 deg to +45 deg).
+* Compute `current_angle = (facing_angle + angle_offset) % 360`.
+* Look up cosine and sine values in your LUT to place the circle center:
+```cpp
+int cx = player_x + ((reach_radius * cos_lut[current_angle]) >> 12);
+int cy = player_y + ((reach_radius * sin_lut[current_angle]) >> 12);
+
+```
+
+
+#### Sub Phase 3: Edge Case Polish & Sub-Stepping
+
+1. **Anti-Tunneling via Sub-Stepping**
+* **Goal:** Ensure ultra-fast sword swings don't skip over enemies positioned directly in front of the player.
+* For fast swings (e.g., 2 frames covering 180 deg), run the collision check 2 to 3 times per frame update:
+```cpp
+// Sub-step loop within a single logic tick
+for (int step = 0; step < SUB_STEPS; ++step) {
+    float sub_t = progress + ((float)step / SUB_STEPS) * delta_t;
+    // Calculate (cx, cy) for sub_t and test enemy collision
+}
+
+```
+
+
+2. **Visual Decoupling & Debug Toggle**
+* **Goal:** Clean up the production rendering while keeping debug tools available.
+* Bind a debug toggle key to show/hide the 2px outlined circle overlay.
+* Align weapon swing particles or visual sprite trails directly to the dynamic `(cx, cy)` trajectory points.
+
+### Phase 6: Directional Mana Spark Projectiles
 1. Implement Hold Charge Timer (0.5s) on `Action::Attack`.
 2. Spawn 4x4 directional projectile on charge completion / button release.
 3. Implement helper method to identify solid tall fixtures (`FixtureType::Refiner` and `FixtureType::Spire`).
 4. Handle projectile motion and collision against enemies, wall tiles, and tall fixtures (`Refiner`/`Spire`). (Walls and tall fixtures absorb/destroy projectile with no damage).
 
-### Phase 6: Visual Polish & Game Juice
+### Phase 7: Visual Polish & Game Juice
 1. Implement 0.1s Enemy Hit Flash & Player i-frame damage flash.
 2. Implement 1-tile Alloy Pickup Magnet attraction effect towards player.
 3. Implement 30s Alloy Pickup despawn timer with flashing warning for the final 10 seconds.
