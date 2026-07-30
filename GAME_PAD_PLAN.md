@@ -38,8 +38,8 @@ include_directories(deps/minigamepad)
 # Required libs for minigamepad
 if(APPLE)
     # macOS GameController and IOKit frameworks needed by minigamepad
-    target_link_libraries(${PROJECT_NAME} PRIVATE 
-        "-framework GameController" 
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        "-framework GameController"
         "-framework IOKit"
         "-framework Foundation"
     )
@@ -140,7 +140,7 @@ void process_gamepad_inputs(core::InputState& inputState) {
     // Check primary active controller (index 0)
     mgp_gamepad gamepad;
     if (mgp_get_gamepad(0, &gamepad) && gamepad.connected) {
-        
+
         // --- Digital D-Pad Mapping ---
         if (gamepad.buttons & MGP_BUTTON_DPAD_UP)    inputState.set_action_active(alx::Action::MoveUp, true);
         if (gamepad.buttons & MGP_BUTTON_DPAD_DOWN)  inputState.set_action_active(alx::Action::MoveDown, true);
@@ -152,7 +152,7 @@ void process_gamepad_inputs(core::InputState& inputState) {
         if (gamepad.buttons & MGP_BUTTON_A) {
             inputState.set_action_active(alx::Action::Attack, true);
         }
-        
+
         // GBA Secondary / Cancel / Roll -> Button B
         if (gamepad.buttons & MGP_BUTTON_B) {
             inputState.set_action_active(alx::Action::Special, true);
