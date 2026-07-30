@@ -1,4 +1,11 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.25...4.3)
+
+# CMake 3.25+ / 4.x Global Build Optimizations
+set(CMAKE_OPTIMIZE_DEPENDENCIES ON)
+if(POLICY CMP0155)
+    # Disable C++20 module scanning when compiling standard header includes
+    set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+endif()
 
 # Initialize project name dynamically from argument
 if(NOT GAME_BIN)
@@ -38,32 +45,34 @@ add_executable(
 # Build Profiles Configuration (Debug vs Release)
 # ----------------------------------------------------
 
+# Target compile definitions (Debug vs Release)
+target_compile_definitions(${GAME_BIN} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG>
+    $<$<CONFIG:Release>:NDEBUG>
+)
+
 if(MSVC)
-    # MSVC FLAGS (Windows)
+    # MSVC Runtime Library & Debug Info abstractions (CMake 3.15+ / 3.25+)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>$<$<CONFIG:Release>:Embedded>")
 
-    # Debug: /Od (no opt), /Zi (debug info), /RTC1 (runtime checks)
-    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi /RTC1 /DDEBUG")
-
-    # Remove default /O2 and /Ob2 flags to eliminate D9025 override warnings
-    string(REGEX REPLACE "/O2" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-    string(REGEX REPLACE "/Ob2" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-    string(REGEX REPLACE "/O2" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-    string(REGEX REPLACE "/Ob2" "" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
-
-    # Target-specific compiler options for Release configuration only
+    # MSVC Compiler Options
     target_compile_options(${GAME_BIN} PRIVATE
+        $<$<CONFIG:Debug>:/Od /Zi /RTC1>
         $<$<CONFIG:Release>:
-            /O1     # Minimize size
-            /Os     # Favor small code
-            /Ob1    # Inline expansion only
-            /GF     # String pooling
-            /Gy     # Function-level linking
-            /Gw     # Global data optimization
-            /GL     # Whole program optimization (LTCG)
+            /O1         # Minimize size
+            /Os         # Favor small code
+            /Ob1        # Inline expansion only
+            /GF         # String pooling
+            /Gy         # Function-level linking
+            /Gw         # Global data optimization
+            /GL         # Whole program optimization (LTCG)
+            /GR-        # Disable RTTI
+            /EHs-c-     # Disable exceptions
         >
     )
 
-    # Target-specific linker options for Release configuration only
+    # MSVC Linker Options
     target_link_options(${GAME_BIN} PRIVATE
         $<$<CONFIG:Release>:
             /OPT:REF   # Eliminate unreferenced code/data
@@ -72,20 +81,54 @@ if(MSVC)
         >
     )
 else()
-    # GCC / CLANG FLAGS (macOS & Linux)
-    # DEBUG FLAGS: Zero optimization (-O0) for fastest builds, keep symbols (-g)
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -DDEBUG")
+    # GCC / CLANG (macOS & Linux) Compiler Options
+    target_compile_options(${GAME_BIN} PRIVATE
+        $<$<CONFIG:Debug>:-O0 -g>
+        $<$<CONFIG:Release>:
+            $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Oz>
+            $<$<CXX_COMPILER_ID:GNU>:-Os>
+            -ffunction-sections
+            -fdata-sections
+            -fno-exceptions
+            -fno-rtti
+            -fno-asynchronous-unwind-tables
+            -fvisibility=hidden
+            -fvisibility-inlines-hidden
+        >
+    )
 
-    # RELEASE FLAGS: Maximize size minimization (-Os), drop unreferenced blocks
-    set(CMAKE_CXX_FLAGS_RELEASE "-Os -ffunction-sections -fdata-sections -DNDEBUG")
+    # GCC / CLANG Linker Options
+    if(APPLE)
+        target_link_options(${GAME_BIN} PRIVATE
+            $<$<CONFIG:Release>:
+                -Wl,-dead_strip
+                -Wl,-x
+            >
+        )
+    elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+        target_link_options(${GAME_BIN} PRIVATE
+            $<$<CONFIG:Release>:
+                -Wl,--gc-sections
+                -Wl,--as-needed
+                -Wl,-s
+            >
+        )
+    endif()
 endif()
 
-if(APPLE)
-    # Strip symbols and dead code *only* on a Release build target
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,-dead_strip")
-elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    # Strip symbols and garbage-collect unreferenced sections on Linux Release
-    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "-Wl,--gc-sections -s")
+# Also apply size optimizations to MiniFB target if built
+if(TARGET minifb AND NOT MSVC)
+    target_compile_options(minifb PRIVATE
+        $<$<CONFIG:Release>:
+            $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>>:-Oz>
+            $<$<C_COMPILER_ID:GNU>:-Os>
+            -ffunction-sections
+            -fdata-sections
+            -fno-exceptions
+            -fno-asynchronous-unwind-tables
+            -fvisibility=hidden
+        >
+    )
 endif()
 
 target_link_libraries(${GAME_BIN} PRIVATE minifb)
@@ -115,3 +158,4 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
         )
     endif()
 endif()
+

@@ -1,3 +1,4 @@
+#include <charconv>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,12 +37,13 @@ int64_t parse_cli_int64_arg(int argc, char* argv[], std::string_view name, int64
     if (!val_str.has_value()) {
         return default_val;
     }
-    try {
-        return std::stoll(std::string(*val_str));
-    } catch (...) {
+    int64_t result = default_val;
+    auto [ptr, ec] = std::from_chars(val_str->data(), val_str->data() + val_str->size(), result);
+    if (ec != std::errc{}) {
         Log::error("Invalid integer CLI argument for --" + std::string(name));
         return default_val;
     }
+    return result;
 }
 
 // --- UPDATE --- where game logic updates happens

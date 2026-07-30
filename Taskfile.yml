@@ -28,7 +28,7 @@ tasks:
   # DEFAULT WORKFLOW
   # ==========================================
   default:
-    desc: Build assets, compile game, and run
+    desc: Pack assets, build Debug and run game executable
     cmds:
       - task: build
       - task: run
@@ -37,7 +37,7 @@ tasks:
   # ASSET PACKER TOOL BUILD
   # ==========================================
   pack-assets-bin:
-    desc: Build the asset packing tool executable
+    desc: Build pack assets executable
     run: once
     sources:
       - '{{.pack_assets_script_src}}'
@@ -45,7 +45,7 @@ tasks:
     generates:
       - '{{.pack_assets_bin}}'
     cmds:
-      - echo "=> Building pack assets script..."
+      - echo "=> Building pack assets executable..."
       - mkdir -p build
       - crystal build {{.pack_assets_script_src}} -o {{.pack_assets_bin}}
 
@@ -53,7 +53,7 @@ tasks:
   # ASSET PIPELINES
   # ==========================================
   assets:
-    desc: Pack all asset pipelines conditionally
+    desc: Pack assets
     cmds:
       - task: pack-assets-bin
       - task: assets-parallel
@@ -153,7 +153,7 @@ tasks:
   # C++ BUILD (CMake)
   # ==========================================
   build:
-    desc: Build game executable
+    desc: Pack assets, build game executable
     vars:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
@@ -174,7 +174,7 @@ tasks:
   # RUN
   # ==========================================
   run:
-    desc: Run game
+    desc: Run Debug game executable
     interactive: true
     silent: true
     vars:
@@ -188,6 +188,7 @@ tasks:
   # CLEAN BUILD FOLDER OR ASSET HEADERS
   # ==========================================
   clean:
+    desc: Clean build
     vars:
       build_dir: 'build/{{.build}}'
     cmds:
@@ -196,7 +197,7 @@ tasks:
       - task: clean-assets
 
   clean-assets:
-    desc: Clean all generated asset headers
+    desc: Clean generated asset headers
     cmds:
       - task: clean-fonts
       - task: clean-images
@@ -219,6 +220,12 @@ tasks:
     cmds:
       - echo "=> Cleaning Music.h..."
       - rm -f '{{.assets_headers_dir}}/Music.h'
+
+  clean-pack-assets-bin:
+    desc: Clean pack assets executable
+    cmds:
+      - echo "=> Cleaning pack assets executable..."
+      - rm -f '{{.pack_assets_bin}}'*
 
   # ==========================================
   # CMAKE RECONFIG / RESET SHORTCUTS
@@ -253,7 +260,7 @@ tasks:
         platforms: [linux, darwin]
 
   reset:
-    desc: Wipe build folder and reconfigure CMake
+    desc: Clean build and reconfigure CMake
     cmds:
       - task: clean
         vars: { build: '{{.build}}' }
@@ -264,7 +271,7 @@ tasks:
   # RELEASE CONVENIENCE SHORTCUTS
   # ==========================================
   build-release:
-    desc: Build game executable in Release mode
+    desc: Pack assets, build Release game executable
     cmds:
       - task: build
         vars: { build: Release }
@@ -272,7 +279,7 @@ tasks:
         vars: { build: Release }
 
   run-release:
-    desc: Run game executable in Release mode
+    desc: Run Release game executable
     interactive: true
     silent: true
     cmds:
@@ -280,13 +287,34 @@ tasks:
         vars: { build: Release }
 
   clean-release:
-    desc: Clean Release build directory
+    desc: Clean Release build
     cmds:
       - task: clean
         vars: { build: Release }
 
+  clean-all:
+    desc: Clean Debug, Release builds and pack assets executable
+    cmds:
+      - task: clean
+        vars: { build: Debug }
+      - task: clean
+        vars: { build: Release }
+      - task: clean-pack-assets-bin
+
+  reconfig-release:
+    desc: Reconfigure Release CMake from scratch (--fresh)
+    cmds:
+      - task: reconfig
+        vars: { build: '{{.build}}' }
+
+  reset-release:
+    desc: Clean Release build and reconfigure CMake
+    cmds:
+      - task: reset
+        vars: { build: '{{.build}}' }
+
   release:
-    desc: Build and run the release executable
+    desc: Pack assets, build Release and run game executable
     cmds:
       - task: build-release
       - task: run-release
