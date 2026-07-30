@@ -13,7 +13,7 @@ To build the executable and run the asset pipeline from scratch, ensure you have
 ### System Requirements Summary
 
 * **C++ Compiler:** C++20 compatible (`clang++` or `g++`)
-* **Build System:** `cmake` (>= 3.16) and `make`
+* **Task Runner & Build System:** `task` (Taskfile runner), `cmake` (>= 3.25), `ninja` (recommended)
 * **Asset Pipeline:** `crystal` (v1.20.2 recommended)
 * **Executable Packer:** `upx` (Optional for release builds, compresses binary size)
 * **Pixel Art Editor:** `aseprite` (Optional, auto-exports sprites to C++ headers)
@@ -117,30 +117,31 @@ To install the configured versions:
 2. **Build and Run:**
 
    ```bash
-   make
+   task
    ```
 
 ---
 
 ## ⚙️ Customizing Executable Name & Window Title
 
-You can customize your executable output name and window title directly in the `Makefile` or via command-line arguments.
+You can customize your executable output name and window title directly in `Taskfile.yml` or via command-line arguments.
 
-### Method A: Permanent Configuration (Edit Makefile)
-At the top of the `Makefile`, edit the default values:
-```makefile
-NAME  ?= my_awesome_game
-TITLE ?= My Awesome Game
+### Method A: Permanent Configuration (Edit Taskfile.yml)
+At the top of `Taskfile.yml`, edit the default values under `vars`:
+```yaml
+vars:
+  name: 'my_awesome_game'
+  title: 'My Awesome Game'
 ```
 
 ### Method B: On-The-Fly Overrides
-Pass variables directly when running `make`:
+Pass variables directly when running `task`:
 ```bash
-make NAME=space_shooter TITLE="Space Shooter v1.0"
+task name=space_shooter title="Space Shooter v1.0"
 ```
 Or for release builds:
 ```bash
-make release NAME=space_shooter TITLE="Space Shooter v1.0"
+task release name=space_shooter title="Space Shooter v1.0"
 ```
 
 ## 🛠️ Asset Pipeline Documentation & Troubleshooting
@@ -153,7 +154,7 @@ The asset system uses a **Crystal** asset packer (`toolchain/src/pack_assets.cr`
 | `assets/fonts/` | `.png`, `.bmp` | `src/assets/font_data.h` |
 | `assets/audio/` | `.mod`, `.xm`, `.wav` | `src/assets/audio_data.h` |
 
-The asset packer runs automatically during `make build` whenever changes to raw assets or toolchain scripts are detected.
+The asset packer runs automatically during `task build` whenever changes to raw assets or toolchain scripts are detected.
 
 ---
 
@@ -288,7 +289,7 @@ If `assets/images/palette.gpl` does **not** exist, the pipeline falls back to bu
 - Quick prototyping with freeform RGB sprites before a palette is finalized.
 - Projects that intentionally use per-sprite palettes with no shared color constraint.
 
-> Once a `palette.gpl` is added back to `assets/images/`, all sprites immediately re-anchor to deterministic indices on the next `make` / `make images`.
+> Once a `palette.gpl` is added back to `assets/images/`, all sprites immediately re-anchor to deterministic indices on the next `task` / `task images`.
 
 ---
 
@@ -379,45 +380,38 @@ namespace Assets {
 
 #### ⚠️ Protecting Custom Asset Headers
 
-* **Do not place raw source files in `assets/fonts/`, `assets/images/`, or `assets/music/**` if you are writing those corresponding C++ headers by hand. The packer only updates a category if matching source files exist in its respective `assets/` subfolder.
-* **Safe Cleaning:** Your `make clean-assets` command only clears the internal tracking stamps (`build/.*.stamp`), meaning your hand-crafted headers inside `src/assets/` are fully protected from being wiped out.
-* If you write all assets manually and want to disable automated packing completely, you can remove `assets` as a dependency from the `build` target in your `Makefile`.
+* **Do not place raw source files in `assets/fonts/`, `assets/images/`, or `assets/music/`** if you are writing those corresponding C++ headers by hand. The packer only updates a category if matching source files exist in its respective `assets/` subfolder. Put them in a different dir like `assets-manual/*` or anything else.
+* **Asset Header Cleaning:** Running `task clean-assets` removes the generated headers in `src/assets/` (`Fonts.h`, `Images.h`, `Music.h`), forcing them to regenerate on the next build. Task automatically handles change detection natively using `sources` and `generates` file fingerprinting without relying on temporary `.stamp` files.
+* If you write all assets manually and want to disable automated packing completely, you can remove `assets` as a dependency from the `build` task in your `Taskfile.yml`.
 
 ---
 
 ## 📦 Build & Run Usage
 
+The project uses [Task](https://taskfile.dev) (`task`) for build automation. Run `task --list` or `task --l` to view all available commands.
+
 ### Automated Asset Packing
-
-**NOTE: THIS IS BEING CHANGED TO `Taskfile` via `task` WIP** but very similar
-
-use:
-```
-task --help
-```
-
-to see all tasks etc!
 
 Force a manual asset repack across all categories:
 
 ```bash
-make assets
+task assets
 ```
 
 Or target individual pipelines if needed:
 
 ```bash
-make fonts   # Repack fonts only
-make images  # Repack images only
-make music   # Repack music only
+task fonts   # Repack fonts only
+task images  # Repack images only
+task music   # Repack music only
 ```
 
 ### Build (Debug)
 
-Compiles debug build using parallel jobs (automatically triggers asset checks):
+Compiles debug build (automatically triggers asset checks):
 
 ```bash
-make build
+task build
 ```
 
 ### Run (Debug)
@@ -425,7 +419,7 @@ make build
 Launches compiled binary:
 
 ```bash
-make run
+task run
 ```
 
 ### Full Cycle (Default)
@@ -433,32 +427,32 @@ make run
 Builds assets, compiles, and launches the game:
 
 ```bash
-make
+task
 ```
 
-### Release Build (Stripped Binary)
+### Release Build (Stripped Binary & UPX Compression)
 
-Compiles optimized Release build:
+Compiles and packs optimized Release build:
 
 ```bash
-make release
+task build-release  # Builds and compresses release binary
+task release        # Builds and runs release binary
 ```
 
 ### Resetting CMake Configuration
 
-If you add/remove C++ files or modify `CMakeLists.txt`, reset the build configuration without wiping built dependency objects:
+If you add/remove C++ files or modify `CMakeLists.txt`, reset the build configuration:
 
 ```bash
-make config    # Re-evaluates CMakeLists.txt
-make reconfig  # Forces CMake cache refresh (--fresh)
-make reset     # Performs clean + fresh CMake configuration
+task reconfig  # Forces CMake cache refresh (--fresh)
+task reset     # Wipes build directory and re-configures CMake
 ```
 
 ### Cleaning Output
 
 ```bash
-make clean        # Wipes build output directory (build/Debug or build/Release)
-make clean-assets # Removes internal asset tracking stamps (preserves manual src/assets/ files)
+task clean        # Wipes build output directory (build/Debug or build/Release)
+task clean-assets # Cleans generated asset headers in src/assets/
 ```
 
 ### Output Location

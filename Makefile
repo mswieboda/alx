@@ -1,7 +1,7 @@
 $(info )
 $(info [NOTICE] This project has migrated from Makefile to Taskfile!)
 $(info        Please use 'task' to run build automation targets.)
-$(info        Run 'task --help' or 'task -l' to view available tasks.)
+$(info        Run 'task --list' or 'task -l' to view available tasks.)
 $(info )
 $(error Makefile is deprecated. Use 'task' instead)
 
