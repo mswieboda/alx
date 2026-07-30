@@ -66,4 +66,3 @@ inline Collision::AABB fixture_ground_aabb(int tx, int ty, float tile_size) {
 
 
 } // namespace alx
-

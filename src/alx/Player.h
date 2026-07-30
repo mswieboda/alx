@@ -6,6 +6,7 @@
 #include "alx/Layer.h"
 #include "alx/DrawFX.h"
 #include "alx/WorldCollision.h"
+#include "alx/TrigLUT.h"
 #include "core/Collision.h"
 
 namespace alx {
@@ -100,11 +101,14 @@ struct Player : public Entity {
     float facing_dx = 0.0f;
     float facing_dy = 1.0f;
 
+    enum class AttackPhase { Idle, ActiveSweep, Recovery };
+
     // Attack timing and radius constants
-    static constexpr float ATTACK_ACTIVE_DURATION = 0.15f;
-    static constexpr float ATTACK_COOLDOWN_DURATION = 0.25f;
-    static constexpr float ATTACK_HIT_RADIUS = 10.0f;
-    static constexpr float ATTACK_HIT_OFFSET = 10.0f;
+    static constexpr float ATTACK_SWEEP_DURATION    = 0.15f; // 0.15s active arc sweep
+    static constexpr float ATTACK_RECOVERY_DURATION = 0.10f; // 0.10s recovery delay
+    static constexpr float ATTACK_REACH_RADIUS      = 16.0f; // Reach distance from player center
+    static constexpr float ATTACK_HIT_RADIUS        = 8.0f;  // Radius of hit circle
+    static constexpr int ATTACK_ARC_SWEEP_DEG       = 90;    // -45° to +45° sweep arc
 
     // Relative collision ratio constants
     static constexpr float GROUND_RADIUS_RATIO = 0.50f;   // 50% of transform.width (6.0px)
@@ -116,9 +120,11 @@ struct Player : public Entity {
     static constexpr float SHADOW_RX_RATIO = 0.8f;
     static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
 
-
-    float attack_active_timer = 0.0f;
-    float attack_cooldown_timer = 0.0f;
+    AttackPhase attack_phase = AttackPhase::Idle;
+    float attack_timer = 0.0f;
+    uint32_t current_swing_id = 0;
+    float swing_progress_prev = 0.0f;
+    float swing_progress_curr = 0.0f;
 
     struct AttackHitbox {
         float x = 0.0f;
@@ -200,14 +206,42 @@ struct Player : public Entity {
         transform_prev = transform;
     }
 
-    bool is_attacking() const {
-        return attack_active_timer > 0.0f;
+    int base_facing_angle_deg() const {
+        if (facing_dx > 0.5f && facing_dy > 0.5f) return 45;
+        if (facing_dx > 0.5f && facing_dy < -0.5f) return 315;
+        if (facing_dx < -0.5f && facing_dy > 0.5f) return 135;
+        if (facing_dx < -0.5f && facing_dy < -0.5f) return 225;
+        if (facing_dx > 0.5f) return 0;
+        if (facing_dx < -0.5f) return 180;
+        if (facing_dy > 0.5f) return 90;
+        if (facing_dy < -0.5f) return 270;
+        return 90; // Default down
     }
 
-    Collision::Circle attack_hit_circle() const {
-        float cx = center_x(1.0f) + facing_dx * ATTACK_HIT_OFFSET;
-        float cy = center_y(1.0f) + facing_dy * ATTACK_HIT_OFFSET;
-        return Collision::Circle{ cx, cy, ATTACK_HIT_RADIUS };
+    Collision::Circle calculate_attack_circle_at(float progress, float px, float py) const {
+        int base_deg = base_facing_angle_deg();
+        int offset_deg = -45 + static_cast<int>(progress * static_cast<float>(ATTACK_ARC_SWEEP_DEG));
+        int angle_deg = base_deg + offset_deg;
+
+        float pcx = px + (transform.width / 2.0f);
+        float pcy = py + (transform.height / 2.0f);
+        int reach = static_cast<int>(ATTACK_REACH_RADIUS);
+
+        int cx = static_cast<int>(pcx) + ((reach * TrigLUT::cos(angle_deg)) >> TrigLUT::SHIFT);
+        int cy = static_cast<int>(pcy) + ((reach * TrigLUT::sin(angle_deg)) >> TrigLUT::SHIFT);
+
+        return Collision::Circle{ static_cast<float>(cx), static_cast<float>(cy), ATTACK_HIT_RADIUS };
+    }
+
+    bool is_attacking() const {
+        return attack_phase == AttackPhase::ActiveSweep;
+    }
+
+    Collision::Circle attack_hit_circle(float alpha = 1.0f) const {
+        float px = Draw::interpolate(transform_prev.x, transform.x, alpha);
+        float py = Draw::interpolate(transform_prev.y, transform.y, alpha);
+        float p = Draw::interpolate(swing_progress_prev, swing_progress_curr, alpha);
+        return calculate_attack_circle_at(p, px, py);
     }
 
     bool try_build_tile(const Tiles& tiles, Network& network) {
@@ -257,13 +291,6 @@ struct Player : public Entity {
 
     void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
         sync_prev_transforms();
-
-        if (attack_active_timer > 0.0f) {
-            attack_active_timer -= dt;
-        }
-        if (attack_cooldown_timer > 0.0f) {
-            attack_cooldown_timer -= dt;
-        }
 
         update_movement(dt, tiles, network, camera);
         update_actions(dt, tiles, network);
@@ -321,18 +348,17 @@ struct Player : public Entity {
             );
         }
 
-        // Attack hit box/circle
-        if (is_attacking()) {
-            Collision::Circle hit_c = attack_hit_circle();
-            Draw::rect(
-                hit_c.cx - hit_c.radius,
-                hit_c.cy - hit_c.radius,
-                hit_c.radius * 2.0f,
-                hit_c.radius * 2.0f,
-                0x8000FFFF, // 50% transparent Cyan debug attack box
-                true,
-                1,
-                transform.z_index,
+        // Attack hit box/circle (2px inner-outlined circle)
+        if (is_attacking() && (Debug::DRAW_COLLISION_AREAS || Debug::DRAW_MELEE_ARCS)) {
+            Collision::Circle hit_c = attack_hit_circle(alpha);
+            Draw::circle(
+                hit_c.cx,
+                hit_c.cy,
+                hit_c.radius,
+                0xFF00FFFF, // Bright Cyan debug circle
+                false,      // fill = false (outline only)
+                2,          // thickness = 2 (2px inner-outlined circle)
+                transform.z_index + 2,
                 static_cast<int>(world_bottom_y) // sort Y override
             );
         }
@@ -412,9 +438,32 @@ private:
     }
 
     void update_actions(float dt, const Tiles& tiles, Network& network) {
-        if (Action::is_attack() && attack_cooldown_timer <= 0.0f) {
-            attack_active_timer = ATTACK_ACTIVE_DURATION;
-            attack_cooldown_timer = ATTACK_COOLDOWN_DURATION;
+        if (attack_phase == AttackPhase::ActiveSweep) {
+            swing_progress_prev = swing_progress_curr;
+            attack_timer += dt;
+            if (attack_timer >= ATTACK_SWEEP_DURATION) {
+                swing_progress_curr = 1.0f;
+                attack_phase = AttackPhase::Recovery;
+                attack_timer = 0.0f;
+            } else {
+                swing_progress_curr = attack_timer / ATTACK_SWEEP_DURATION;
+            }
+        } else if (attack_phase == AttackPhase::Recovery) {
+            attack_timer += dt;
+            if (attack_timer >= ATTACK_RECOVERY_DURATION) {
+                attack_phase = AttackPhase::Idle;
+                attack_timer = 0.0f;
+                swing_progress_prev = 0.0f;
+                swing_progress_curr = 0.0f;
+            }
+        }
+
+        if (Action::is_attack() && attack_phase == AttackPhase::Idle) {
+            attack_phase = AttackPhase::ActiveSweep;
+            attack_timer = 0.0f;
+            swing_progress_prev = 0.0f;
+            swing_progress_curr = 0.0f;
+            current_swing_id++;
         }
 
         if (Action::is_build_cycle()) {

@@ -87,6 +87,7 @@ struct Enemy : public Entity {
     EnemyMovement::MovementState move_state;
     GridPos target_fixture_pos{-1, -1};
     bool has_target = false;
+    uint32_t last_hit_swing_id = 0;
 
     Enemy(float px = 0.0f, float py = 0.0f, float w = DEFAULT_WIDTH, float h = DEFAULT_HEIGHT, uint32_t col = COLOR, int max_hp = DEFAULT_MAX_HP)
         : Entity(

@@ -578,12 +578,35 @@ public:
     void update_combat_and_loot(Player& player) {
         // --- 1. MELEE ATTACK SWIPE PROCESSOR ---
         if (player.is_attacking()) {
-            if (!m_attack_hit_registered) {
-                m_attack_hit_registered = true;
-                Collision::Circle hit_c = player.attack_hit_circle();
+            static constexpr int SUB_STEPS = 3;
+            float prev_p = player.swing_progress_prev;
+            float curr_p = player.swing_progress_curr;
+
+            for (int s = 0; s < SUB_STEPS; ++s) {
+                float sub_t = prev_p + (curr_p - prev_p) * (static_cast<float>(s + 1) / static_cast<float>(SUB_STEPS));
+                Collision::Circle hit_c = player.calculate_attack_circle_at(sub_t, player.transform.x, player.transform.y);
+
+                int attack_cx = static_cast<int>(hit_c.cx);
+                int attack_cy = static_cast<int>(hit_c.cy);
+                int attack_r  = static_cast<int>(hit_c.radius);
 
                 for (auto& enemy : m_enemies) {
-                    if (Collision::circle_vs_circle(enemy.hurt_circle(), hit_c)) {
+                    if (enemy.last_hit_swing_id == player.current_swing_id) {
+                        continue;
+                    }
+
+                    Collision::Circle hurt_c = enemy.hurt_circle();
+                    int enemy_cx = static_cast<int>(hurt_c.cx);
+                    int enemy_cy = static_cast<int>(hurt_c.cy);
+                    int enemy_r  = static_cast<int>(hurt_c.radius);
+
+                    int dx = attack_cx - enemy_cx;
+                    int dy = attack_cy - enemy_cy;
+                    int combined_r = attack_r + enemy_r;
+
+                    if ((dx * dx + dy * dy) <= (combined_r * combined_r)) {
+                        enemy.last_hit_swing_id = player.current_swing_id;
+
                         float push_dx = enemy.center_x() - player.center_x();
                         float push_dy = enemy.center_y() - player.center_y();
                         float len_sq = push_dx * push_dx + push_dy * push_dy;
@@ -599,8 +622,6 @@ public:
                     }
                 }
             }
-        } else {
-            m_attack_hit_registered = false;
         }
 
         // --- 2. ENEMY DEATH & LOOT DROP ---
