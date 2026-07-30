@@ -9,4 +9,4 @@
 	url = https://github.com/rombankzero/pocketmod.git
 [submodule "deps/minigamepad"]
 	path = deps/minigamepad
-	url = https://github.com/ColleagueRiley/minigamepad.git
+	url = git@github.com:mswieboda/minigamepad.git
