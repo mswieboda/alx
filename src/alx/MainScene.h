@@ -451,18 +451,25 @@ public:
         Draw::rect(world_x + offset, world_y + offset, pool_size, pool_size, liquid_color, true, 1, z_idx);
     }
 
-    void draw_node_light_mana(int world_x, int world_y, int tile_size) {
+    void draw_node_light_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer) {
         uint32_t aura_color = 0xFF00FFFF;  // Full opacity cyan aura
         uint32_t core_color = 0xFFFFFFFF;  // Full opacity radiant white core
 
-        int orb_size = 10;
+        // Base size 10x10 aura. Subtle pulse adds +0 or +2px based on timer progress
+        float pulse = std::sin(progress * 3.14159f);
+        int pulse_extra = (timer > 0 && pulse > 0.5f) ? 2 : 0;
+
+        int orb_size = 10 + pulse_extra;
         int offset = (tile_size - orb_size) / 2;
 
         int z_idx_aura = Layer::WorldObj + 1;
         int z_idx_core = Layer::WorldObj + 2;
 
         Draw::rect(world_x + offset, world_y + offset, orb_size, orb_size, aura_color, true, 1, z_idx_aura);
-        Draw::rect(world_x + offset + 2, world_y + offset + 2, orb_size - 4, orb_size - 4, core_color, true, 1, z_idx_core);
+
+        int core_size = std::max(4, orb_size - 4);
+        int core_offset = (tile_size - core_size) / 2;
+        Draw::rect(world_x + core_offset, world_y + core_offset, core_size, core_size, core_color, true, 1, z_idx_core);
     }
 
     void draw_fixture_mana(const Fixture& fix, int gx, int gy, int world_x, int world_y, int tile_size, float progress) {
@@ -479,7 +486,7 @@ public:
         }
 
         if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
-            draw_node_light_mana(world_x, world_y, tile_size);
+            draw_node_light_mana(world_x, world_y, tile_size, progress, fix.process_timer);
             return;
         }
 
