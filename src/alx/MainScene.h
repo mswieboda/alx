@@ -437,6 +437,34 @@ public:
         );
     }
 
+    void draw_node_dark_mana(int world_x, int world_y, int tile_size) {
+        uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
+        uint32_t core_color   = 0xFFE066FF; // Inner radiant violet core
+
+        int pool_size = 6;
+        int offset = (tile_size - pool_size) / 2;
+
+        int z_idx_pool = Layer::WorldObj + 1;
+        int z_idx_core = Layer::WorldObj + 2;
+
+        Draw::rect(world_x + offset, world_y + offset, pool_size, pool_size, liquid_color, true, 1, z_idx_pool);
+        Draw::rect(world_x + offset + 2, world_y + offset + 2, pool_size - 4, pool_size - 4, core_color, true, 1, z_idx_core);
+    }
+
+    void draw_node_light_mana(int world_x, int world_y, int tile_size) {
+        uint32_t aura_color = 0xFF00FFFF;  // Full opacity cyan aura
+        uint32_t core_color = 0xFFFFFFFF;  // Full opacity radiant white core
+
+        int orb_size = 10;
+        int offset = (tile_size - orb_size) / 2;
+
+        int z_idx_aura = Layer::WorldObj + 1;
+        int z_idx_core = Layer::WorldObj + 2;
+
+        Draw::rect(world_x + offset, world_y + offset, orb_size, orb_size, aura_color, true, 1, z_idx_aura);
+        Draw::rect(world_x + offset + 2, world_y + offset + 2, orb_size - 4, orb_size - 4, core_color, true, 1, z_idx_core);
+    }
+
     void draw_fixture_mana(const Fixture& fix, int gx, int gy, int world_x, int world_y, int tile_size, float progress) {
         if (fix.mana_state == ManaState::None) return;
 
@@ -445,9 +473,19 @@ public:
             return;
         }
 
+        if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
+            draw_node_dark_mana(world_x, world_y, tile_size);
+            return;
+        }
+
+        if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
+            draw_node_light_mana(world_x, world_y, tile_size);
+            return;
+        }
+
         uint32_t color = (fix.mana_state == ManaState::Light) ? 0xFF00FFFF : 0xFF6600FF;
         int size = tile_size / 2;
-        int z_idx = (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) ? Layer::WorldObj : Layer::GroundFixtureItem;
+        int z_idx = (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) ? (Layer::WorldObj + 1) : Layer::GroundFixtureItem;
         Draw::rect(
             world_x + size / 2,
             world_y + size / 2,
