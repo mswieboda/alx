@@ -29,27 +29,13 @@ namespace Input {
 
     void init() {
         if (!s_gamepad_initialized) {
-            Log::info_t("[Gamepad] Initializing minigamepad subsystem...");
             mg_gamepads_init(&s_gamepads);
             s_gamepad_initialized = true;
-
-            int count = 0;
-            for (mg_gamepad* pad = s_gamepads.list.head; pad; pad = pad->next) {
-                count++;
-                const char* pad_name = (pad->name[0] != '\0') ? pad->name : "Unknown Gamepad";
-                Log::info_fmt_t("[Gamepad] Initial gamepad detected #%d: '%s' (GUID: %s)",
-                    static_cast<int>(pad->index), pad_name, pad->guid);
-            }
-
-            if (count == 0) {
-                Log::info_t("[Gamepad] No gamepads detected at initialization.");
-            }
         }
     }
 
     void cleanup() {
         if (s_gamepad_initialized) {
-            Log::info_t("[Gamepad] Cleaning up minigamepad subsystem...");
             mg_gamepads_free(&s_gamepads);
             s_gamepad_initialized = false;
         }
@@ -75,12 +61,6 @@ namespace Input {
         }
 
         if (connected_count != s_prev_connected_count) {
-            Log::info_fmt_t("[Gamepad] Active controller count changed: %d", connected_count);
-            for (mg_gamepad* pad = s_gamepads.list.head; pad; pad = pad->next) {
-                const char* pad_name = (pad->name[0] != '\0') ? pad->name : "Unknown Gamepad";
-                Log::info_fmt_t("[Gamepad] Active gamepad #%d: '%s' (GUID: %s)",
-                    static_cast<int>(pad->index), pad_name, pad->guid);
-            }
             s_prev_connected_count = connected_count;
         }
 
@@ -117,24 +97,13 @@ namespace Input {
         for (int i = 0; i < MG_BUTTON_COUNT; ++i) {
             if (current_gamepad_buttons[i] && !prev_gamepad_buttons[i]) {
                 just_pressed_gamepad_buttons[i] = true;
-                const char* btn_name = mg_button_get_name(static_cast<mg_button>(i));
-                Log::info_fmt_t("[Gamepad] BUTTON PRESSED: %s (enum id: %d)",
-                    btn_name ? btn_name : "unknown", i);
-            } else if (!current_gamepad_buttons[i] && prev_gamepad_buttons[i]) {
-                const char* btn_name = mg_button_get_name(static_cast<mg_button>(i));
-                Log::info_fmt_t("[Gamepad] BUTTON RELEASED: %s (enum id: %d)",
-                    btn_name ? btn_name : "unknown", i);
             }
         }
 
-        // Detect stick direction changes with logging
-        static const char* dir_names[4] = { "STICK_UP", "STICK_DOWN", "STICK_LEFT", "STICK_RIGHT" };
+        // Detect stick direction changes
         for (int i = 0; i < 4; ++i) {
             if (current_stick_dirs[i] && !prev_stick_dirs[i]) {
                 just_pressed_stick_dirs[i] = true;
-                Log::info_fmt_t("[Gamepad] STICK DIR PRESSED: %s", dir_names[i]);
-            } else if (!current_stick_dirs[i] && prev_stick_dirs[i]) {
-                Log::info_fmt_t("[Gamepad] STICK DIR RELEASED: %s", dir_names[i]);
             }
         }
     }

@@ -517,7 +517,6 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
 
                     uint8_t progress = next_fixtures[idx].process_timer + 1;
                     if (progress >= Game::LIGHT_SPIRE_TICKS_REQUIRED) {
-                        Log::info("Spire at (" + std::to_string(x) + ", " + std::to_string(y) + ") converted Light Mana into stable light energy!");
                         results.spires_converted++;
 
                         progress = 0;

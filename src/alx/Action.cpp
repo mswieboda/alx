@@ -228,12 +228,10 @@ bool is_just_pressed(Type type) {
 
     for (int key : s_bindings[static_cast<size_t>(type)]) {
         if (::Input::is_key_just_pressed(key)) {
-            Log::info_fmt_t("[Action] Triggered action via Keyboard: %s (id: %d)", type_to_string(type).c_str(), static_cast<int>(type));
             return true;
         }
     }
     if (is_gamepad_action_just_pressed(type)) {
-        Log::info_fmt_t("[Action] Triggered action via Gamepad: %s (id: %d)", type_to_string(type).c_str(), static_cast<int>(type));
         return true;
     }
     return false;
