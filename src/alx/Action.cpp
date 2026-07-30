@@ -1,6 +1,7 @@
 #include "alx/Action.h"
 #include <unordered_map>
 #include <algorithm>
+#include "core/Log.h"
 #include "minigamepad.h"
 
 namespace alx {
@@ -226,9 +227,16 @@ bool is_just_pressed(Type type) {
     if (type == Count) return false;
 
     for (int key : s_bindings[static_cast<size_t>(type)]) {
-        if (::Input::is_key_just_pressed(key)) return true;
+        if (::Input::is_key_just_pressed(key)) {
+            Log::info_fmt_t("[Action] Triggered action via Keyboard: %s (id: %d)", type_to_string(type).c_str(), static_cast<int>(type));
+            return true;
+        }
     }
-    return is_gamepad_action_just_pressed(type);
+    if (is_gamepad_action_just_pressed(type)) {
+        Log::info_fmt_t("[Action] Triggered action via Gamepad: %s (id: %d)", type_to_string(type).c_str(), static_cast<int>(type));
+        return true;
+    }
+    return false;
 }
 
 bool is_attack() {
