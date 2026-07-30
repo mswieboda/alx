@@ -26,9 +26,9 @@ private:
 
     // --- Private Distance & Helper Methods ---
     std::vector<int> compute_distance_field(FixtureType sourceType) const;
-    int find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures) const;
-    int find_active_input_pipe(int x, int y, ManaState target_state) const;
-    int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& dark_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures) const;
+    int find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const;
+    int find_active_input_pipe(int x, int y, ManaState target_state, int& out_chosen_dir_idx) const;
+    int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& dark_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const;
 
     // --- Private Simulation Sub-Step Helpers ---
     void sim_consume(std::vector<Fixture>& next_fixtures);

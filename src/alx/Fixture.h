@@ -50,6 +50,7 @@ struct Fixture {
     int8_t out_dy           = 0;           // Outgoing flow delta Y for corner rendering
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
     uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
+    uint8_t last_dir_idx    = 3;     // Round-robin direction memory (0=N, 1=S, 2=W, 3=E)
     int hp                  = 0;     // Current HP pool
     int max_hp              = 0;     // Max HP pool
 

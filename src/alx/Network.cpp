@@ -234,11 +234,17 @@ void Network::downstream_dir(int x, int y, ManaState state, int& out_dx, int& ou
     }
 }
 
-int Network::find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures) const {
+int Network::find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const {
+    out_chosen_dir_idx = -1;
+    if (!in_bounds(x, y)) return -1;
+    int idx = y * m_width + x;
+    uint8_t start_dir = m_fixtures[idx].last_dir_idx;
+
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int step = 1; step <= 4; ++step) {
+        int i = (start_dir + step) % 4;
         int nx = x + dx[i];
         int ny = y + dy[i];
 
@@ -246,6 +252,7 @@ int Network::find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& 
             int n_idx = ny * m_width + nx;
             const Fixture& neighbor = m_fixtures[n_idx];
             if (neighbor.type == FixtureType::Pipe && neighbor.mana_state == ManaState::None && next_fixtures[n_idx].mana_state == ManaState::None) {
+                out_chosen_dir_idx = i;
                 return n_idx;
             }
         }
@@ -253,11 +260,17 @@ int Network::find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& 
     return -1;
 }
 
-int Network::find_active_input_pipe(int x, int y, ManaState target_state) const {
+int Network::find_active_input_pipe(int x, int y, ManaState target_state, int& out_chosen_dir_idx) const {
+    out_chosen_dir_idx = -1;
+    if (!in_bounds(x, y)) return -1;
+    int idx = y * m_width + x;
+    uint8_t start_dir = m_fixtures[idx].last_dir_idx;
+
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
 
-    for (int i = 0; i < 4; ++i) {
+    for (int step = 1; step <= 4; ++step) {
+        int i = (start_dir + step) % 4;
         int nx = x + dx[i];
         int ny = y + dy[i];
 
@@ -265,6 +278,7 @@ int Network::find_active_input_pipe(int x, int y, ManaState target_state) const 
             int n_idx = ny * m_width + nx;
             const Fixture& neighbor = m_fixtures[n_idx];
             if (neighbor.type == FixtureType::Pipe && neighbor.is_powered && neighbor.mana_state == target_state) {
+                out_chosen_dir_idx = i;
                 return n_idx;
             }
         }
@@ -276,37 +290,30 @@ int Network::find_downstream_pipe_neighbor(
     int x, int y, ManaState state,
     const std::vector<int>& dark_dist,
     const std::vector<int>& light_dist,
-    const std::vector<Fixture>& next_fixtures
+    const std::vector<Fixture>& next_fixtures,
+    int& out_chosen_dir_idx
 ) const {
+    out_chosen_dir_idx = -1;
     int idx = y * m_width + x;
+    uint8_t start_dir = m_fixtures[idx].last_dir_idx;
+
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
 
-    if (state == ManaState::Dark) {
-        int my_d = dark_dist[idx];
-        for (int i = 0; i < 4; ++i) {
+    const auto& dist = (state == ManaState::Dark) ? dark_dist : light_dist;
+    int my_d = dist[idx];
+
+    if (my_d < 9000) {
+        for (int step = 1; step <= 4; ++step) {
+            int i = (start_dir + step) % 4;
             int nx = x + dx[i];
             int ny = y + dy[i];
             if (in_bounds(nx, ny)) {
                 int n_idx = ny * m_width + nx;
                 const Fixture& n = m_fixtures[n_idx];
-                if (n.type == FixtureType::Pipe && dark_dist[n_idx] > my_d && dark_dist[n_idx] < 9000) {
+                if (n.type == FixtureType::Pipe && dist[n_idx] > my_d && dist[n_idx] < 9000) {
                     if (next_fixtures[n_idx].mana_state == ManaState::None) {
-                        return n_idx;
-                    }
-                }
-            }
-        }
-    } else if (state == ManaState::Light) {
-        int my_d = light_dist[idx];
-        for (int i = 0; i < 4; ++i) {
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-            if (in_bounds(nx, ny)) {
-                int n_idx = ny * m_width + nx;
-                const Fixture& n = m_fixtures[n_idx];
-                if (n.type == FixtureType::Pipe && light_dist[n_idx] > my_d && light_dist[n_idx] < 9000) {
-                    if (next_fixtures[n_idx].mana_state == ManaState::None) {
+                        out_chosen_dir_idx = i;
                         return n_idx;
                     }
                 }
@@ -324,8 +331,11 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
 
             if (current.type == FixtureType::Refiner) {
                 if (current.process_timer == 0) {
-                    int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Dark);
+                    int chosen_dir = -1;
+                    int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Dark, chosen_dir);
                     if (in_pipe_idx != -1) {
+                        next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+
                         next_fixtures[in_pipe_idx].mana_state = ManaState::None;
                         next_fixtures[in_pipe_idx].is_powered = false;
                         next_fixtures[in_pipe_idx].move_dx = 0;
@@ -339,8 +349,11 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
             }
             else if (current.type == FixtureType::Spire) {
                 if (current.process_timer == 0) {
-                    int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Light);
+                    int chosen_dir = -1;
+                    int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Light, chosen_dir);
                     if (in_pipe_idx != -1) {
+                        next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+
                         next_fixtures[in_pipe_idx].mana_state = ManaState::None;
                         next_fixtures[in_pipe_idx].is_powered = false;
                         next_fixtures[in_pipe_idx].mana_ttl = 0;
@@ -406,9 +419,12 @@ void Network::sim_pipe_flow(
             }
         }
 
-        int downstream_idx = find_downstream_pipe_neighbor(x, y, curr_state, dark_dist, light_dist, next_fixtures);
+        int chosen_dir = -1;
+        int downstream_idx = find_downstream_pipe_neighbor(x, y, curr_state, dark_dist, light_dist, next_fixtures, chosen_dir);
 
         if (downstream_idx != -1) {
+            next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+
             int downstream_x = downstream_idx % m_width;
             int downstream_y = downstream_idx / m_width;
 
@@ -447,8 +463,11 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                 next_fixtures[idx].mana_state = ManaState::Dark;
                 next_fixtures[idx].is_powered = true;
 
-                int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures);
+                int chosen_dir = -1;
+                int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
                 if (open_pipe_idx != -1) {
+                    next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+
                     int open_x = open_pipe_idx % m_width;
                     int open_y = open_pipe_idx / m_width;
 
@@ -465,8 +484,11 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
 
                     uint8_t progress = next_fixtures[idx].process_timer + 1;
                     if (progress >= Game::REFINER_TICKS_REQUIRED) {
-                        int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures);
+                        int chosen_dir = -1;
+                        int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
                         if (out_pipe_idx != -1) {
+                            next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+
                             int out_x = out_pipe_idx % m_width;
                             int out_y = out_pipe_idx / m_width;
 
