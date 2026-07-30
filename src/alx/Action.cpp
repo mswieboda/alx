@@ -1,6 +1,7 @@
 #include "alx/Action.h"
 #include <unordered_map>
 #include <algorithm>
+#include "minigamepad.h"
 
 namespace alx {
 
@@ -136,6 +137,80 @@ const std::vector<int>& bound_keys(Type type) {
     return s_bindings[static_cast<size_t>(type)];
 }
 
+static bool is_gamepad_action_pressed(Type type) {
+    if (!::Input::is_gamepad_connected()) return false;
+
+    switch (type) {
+        case MoveUp:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_DPAD_UP) ||
+                   ::Input::is_gamepad_stick_dir_pressed(0);
+        case MoveDown:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_DPAD_DOWN) ||
+                   ::Input::is_gamepad_stick_dir_pressed(1);
+        case MoveLeft:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_DPAD_LEFT) ||
+                   ::Input::is_gamepad_stick_dir_pressed(2);
+        case MoveRight:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_DPAD_RIGHT) ||
+                   ::Input::is_gamepad_stick_dir_pressed(3);
+        case ActionBtn:
+        case BuildTile:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_SOUTH);
+        case Cancel:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_EAST);
+        case Build:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_SHOULDER);
+        case PanMode:
+        case BuildCycle:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_LEFT_SHOULDER);
+        case Menu:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_START);
+        case Map:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_BACK) ||
+                   ::Input::is_gamepad_button_pressed(MG_BUTTON_TOUCHPAD) ||
+                   ::Input::is_gamepad_button_pressed(MG_BUTTON_MISC1);
+        default:
+            return false;
+    }
+}
+
+static bool is_gamepad_action_just_pressed(Type type) {
+    if (!::Input::is_gamepad_connected()) return false;
+
+    switch (type) {
+        case MoveUp:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_DPAD_UP) ||
+                   ::Input::is_gamepad_stick_dir_just_pressed(0);
+        case MoveDown:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_DPAD_DOWN) ||
+                   ::Input::is_gamepad_stick_dir_just_pressed(1);
+        case MoveLeft:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_DPAD_LEFT) ||
+                   ::Input::is_gamepad_stick_dir_just_pressed(2);
+        case MoveRight:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_DPAD_RIGHT) ||
+                   ::Input::is_gamepad_stick_dir_just_pressed(3);
+        case ActionBtn:
+        case BuildTile:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_SOUTH);
+        case Cancel:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_EAST);
+        case Build:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_SHOULDER);
+        case PanMode:
+        case BuildCycle:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_LEFT_SHOULDER);
+        case Menu:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_START);
+        case Map:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_BACK) ||
+                   ::Input::is_gamepad_button_just_pressed(MG_BUTTON_TOUCHPAD) ||
+                   ::Input::is_gamepad_button_just_pressed(MG_BUTTON_MISC1);
+        default:
+            return false;
+    }
+}
+
 bool is_pressed(Type type) {
     ensure_initialized();
     if (type == Count) return false;
@@ -143,7 +218,7 @@ bool is_pressed(Type type) {
     for (int key : s_bindings[static_cast<size_t>(type)]) {
         if (::Input::is_key_pressed(key)) return true;
     }
-    return false;
+    return is_gamepad_action_pressed(type);
 }
 
 bool is_just_pressed(Type type) {
@@ -153,7 +228,7 @@ bool is_just_pressed(Type type) {
     for (int key : s_bindings[static_cast<size_t>(type)]) {
         if (::Input::is_key_just_pressed(key)) return true;
     }
-    return false;
+    return is_gamepad_action_just_pressed(type);
 }
 
 bool is_attack() {

@@ -18,6 +18,17 @@ To build the executable and run the asset pipeline from scratch, ensure you have
 * **Executable Packer:** `upx` (Optional for release builds, compresses binary size)
 * **Pixel Art Editor:** `aseprite` (Optional, auto-exports sprites to C++ headers)
 
+### Embedded Libraries (`./deps`)
+* `minifb` (Software framebuffer and window management)
+* `miniaudio` (Single-header audio rendering library)
+* `pocketmod` (Lightweight MOD music decoder)
+* `minigamepad` (Lightweight digital gamepad input polling)
+
+### Platform Requirements
+* **macOS:** Requires macOS SDK with `GameController.framework`, `IOKit.framework`, `Foundation.framework`, and `CoreFoundation.framework`.
+* **Windows:** Standard `XInput` / DirectInput libraries (`xinput`, `hid`, `setupapi` included in Windows SDK).
+* **Linux:** Requires `libudev-dev` installed (`sudo apt install libudev-dev`).
+
 ---
 
 ### macOS Setup

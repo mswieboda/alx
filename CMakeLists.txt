@@ -26,6 +26,7 @@ include_directories(deps)
 include_directories(src)
 include_directories(deps/miniaudio)
 include_directories(deps/pocketmod)
+include_directories(deps/minigamepad)
 
 set(MINIFB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(MINIFB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -134,12 +135,19 @@ endif()
 target_link_libraries(${GAME_BIN} PRIVATE minifb)
 
 # Platform-specific system dependencies
-if(WIN32)
-    # Required Windows system libraries for MiniFB & MiniAudio
-    target_link_libraries(${GAME_BIN} PRIVATE user32 gdi32 shell32 winmm dwmapi opengl32)
+if(APPLE)
+    target_link_libraries(${GAME_BIN} PRIVATE
+        "-framework GameController"
+        "-framework IOKit"
+        "-framework Foundation"
+        "-framework CoreFoundation"
+    )
+elseif(WIN32)
+    # Required Windows system libraries for MiniFB, MiniAudio & MiniGamepad
+    target_link_libraries(${GAME_BIN} PRIVATE user32 gdi32 shell32 winmm dwmapi opengl32 xinput hid setupapi)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
     find_package(X11 REQUIRED)
-    target_link_libraries(${GAME_BIN} PRIVATE X11::X11 pthread GL)
+    target_link_libraries(${GAME_BIN} PRIVATE X11::X11 pthread GL udev)
 endif()
 
 # Only strip and pack if we are building in Release mode
