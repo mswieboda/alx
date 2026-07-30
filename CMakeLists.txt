@@ -7,6 +7,11 @@ if(POLICY CMP0155)
     set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 endif()
 
+# Global MSVC Runtime Library abstraction (Static CRT: MT for Release, MTd for Debug)
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Initialize project name dynamically from argument
 if(NOT GAME_BIN)
     set(GAME_BIN "alx")
@@ -33,6 +38,16 @@ set(MINIFB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(deps/minifb)
 
+# Clear MSVC debug info format property on minifb targets so CMake doesn't
+# inject /Zi alongside minifb's built-in /ZI Debug compile flag.
+if(MSVC)
+    foreach(tgt minifb minifb_version_info)
+        if(TARGET ${tgt})
+            set_property(TARGET ${tgt} PROPERTY MSVC_DEBUG_INFORMATION_FORMAT "")
+        endif()
+    endforeach()
+endif()
+
 file(GLOB_RECURSE CPP_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE C_SOURCES CONFIGURE_DEPENDS "src/*.c")
 
@@ -53,13 +68,8 @@ target_compile_definitions(${GAME_BIN} PRIVATE
 )
 
 if(MSVC)
-    # MSVC Runtime Library & Debug Info abstractions (CMake 3.15+ / 3.25+)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>$<$<CONFIG:Release>:Embedded>")
-
-    # MSVC Compiler Options
+    # MSVC Compiler Options (Release size optimizations; Debug uses CMake defaults)
     target_compile_options(${GAME_BIN} PRIVATE
-        $<$<CONFIG:Debug>:/Od /Zi /RTC1>
         $<$<CONFIG:Release>:
             /O1         # Minimize size
             /Os         # Favor small code
