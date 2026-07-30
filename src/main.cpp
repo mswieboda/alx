@@ -132,6 +132,5 @@ int main(int argc, char* argv[]) {
     }
 
     Audio::cleanup();
-    Input::cleanup();
     return 0;
 }
