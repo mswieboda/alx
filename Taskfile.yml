@@ -99,18 +99,15 @@ tasks:
       - '{{.pack_assets_bin}} --only=music'
 
   # ==========================================
-  # SUBMODULE SANITY CHECK
+  # SUBMODULE MANAGEMENT
   # ==========================================
-  check-deps:
-    desc: Verify git submodules are checked out
-    internal: true
-    preconditions:
-      - msg: "Missing submodule 'deps/minifb'. Please run: git submodule update --init --recursive"
-        sh: test -e deps/minifb/.git
-      - msg: "Missing submodule 'deps/miniaudio'. Please run: git submodule update --init --recursive"
-        sh: test -e deps/miniaudio/.git
-      - msg: "Missing submodule 'deps/pocketmod'. Please run: git submodule update --init --recursive"
-        sh: test -e deps/pocketmod/.git
+  submodules:
+    desc: Ensure git submodules are initialized and up-to-date
+    status:
+      - test -z "$(git submodule status --recursive | grep -E '^[+-U]')"
+    cmds:
+      - echo "=> Updating out-of-date git submodules..."
+      - git submodule update --init --recursive
 
   # ==========================================
   # C++ BUILD CONFIG (CMake)
@@ -163,7 +160,7 @@ tasks:
     generates:
       - '{{.binary}}'
     cmds:
-      - task: check-deps
+      - task: submodules
       - task: cmake-build-config
         vars: { build: '{{.build}}' }
       - task: assets
