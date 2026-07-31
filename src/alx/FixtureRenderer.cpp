@@ -375,6 +375,50 @@ void draw_seep_dark_mana_connector(int world_x, int world_y, int tile_size, int 
     }
 }
 
+void draw_junction_branch_stubs(const Network& network, int x, int y, int world_x, int world_y, int tile_size, int in_dx, int in_dy, int out_dx, int out_dy, int stream_w) {
+    uint32_t stream_color = 0xFF4A0088;
+    int half_tile = tile_size / 2;
+    int offset = (tile_size - stream_w) / 2;
+    int hub_cx = world_x + tile_size / 2;
+    int hub_cy = world_y + tile_size / 2;
+
+    int dirs_dx[] = { 0, 0, -1, 1 };
+    int dirs_dy[] = { -1, 1, 0, 0 };
+
+    bool drew_stub = false;
+
+    for (int i = 0; i < 4; ++i) {
+        // Skip directions already covered by primary in->out path
+        if (dirs_dx[i] == -in_dx && dirs_dy[i] == -in_dy) continue;
+        if (dirs_dx[i] == out_dx && dirs_dy[i] == out_dy) continue;
+
+        int nx = x + dirs_dx[i];
+        int ny = y + dirs_dy[i];
+        if (!network.in_bounds(nx, ny)) continue;
+
+        const Fixture& neighbor = network.fixture(nx, ny);
+        bool neighbor_has_dark = (neighbor.mana_state == ManaState::Dark) ||
+                                 (neighbor.type == FixtureType::Seep);
+        if (!neighbor_has_dark) continue;
+
+        // Draw half-tile stub from center to edge in this direction
+        if (dirs_dx[i] != 0) {
+            float rx = (dirs_dx[i] > 0) ? static_cast<float>(hub_cx) : static_cast<float>(world_x);
+            Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(half_tile), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            float ry = (dirs_dy[i] > 0) ? static_cast<float>(hub_cy) : static_cast<float>(world_y);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(half_tile), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+        drew_stub = true;
+    }
+
+    // Draw center hub fill to seamlessly connect stubs to primary stream
+    if (drew_stub) {
+        Draw::rect(static_cast<float>(hub_cx - stream_w / 2), static_cast<float>(hub_cy - stream_w / 2),
+                   static_cast<float>(stream_w), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+    }
+}
+
 } // namespace
 
 void draw_background(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty) {
@@ -438,6 +482,11 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                         draw_pipe_dark_mana_straight(world_x, world_y, tile_size, flow_dx, flow_dy, progress, is_head_tile, is_tail_tile, STREAM_WIDTH);
                     } else {
                         draw_pipe_dark_mana_corner(world_x, world_y, tile_size, in_dx, in_dy, out_dx, out_dy, progress, is_head_tile, is_tail_tile, STREAM_WIDTH);
+                    }
+
+                    // Draw junction branch stubs for T and X intersections
+                    if (!is_head_tile && !is_tail_tile) {
+                        draw_junction_branch_stubs(network, x, y, world_x, world_y, tile_size, in_dx, in_dy, out_dx, out_dy, STREAM_WIDTH);
                     }
                 }
                 continue;
