@@ -16,6 +16,7 @@
 #include "Random.h"
 #include "Layer.h"
 #include "ParticleSystem.h"
+#include "ParticleEmitters.h"
 
 namespace alx {
 
@@ -150,28 +151,12 @@ public:
         m_camera.update(dt);
 
         m_player.update(dt, m_tiles, m_network, m_camera);
-        m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
+        m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system);
         m_particle_system.update(dt);
 
         if (m_player.is_attacking()) {
             Collision::Circle hit_circle = m_player.attack_hit_circle(1.0f);
-            float ax = hit_circle.cx;
-            float ay = hit_circle.cy;
-
-            // Gold Sparks along moving attack sweep arc
-            for (int i = 0; i < 2; ++i) {
-                if (Particle* p = m_particle_system.emit()) {
-                    p->x = ax + Random::get_float(-4.0f, 4.0f);
-                    p->y = ay + Random::get_float(-4.0f, 4.0f);
-                    p->render_x = p->x; p->render_y = p->y;
-                    p->vx = Random::get_float(-60.0f, 60.0f);
-                    p->vy = Random::get_float(-60.0f, 60.0f);
-                    p->life = Random::get_float(0.2f, 0.4f);
-                    p->max_life = p->life;
-                    p->color = 0xFFFFD700; p->size = 2;
-                    p->type = ParticleType::Spark;
-                }
-            }
+            ParticleEmitters::spawn_sword_slash_trail(m_particle_system, hit_circle.cx, hit_circle.cy, hit_circle.radius);
         }
 
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
@@ -507,77 +492,13 @@ public:
 
         if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
             draw_node_dark_mana(world_x, world_y, tile_size, progress, fix.process_timer);
-
-            // Refiner processing dark mana: emit buoyant dark purple, very purple, and dark grey embers floating upward
-            if (Random::chance(0.35f)) {
-                if (Particle* p = m_particle_system.emit()) {
-                    float spawn_x = static_cast<float>(world_x + tile_size / 2) + Random::get_float(-6.0f, 6.0f);
-                    float spawn_y = static_cast<float>(world_y + tile_size / 2) + Random::get_float(-6.0f, 6.0f);
-
-                    p->x = spawn_x;
-                    p->y = spawn_y;
-                    p->render_x = spawn_x;
-                    p->render_y = spawn_y;
-                    p->vx = Random::get_float(-10.0f, 10.0f);
-                    p->vy = Random::get_float(-18.0f, -6.0f);
-                    p->life = Random::get_float(0.8f, 1.4f);
-                    p->max_life = p->life;
-
-                    int color_variant = Random::get_int(0, 2);
-                    uint32_t c = 0xFF550088;
-                    if (color_variant == 0) {
-                        // Very Purple / Vibrant Violet
-                        uint8_t r = static_cast<uint8_t>(Random::get_int(130, 170));
-                        uint8_t g = static_cast<uint8_t>(Random::get_int(10, 40));
-                        uint8_t b = static_cast<uint8_t>(Random::get_int(220, 255));
-                        c = 0xFF000000 | (r << 16) | (g << 8) | b;
-                    } else if (color_variant == 1) {
-                        // Dark Purple
-                        uint8_t r = static_cast<uint8_t>(Random::get_int(60, 100));
-                        uint8_t g = static_cast<uint8_t>(Random::get_int(0, 20));
-                        uint8_t b = static_cast<uint8_t>(Random::get_int(120, 160));
-                        c = 0xFF000000 | (r << 16) | (g << 8) | b;
-                    } else {
-                        // Very Dark Grey
-                        uint8_t v = static_cast<uint8_t>(Random::get_int(30, 50));
-                        c = 0xFF000000 | (v << 16) | (v << 8) | (v + 5);
-                    }
-                    p->color = c;
-
-                    p->size = 3;
-                    p->type = ParticleType::LightEmber;
-                }
-            }
+            ParticleEmitters::spawn_refiner_embers(m_particle_system, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));
             return;
         }
 
         if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
             draw_node_light_mana(world_x, world_y, tile_size, progress, fix.process_timer);
-
-            // Light Spire processing light mana: emit buoyant red/yellow/orange embers floating upward
-            if (Random::chance(0.35f)) {
-                if (Particle* p = m_particle_system.emit()) {
-                    float spawn_x = static_cast<float>(world_x + tile_size / 2) + Random::get_float(-6.0f, 6.0f);
-                    float spawn_y = static_cast<float>(world_y + tile_size / 2) + Random::get_float(-6.0f, 6.0f);
-
-                    p->x = spawn_x;
-                    p->y = spawn_y;
-                    p->render_x = spawn_x;
-                    p->render_y = spawn_y;
-                    p->vx = Random::get_float(-10.0f, 10.0f);
-                    p->vy = Random::get_float(-18.0f, -6.0f);
-                    p->life = Random::get_float(0.8f, 1.4f);
-                    p->max_life = p->life;
-
-                    uint8_t red = 0xFF;
-                    uint8_t green = 0xFF;
-                    uint8_t blue = static_cast<uint8_t>(Random::get_int(100, 255)); // White / Yellow / Yellowish-White
-                    p->color = 0xFF000000 | (red << 16) | (green << 8) | blue;
-
-                    p->size = 3;
-                    p->type = ParticleType::LightEmber;
-                }
-            }
+            ParticleEmitters::spawn_spire_embers(m_particle_system, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));
             return;
         }
 

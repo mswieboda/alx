@@ -11,6 +11,7 @@
 #include "alx/Player.h"
 #include "alx/AlloyItem.h"
 #include "alx/WorldCollision.h"
+#include "alx/ParticleEmitters.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -207,7 +208,7 @@ public:
         update_threat_cache();
     }
 
-    void update(float dt, Player* player, const Tiles& tiles, Network& network) {
+    void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr) {
         m_scan_timer += dt;
         if (m_scan_timer >= INDICATOR_SCAN_INTERVAL_SEC) {
             m_scan_timer = 0.0f;
@@ -218,7 +219,7 @@ public:
         update_enemy_push_separation(tiles, network);
 
         if (player) {
-            update_combat_and_loot(*player);
+            update_combat_and_loot(*player, particles);
         }
     }
 
@@ -575,7 +576,7 @@ public:
         }
     }
 
-    void update_combat_and_loot(Player& player) {
+    void update_combat_and_loot(Player& player, ParticleSystem* particles = nullptr) {
         // --- 1. MELEE ATTACK SWIPE PROCESSOR ---
         if (player.is_attacking()) {
             static constexpr int SUB_STEPS = 3;
@@ -619,6 +620,9 @@ public:
                             push_dy = player.facing_dy;
                         }
                         enemy.take_damage(1, push_dx, push_dy);
+                        if (particles) {
+                            ParticleEmitters::spawn_hit_sparks(*particles, enemy.center_x(), enemy.center_y());
+                        }
                     }
                 }
             }
@@ -654,6 +658,9 @@ public:
                                   py + ph > it->y);
                 if (collected) {
                     player.add_cursed_alloy(1);
+                    if (particles) {
+                        ParticleEmitters::spawn_alloy_pickup(*particles, it->x + 4.0f, it->y + 4.0f);
+                    }
                     it = m_alloy_items.erase(it);
                     continue;
                 }

@@ -89,7 +89,7 @@ Re-pack top 8 bits of color with calculated alpha byte.
   * **Sword Sparks (`ParticleType::Spark`):** Linear drag friction ($\vec{V} -= \vec{V} \cdot \text{drag} \cdot dt$).
   * **Light Spire Embers (`ParticleType::LightEmber`):** Upward buoyancy ($v_y -= 15.0 \cdot dt$) and random lateral wobble ($v_x += \text{rand\_range}(-10, 10) \cdot dt$).
 
-### Subtask 2.3: Preset Emitters & Gameplay Event Hookups
+### Subtask 2.3: Preset Emitters & Gameplay Event Hookups [COMPLETED]
 
 * **Objective:** Expose clean standalone emitter functions in `ParticleEmitters.cpp` and connect to gameplay events in `EnemyManager` and `MainScene`.
 * **Functions:**
