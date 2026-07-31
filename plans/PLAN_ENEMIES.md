@@ -1,55 +1,6 @@
 # ENEMIES_PLAN.md - Enemy Combat, Weapon Mechanics & Loot Dropping
 
-This document outlines the detailed roadmap, technical specifications, and design decisions for player weapon combat, enemy AI movement, hit reactions, fixture destruction, and alloy loot drops in *Aetherlux* (`alx`).
-
----
-
-## Technical Specifications & Confirmed Architecture
-
-### 1. Collision & Physics System
-- **Map Wall Collisions**: Uses **Grid AABB Tile Sliding** ($O(1)$ corner tile checks) for fast, lightweight wall collision handling.
-- **Entity & Fixture Interactions**: Uses **Circle-vs-Circle Overlap** for entity-vs-entity movement and **Circle-vs-AABB Ground Rectangles** for solid structure blocking (Refiners, Spires, Seeps), allowing 2.5D depth where characters can walk behind the top of structures.
-- **Enemy Push Separation**: Uses **Iterative Soft Circle Separation** (Position-Based Overlap Displacement) to cleanly push overlapping enemies apart during movement without complex physics engines.
-
-### 2. Player Facing Vector, Health & Attack Mechanics
-- **Player Facing Vector**: Tracks `facing_dx, facing_dy`. Supports 4 cardinal directions (`(0, -1)` Up, `(0, 1)` Down, `(-1, 0)` Left, `(1, 0)` Right) and 4 diagonal directions (`(±0.707, ±0.707)`). Updated on non-zero movement input.
-- **Player Health & i-Frames**:
-  - Max Health: **10 HP** (`max_hp = 10`, `current_hp = 10`).
-  - Damage Invulnerability: **0.5s i-frames** upon taking damage. Flash feedback handled in Phase 6.
-- **Attack Hit Circle**: Uses a **Circle** (`radius = 8.0px`) for 8-directional circle-vs-circle hit detection:
-  - Center offset: `cx = player.center_x() + facing_dx * 8.0f`, `cy = player.center_y() + facing_dy * 8.0f`.
-  - Supports 4 cardinal directions and 4 diagonal directions (`(±0.707, ±0.707)`).
-- **Hit Circle Timing**:
-  - Active Hit Circle Duration: **0.15s**.
-  - Total Attack Cooldown: **0.25s** (~4 swipes/sec max rate).
-
-### 3. Enemy AI, Movement & Spawning System
-- **Movement Engine**: **Vector Steering** (direct target directional vector + AABB wall sliding + soft circle enemy-vs-enemy push separation).
-- **Target Prioritization**: Prioritizes high-value infrastructure targets (**Refiners and Spires**) over standard **Pipes**. If no high-value targets exist, targets the nearest Pipe.
-- **Aggro Interception**: Overrides fixture targeting and chases the Player if the Player enters the enemy's *Detection Radius*.
-- **Wave Spawning**: Enemies spawn in periodic timed wave batches near outer map walls (similar to initial spawn placements).
-
-### 4. Enemy HP, Attack Windup & Impact Reactions
-- **Enemy Health**: 3 HP (`max_hp = 3`, `current_hp = 3`).
-- **Hit Knockback**: Pushed **2px** backward along the attack vector when hit.
-- **Attack Cadence & Windup**:
-  - Attack Rate: **1 attack per second** (1 DPS).
-  - Attack Windup: Enemies stop and execute a **0.3s attack windup** before applying damage to either Player or Fixtures.
-
-### 5. Fixture Health, Destruction & Dark Mana Spills
-- **Fixture Health Pools**:
-  - **Pipes**: **10 HP** (requires 10s of continuous enemy attacking to destroy).
-  - **Refiners & Spires**: **30 HP** (requires 30s of continuous enemy attacking to destroy).
-- **Structure Defenses**: Fixtures are purely passive targets with 0 self-defense capabilities; the Player is the sole line of defense.
-- **Dark Mana Spills**: When an enemy destroys a Pipe or Refiner (or when dark mana decays after N ticks), dark mana spills into the room:
-  - Increases global Twilight darkness level (`m_twilight_level`).
-  - Dark mana packet vanishes and spawns a small temporary purple cloud circle that rapidly fades out.
-
-### 6. Cursed Alloy Loot Drops & Lifespan
-- **On Defeat**: Enemies drop **1 static Cursed Alloy Item Pickup** at the enemy's floor tile position.
-- **Collection**: Player stepping on the item tile collects +1 Alloy and removes the pickup.
-- **Despawn Timer**: Pickups persist for **30 seconds** total before despawning.
-- **Despawn Warning**: Pickups flash visual warning during their final **10 seconds** (seconds 20–30).
+This document outlines the detailed roadmap, and design decisions for player weapon combat, enemy AI movement, hit reactions, fixture destruction, and alloy loot drops in *Aetherlux* (`alx`).
 
 ---
 
@@ -87,6 +38,9 @@ This document outlines the detailed roadmap, technical specifications, and desig
 6. Implement Player defeat state at 0 HP (temporarily disable drawing and player input while scene runs).
 
 ### Phase 5: Improved Player Melee
+
+**NOTE: This may have already been fully [COMPLETED] or partially, evaluate later and update here**
+
 Here is the updated implementation roadmap with Phase 1 combined, LaTeX completely stripped out in favor of C++ pseudo-code, and the requested list formatting.
 
 #### Sub Phase 1: Static Circle Conversion & Debug Visualizer
@@ -173,6 +127,6 @@ for (int step = 0; step < SUB_STEPS; ++step) {
 
 ## Future Considerations & Design Iterations
 
-- **Seep Node Spawning vs. Outer Wall Spawning**: Re-evaluate whether enemies should eventually spawn directly from Dark Seep nodes. *Design note*: Spawning directly from Seeps may undermine player wand visibility range and map panning mechanics, so outer wall wave spawning is preferred for now.
+- **Dark Tower Spawning vs. Outer Wall Spawning**: Re-evaluate whether enemies should eventually spawn directly from to-be-implemented new Dark Tower nodes.
 - **Wave Tuning**: Fine-tune wave spawn intervals, wave sizes, and Twilight-based difficulty scaling.
 - **Purification Enrage & Rubber-Band Equilibrium**: As players refine dark mana into light energy (reducing room Twilight level from default ~90% down toward 0%), dark entities become threatened and enraged by the cleansing of their domain (wander duration drops, target march duration increases, and aggro radius expands slightly). Conversely, if pipes break and dark mana spills back into the room (raising Twilight), enemies temporarily revert toward wandering, acting as a rubber-band recovery mechanism so players can repair broken conduits without facing instant death-spiral game-overs.

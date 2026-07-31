@@ -1,3 +1,5 @@
+**NOTE: PROBABLY OUTDATED**
+
 # *Aetherlux* (`alx`) Overview
 
 * **Project Name:** ***Aetherlux***
