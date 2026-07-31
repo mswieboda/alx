@@ -323,6 +323,40 @@ int Network::find_downstream_pipe_neighbor(
     return -1;
 }
 
+int Network::find_all_downstream_neighbors(
+    int x, int y, ManaState state,
+    const std::vector<int>& dark_dist,
+    const std::vector<int>& light_dist,
+    const std::vector<Fixture>& next_fixtures,
+    DownstreamNeighbor out_neighbors[4]
+) const {
+    int idx = y * m_width + x;
+    int dx[] = { 0, 0, -1, 1 };
+    int dy[] = { -1, 1, 0, 0 };
+
+    const auto& dist = (state == ManaState::Dark) ? dark_dist : light_dist;
+    int my_d = dist[idx];
+    int count = 0;
+
+    if (my_d < 9000) {
+        for (int i = 0; i < 4; ++i) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+            if (in_bounds(nx, ny)) {
+                int n_idx = ny * m_width + nx;
+                const Fixture& n = m_fixtures[n_idx];
+                if ((n.type == FixtureType::Pipe || n.type == FixtureType::Refiner)
+                    && dist[n_idx] > my_d && dist[n_idx] < 9000) {
+                    if (next_fixtures[n_idx].mana_state == ManaState::None) {
+                        out_neighbors[count++] = { n_idx, i };
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
 void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
@@ -406,41 +440,43 @@ void Network::sim_pipe_flow(
         if (!is_connected) {
             next.is_draining = true;
         } else {
-            if (next.is_draining) {
-                Log::info_fmt_t("Pipeline reconnected to Seep at (%d, %d)", x, y);
-            }
             next.is_draining = false;
         }
 
-        // Always attempt to advance Dark Mana downstream 1 tile per sim tick!
-        int chosen_dir = -1;
-        int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
-        if (downstream_idx != -1) {
-            next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
-            int downstream_x = downstream_idx % m_width;
-            int downstream_y = downstream_idx / m_width;
-            next.out_dx = static_cast<int8_t>(downstream_x - x);
-            next.out_dy = static_cast<int8_t>(downstream_y - y);
+        // Advance Dark Mana to ALL downstream empty neighbors simultaneously
+        DownstreamNeighbor neighbors[4];
+        int neighbor_count = find_all_downstream_neighbors(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, neighbors);
 
-            // Advance Dark Mana to downstream empty pipe tile on this tick!
-            if (next_fixtures[downstream_idx].mana_state == ManaState::None) {
-                next_fixtures[downstream_idx].mana_state = ManaState::Dark;
-                next_fixtures[downstream_idx].is_powered = true;
-                next_fixtures[downstream_idx].is_draining = !is_connected; // Inherit draining state!
-                next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
-                next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
-                if (!is_connected) {
-                    Log::info_fmt_t("Draining dark mana head advancing from (%d, %d) to (%d, %d)", x, y, downstream_x, downstream_y);
-                } else {
-                    Log::info_fmt_t("Connected dark mana head advancing from (%d, %d) to (%d, %d)", x, y, downstream_x, downstream_y);
+        if (neighbor_count > 0) {
+            int dx[] = { 0, 0, -1, 1 };
+            int dy[] = { -1, 1, 0, 0 };
+            uint8_t out_mask = 0;
+
+            for (int n = 0; n < neighbor_count; ++n) {
+                int downstream_idx = neighbors[n].idx;
+                int dir_idx = neighbors[n].dir_idx;
+                int downstream_x = downstream_idx % m_width;
+                int downstream_y = downstream_idx / m_width;
+
+                out_mask |= DirectionMask::from_delta(dx[dir_idx], dy[dir_idx]);
+
+                if (next_fixtures[downstream_idx].mana_state == ManaState::None) {
+                    next_fixtures[downstream_idx].mana_state = ManaState::Dark;
+                    next_fixtures[downstream_idx].is_powered = true;
+                    next_fixtures[downstream_idx].is_draining = !is_connected;
+                    next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
+                    next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
                 }
-            } else if (next_fixtures[downstream_idx].type == FixtureType::Refiner) {
-                Log::info_fmt_t("Dark mana head reached Refiner at (%d, %d)", downstream_x, downstream_y);
             }
+            next.flow_out_mask = out_mask;
         } else {
             // Downstream fallback for draining pipes (distance >= 9000)
-            int flow_dx = (next.out_dx != 0) ? next.out_dx : next.move_dx;
-            int flow_dy = (next.out_dy != 0) ? next.out_dy : next.move_dy;
+            int flow_dx = 0, flow_dy = 0;
+            DirectionMask::to_delta(next.flow_out_mask, flow_dx, flow_dy);
+            if (flow_dx == 0 && flow_dy == 0) {
+                flow_dx = next.move_dx;
+                flow_dy = next.move_dy;
+            }
 
             if (flow_dx != 0 || flow_dy != 0) {
                 int nx = x + flow_dx;
@@ -448,21 +484,18 @@ void Network::sim_pipe_flow(
                 if (in_bounds(nx, ny)) {
                     int n_idx = ny * m_width + nx;
                     if (next_fixtures[n_idx].type == FixtureType::Pipe && next_fixtures[n_idx].mana_state == ManaState::None) {
-                        next.out_dx = static_cast<int8_t>(flow_dx);
-                        next.out_dy = static_cast<int8_t>(flow_dy);
+                        next.flow_out_mask = DirectionMask::from_delta(flow_dx, flow_dy);
                         next_fixtures[n_idx].mana_state = ManaState::Dark;
                         next_fixtures[n_idx].is_powered = true;
                         next_fixtures[n_idx].is_draining = true;
                         next_fixtures[n_idx].move_dx = static_cast<int8_t>(flow_dx);
                         next_fixtures[n_idx].move_dy = static_cast<int8_t>(flow_dy);
-                        Log::info_fmt_t("Draining dark mana head advancing downstream from (%d, %d) to (%d, %d)", x, y, nx, ny);
                     }
                 }
             } else {
                 int out_dx = 0, out_dy = 0;
                 downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
-                next.out_dx = static_cast<int8_t>(out_dx);
-                next.out_dy = static_cast<int8_t>(out_dy);
+                next.flow_out_mask = DirectionMask::from_delta(out_dx, out_dy);
             }
         }
 
@@ -476,8 +509,7 @@ void Network::sim_pipe_flow(
                 next.is_draining = false;
                 next.move_dx = 0;
                 next.move_dy = 0;
-                next.out_dx = 0;
-                next.out_dy = 0;
+                next.flow_out_mask = 0;
             }
         }
     }
@@ -515,8 +547,7 @@ void Network::sim_pipe_flow(
             next_fixtures[idx].mana_ttl = 0;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
-            next_fixtures[idx].out_dx = 0;
-            next_fixtures[idx].out_dy = 0;
+            next_fixtures[idx].flow_out_mask = 0;
             continue;
         }
 
@@ -529,8 +560,7 @@ void Network::sim_pipe_flow(
             int downstream_x = downstream_idx % m_width;
             int downstream_y = downstream_idx / m_width;
 
-            next_fixtures[idx].out_dx = static_cast<int8_t>(downstream_x - x);
-            next_fixtures[idx].out_dy = static_cast<int8_t>(downstream_y - y);
+            next_fixtures[idx].flow_out_mask = DirectionMask::from_delta(downstream_x - x, downstream_y - y);
 
             next_fixtures[downstream_idx].mana_state = ManaState::Light;
             next_fixtures[downstream_idx].is_powered = true;
@@ -548,8 +578,7 @@ void Network::sim_pipe_flow(
             next_fixtures[idx].mana_ttl = curr_ttl - 1;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
-            next_fixtures[idx].out_dx = 0;
-            next_fixtures[idx].out_dy = 0;
+            next_fixtures[idx].flow_out_mask = 0;
         }
     }
 }
@@ -564,19 +593,27 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                 next_fixtures[idx].mana_state = ManaState::Dark;
                 next_fixtures[idx].is_powered = true;
 
-                int chosen_dir = -1;
-                int open_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
-                if (open_pipe_idx != -1) {
-                    next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                int dx[] = { 0, 0, -1, 1 };
+                int dy[] = { -1, 1, 0, 0 };
+                uint8_t out_mask = 0;
 
-                    int open_x = open_pipe_idx % m_width;
-                    int open_y = open_pipe_idx / m_width;
-
-                    next_fixtures[open_pipe_idx].mana_state = ManaState::Dark;
-                    next_fixtures[open_pipe_idx].is_powered = true;
-                    next_fixtures[open_pipe_idx].move_dx = static_cast<int8_t>(open_x - x);
-                    next_fixtures[open_pipe_idx].move_dy = static_cast<int8_t>(open_y - y);
+                for (int i = 0; i < 4; ++i) {
+                    int nx = x + dx[i];
+                    int ny = y + dy[i];
+                    if (in_bounds(nx, ny)) {
+                        int n_idx = ny * m_width + nx;
+                        if (m_fixtures[n_idx].type == FixtureType::Pipe
+                            && m_fixtures[n_idx].mana_state == ManaState::None
+                            && next_fixtures[n_idx].mana_state == ManaState::None) {
+                            next_fixtures[n_idx].mana_state = ManaState::Dark;
+                            next_fixtures[n_idx].is_powered = true;
+                            next_fixtures[n_idx].move_dx = static_cast<int8_t>(dx[i]);
+                            next_fixtures[n_idx].move_dy = static_cast<int8_t>(dy[i]);
+                            out_mask |= DirectionMask::from_delta(dx[i], dy[i]);
+                        }
+                    }
                 }
+                next_fixtures[idx].flow_out_mask = out_mask;
             }
             else if (current.type == FixtureType::Refiner) {
                 if (next_fixtures[idx].process_timer > 0) {

@@ -36,6 +36,24 @@ namespace DirectionMask {
     constexpr uint8_t East  = 1 << 1;
     constexpr uint8_t South = 1 << 2;
     constexpr uint8_t West  = 1 << 3;
+
+    // Convert (dx, dy) direction to DirectionMask bit
+    inline constexpr uint8_t from_delta(int dx, int dy) {
+        if (dy == -1) return North;
+        if (dx ==  1) return East;
+        if (dy ==  1) return South;
+        if (dx == -1) return West;
+        return None;
+    }
+
+    // Extract first set direction from mask into (dx, dy)
+    inline void to_delta(uint8_t mask, int& dx, int& dy) {
+        dx = 0; dy = 0;
+        if (mask & North) { dy = -1; return; }
+        if (mask & East)  { dx =  1; return; }
+        if (mask & South) { dy =  1; return; }
+        if (mask & West)  { dx = -1; return; }
+    }
 }
 
 struct Fixture {
@@ -47,8 +65,6 @@ struct Fixture {
     uint8_t flow_out_mask   = 0;    // Outgoing flow direction bitfield
     int8_t move_dx          = 0;           // Directional flow delta X (-1, 0, 1)
     int8_t move_dy          = 0;           // Directional flow delta Y (-1, 0, 1)
-    int8_t out_dx           = 0;           // Outgoing flow delta X for corner rendering
-    int8_t out_dy           = 0;           // Outgoing flow delta Y for corner rendering
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
     uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
     uint8_t last_dir_idx    = 3;     // Round-robin direction memory (0=N, 1=S, 2=W, 3=E)

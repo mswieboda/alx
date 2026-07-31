@@ -375,6 +375,16 @@ void draw_seep_dark_mana_connector(int world_x, int world_y, int tile_size, int 
     }
 }
 
+// Derive primary output direction from flow_out_mask, preferring straight-through
+void primary_out_from_mask(uint8_t mask, int in_dx, int in_dy, int& out_dx, int& out_dy) {
+    out_dx = 0; out_dy = 0;
+    // Prefer straight-through (same direction as incoming flow)
+    uint8_t straight = DirectionMask::from_delta(in_dx, in_dy);
+    if (mask & straight) { out_dx = in_dx; out_dy = in_dy; return; }
+    // Fall back to first set bit
+    DirectionMask::to_delta(mask, out_dx, out_dy);
+}
+
 void draw_junction_branch_stubs(const Network& network, int x, int y, int world_x, int world_y, int tile_size, int in_dx, int in_dy, int out_dx, int out_dy, int stream_w) {
     uint32_t stream_color = 0xFF4A0088;
     int half_tile = tile_size / 2;
@@ -450,8 +460,8 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                 } else if (fix.mana_state == ManaState::Dark) {
                     int in_dx = fix.move_dx;
                     int in_dy = fix.move_dy;
-                    int out_dx = fix.out_dx;
-                    int out_dy = fix.out_dy;
+                    int out_dx = 0, out_dy = 0;
+                    primary_out_from_mask(fix.flow_out_mask, in_dx, in_dy, out_dx, out_dy);
 
                     if (out_dx == 0 && out_dy == 0) {
                         network.downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
@@ -493,13 +503,28 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
             }
 
             if (fix.type == FixtureType::Seep && fix.mana_state == ManaState::Dark) {
-                int out_dx = fix.out_dx;
-                int out_dy = fix.out_dy;
-                if (out_dx == 0 && out_dy == 0) {
-                    out_dx = fix.move_dx;
-                    out_dy = fix.move_dy;
+                // Draw connectors to ALL output directions from flow_out_mask
+                uint8_t mask = fix.flow_out_mask;
+                if (mask == 0) {
+                    // Fallback: check move_dx/dy
+                    int dx = fix.move_dx, dy = fix.move_dy;
+                    if (dx != 0 || dy != 0) {
+                        draw_seep_dark_mana_connector(world_x, world_y, tile_size, dx, dy, STREAM_WIDTH);
+                    }
+                } else {
+                    struct Dir { int dx, dy; uint8_t bit; };
+                    constexpr Dir dirs[] = {
+                        { 0, -1, DirectionMask::North },
+                        { 1,  0, DirectionMask::East  },
+                        { 0,  1, DirectionMask::South },
+                        {-1,  0, DirectionMask::West  }
+                    };
+                    for (const auto& d : dirs) {
+                        if (mask & d.bit) {
+                            draw_seep_dark_mana_connector(world_x, world_y, tile_size, d.dx, d.dy, STREAM_WIDTH);
+                        }
+                    }
                 }
-                draw_seep_dark_mana_connector(world_x, world_y, tile_size, out_dx, out_dy, STREAM_WIDTH);
                 continue;
             }
 
@@ -573,8 +598,8 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
 
                 int in_dx = fix.move_dx;
                 int in_dy = fix.move_dy;
-                int out_dx = fix.out_dx;
-                int out_dy = fix.out_dy;
+                int out_dx = 0, out_dy = 0;
+                primary_out_from_mask(fix.flow_out_mask, in_dx, in_dy, out_dx, out_dy);
 
                 if (out_dx == 0 && out_dy == 0) {
                     network.downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
