@@ -336,10 +336,11 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     if (in_pipe_idx != -1) {
                         next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
 
-                        next_fixtures[in_pipe_idx].mana_state = ManaState::None;
-                        next_fixtures[in_pipe_idx].is_powered = false;
-                        next_fixtures[in_pipe_idx].move_dx = 0;
-                        next_fixtures[in_pipe_idx].move_dy = 0;
+                        // If input pipe was draining, consumption advances its draining state
+                        if (m_fixtures[in_pipe_idx].is_draining) {
+                            next_fixtures[in_pipe_idx].mana_state = ManaState::None;
+                            next_fixtures[in_pipe_idx].is_powered = false;
+                        }
 
                         next_fixtures[idx].is_powered = true;
                         next_fixtures[idx].mana_state = ManaState::Dark;
@@ -375,52 +376,97 @@ void Network::sim_pipe_flow(
     const std::vector<int>& light_dist,
     std::vector<Fixture>& next_fixtures
 ) {
-    struct PipeIndex {
-        int x, y, idx, dist;
-    };
-    std::vector<PipeIndex> active_pipes;
+    // 1. Process Continuous Dark Mana Flow & Receding Draining
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             int idx = y * m_width + x;
-            const Fixture& current = m_fixtures[idx];
-            if (current.type == FixtureType::Pipe && current.is_powered && current.mana_state != ManaState::None) {
-                int d = (current.mana_state == ManaState::Dark) ? dark_dist[idx] : light_dist[idx];
-                active_pipes.push_back({ x, y, idx, d });
+            Fixture& next = next_fixtures[idx];
+
+            if (next.type == FixtureType::Pipe) {
+                if (dark_dist[idx] < 9000) {
+                    // Pipe is connected to an active Seep -> Continuous Dark Mana Stream!
+                    next.mana_state = ManaState::Dark;
+                    next.is_powered = true;
+                    next.is_draining = false;
+
+                    int chosen_dir = -1;
+                    int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
+                    if (downstream_idx != -1) {
+                        next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                        int downstream_x = downstream_idx % m_width;
+                        int downstream_y = downstream_idx / m_width;
+                        next.out_dx = static_cast<int8_t>(downstream_x - x);
+                        next.out_dy = static_cast<int8_t>(downstream_y - y);
+                        next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
+                        next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
+                    } else {
+                        // Set downstream dir towards adjacent Refiner if applicable
+                        int out_dx = 0, out_dy = 0;
+                        downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
+                        next.out_dx = static_cast<int8_t>(out_dx);
+                        next.out_dy = static_cast<int8_t>(out_dy);
+                    }
+                } else if (next.mana_state == ManaState::Dark) {
+                    // Disconnected from Seep -> Enter Draining State!
+                    next.is_draining = true;
+
+                    // Check if upstream neighbor is empty/none -> empty this tile
+                    int in_x = x - next.move_dx;
+                    int in_y = y - next.move_dy;
+                    if (!in_bounds(in_x, in_y) || fixture(in_x, in_y).mana_state == ManaState::None || fixture(in_x, in_y).is_empty()) {
+                        next.mana_state = ManaState::None;
+                        next.is_powered = false;
+                        next.is_draining = false;
+                        next.move_dx = 0;
+                        next.move_dy = 0;
+                        next.out_dx = 0;
+                        next.out_dy = 0;
+                    }
+                }
             }
         }
     }
 
-    std::sort(active_pipes.begin(), active_pipes.end(), [](const PipeIndex& a, const PipeIndex& b) {
+    // 2. Process Discrete Light Mana Orb Flow (Conduits to Spires)
+    struct PipeIndex {
+        int x, y, idx, dist;
+    };
+    std::vector<PipeIndex> light_pipes;
+    for (int y = 0; y < m_height; ++y) {
+        for (int x = 0; x < m_width; ++x) {
+            int idx = y * m_width + x;
+            const Fixture& current = m_fixtures[idx];
+            if (current.type == FixtureType::Pipe && current.is_powered && current.mana_state == ManaState::Light) {
+                light_pipes.push_back({ x, y, idx, light_dist[idx] });
+            }
+        }
+    }
+
+    std::sort(light_pipes.begin(), light_pipes.end(), [](const PipeIndex& a, const PipeIndex& b) {
         return a.dist > b.dist;
     });
 
-    for (const auto& pipe_node : active_pipes) {
+    for (const auto& pipe_node : light_pipes) {
         int idx = pipe_node.idx;
         int x = pipe_node.x;
         int y = pipe_node.y;
 
-        if (next_fixtures[idx].mana_state == ManaState::None) {
+        if (next_fixtures[idx].mana_state != ManaState::Light) continue;
+
+        uint8_t curr_ttl = next_fixtures[idx].mana_ttl;
+        if (curr_ttl <= 1) {
+            next_fixtures[idx].mana_state = ManaState::None;
+            next_fixtures[idx].is_powered = false;
+            next_fixtures[idx].mana_ttl = 0;
+            next_fixtures[idx].move_dx = 0;
+            next_fixtures[idx].move_dy = 0;
+            next_fixtures[idx].out_dx = 0;
+            next_fixtures[idx].out_dy = 0;
             continue;
         }
 
-        ManaState curr_state = next_fixtures[idx].mana_state;
-        uint8_t curr_ttl = next_fixtures[idx].mana_ttl;
-
-        if (curr_state == ManaState::Light) {
-            if (curr_ttl <= 1) {
-                next_fixtures[idx].mana_state = ManaState::None;
-                next_fixtures[idx].is_powered = false;
-                next_fixtures[idx].mana_ttl = 0;
-                next_fixtures[idx].move_dx = 0;
-                next_fixtures[idx].move_dy = 0;
-                next_fixtures[idx].out_dx = 0;
-                next_fixtures[idx].out_dy = 0;
-                continue;
-            }
-        }
-
         int chosen_dir = -1;
-        int downstream_idx = find_downstream_pipe_neighbor(x, y, curr_state, dark_dist, light_dist, next_fixtures, chosen_dir);
+        int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Light, dark_dist, light_dist, next_fixtures, chosen_dir);
 
         if (downstream_idx != -1) {
             next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
@@ -431,9 +477,9 @@ void Network::sim_pipe_flow(
             next_fixtures[idx].out_dx = static_cast<int8_t>(downstream_x - x);
             next_fixtures[idx].out_dy = static_cast<int8_t>(downstream_y - y);
 
-            next_fixtures[downstream_idx].mana_state = curr_state;
+            next_fixtures[downstream_idx].mana_state = ManaState::Light;
             next_fixtures[downstream_idx].is_powered = true;
-            next_fixtures[downstream_idx].mana_ttl = (curr_state == ManaState::Light) ? (curr_ttl - 1) : curr_ttl;
+            next_fixtures[downstream_idx].mana_ttl = curr_ttl - 1;
             next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
             next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
 
@@ -442,9 +488,9 @@ void Network::sim_pipe_flow(
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
         } else {
-            next_fixtures[idx].mana_state = curr_state;
+            next_fixtures[idx].mana_state = ManaState::Light;
             next_fixtures[idx].is_powered = true;
-            next_fixtures[idx].mana_ttl = (curr_state == ManaState::Light) ? (curr_ttl - 1) : curr_ttl;
+            next_fixtures[idx].mana_ttl = curr_ttl - 1;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
             next_fixtures[idx].out_dx = 0;

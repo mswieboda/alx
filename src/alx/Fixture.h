@@ -42,6 +42,7 @@ struct Fixture {
     FixtureType type        = FixtureType::None;
     ManaState mana_state    = ManaState::None;
     bool is_powered         = false;
+    bool is_draining        = false;    // True when pipe is receding/draining downstream
     uint8_t flow_in_mask    = 0;     // Incoming connection bitfield
     uint8_t flow_out_mask   = 0;    // Outgoing flow direction bitfield
     int8_t move_dx          = 0;           // Directional flow delta X (-1, 0, 1)

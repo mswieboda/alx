@@ -140,6 +140,194 @@ void draw_pipe_light_mana(const Network& network, const Fixture& fix, int gx, in
     draw_tile_pipe_light_mana(fix, anim_offset_x, anim_offset_y, world_x, world_y, tile_size);
 }
 
+void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int flow_dx, int flow_dy, float progress, bool is_draining, int stream_w) {
+    if (flow_dx == 0 && flow_dy == 0) return;
+
+    uint32_t stream_color = 0xFF4A0088; // Deep Twilight Purple Base
+    int hub_cx = world_x + tile_size / 2;
+    int hub_cy = world_y + tile_size / 2;
+    int half_tile = tile_size / 2;
+    int offset = (tile_size - stream_w) / 2;
+    float cap_r = static_cast<float>(stream_w) * 0.5f;
+
+    float start_x = static_cast<float>(hub_cx - flow_dx * half_tile);
+    float start_y = static_cast<float>(hub_cy - flow_dy * half_tile);
+    float target_x = static_cast<float>(hub_cx + flow_dx * half_tile);
+    float target_y = static_cast<float>(hub_cy + flow_dy * half_tile);
+
+    float t = std::clamp(progress, 0.0f, 1.0f);
+
+    if (!is_draining) {
+        // --- FILLING / CONTINUOUS FLOW ---
+        float head_dist = t * static_cast<float>(tile_size);
+        float head_x = start_x + static_cast<float>(flow_dx) * head_dist;
+        float head_y = start_y + static_cast<float>(flow_dy) * head_dist;
+
+        if (flow_dx != 0) {
+            float rx = (flow_dx > 0) ? start_x : head_x;
+            float rw = std::abs(head_x - start_x);
+            Draw::rect(rx, static_cast<float>(world_y + offset), rw, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            float ry = (flow_dy > 0) ? start_y : head_y;
+            float rh = std::abs(head_y - start_y);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), rh, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        if (t < 0.98f) {
+            Draw::circle(head_x, head_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+    } else {
+        // --- RECEDING DRAINING FLOW ---
+        float tail_dist = t * static_cast<float>(tile_size);
+        float tail_x = start_x + static_cast<float>(flow_dx) * tail_dist;
+        float tail_y = start_y + static_cast<float>(flow_dy) * tail_dist;
+
+        if (flow_dx != 0) {
+            float rx = (flow_dx > 0) ? tail_x : target_x;
+            float rw = std::abs(target_x - tail_x);
+            Draw::rect(rx, static_cast<float>(world_y + offset), rw, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            float ry = (flow_dy > 0) ? tail_y : target_y;
+            float rh = std::abs(target_y - tail_y);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), rh, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        if (t < 0.98f) {
+            Draw::circle(tail_x, tail_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+    }
+}
+
+void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_dx, int in_dy, int out_dx, int out_dy, float progress, bool is_draining, int stream_w) {
+    uint32_t stream_color = 0xFF4A0088;
+    int hub_cx = world_x + tile_size / 2;
+    int hub_cy = world_y + tile_size / 2;
+    int half_tile = tile_size / 2;
+    int offset = (tile_size - stream_w) / 2;
+    float cap_r = static_cast<float>(stream_w) * 0.5f;
+
+    float t = std::clamp(progress, 0.0f, 1.0f);
+
+    if (!is_draining) {
+        // --- FILLING CORNER ---
+        float entry_t = std::clamp(t / 0.5f, 0.0f, 1.0f);
+        float entry_len = entry_t * static_cast<float>(half_tile);
+
+        float entry_start_x = static_cast<float>(hub_cx - in_dx * half_tile);
+        float entry_start_y = static_cast<float>(hub_cy - in_dy * half_tile);
+        float entry_head_x = entry_start_x + static_cast<float>(in_dx) * entry_len;
+        float entry_head_y = entry_start_y + static_cast<float>(in_dy) * entry_len;
+
+        if (in_dx != 0) {
+            float rx = (in_dx > 0) ? entry_start_x : entry_head_x;
+            Draw::rect(rx, static_cast<float>(world_y + offset), entry_len, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else if (in_dy != 0) {
+            float ry = (in_dy > 0) ? entry_start_y : entry_head_y;
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), entry_len, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        if (t <= 0.5f) {
+            Draw::circle(entry_head_x, entry_head_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            float exit_t = std::clamp((t - 0.5f) / 0.5f, 0.0f, 1.0f);
+            float exit_len = exit_t * static_cast<float>(half_tile);
+
+            float exit_head_x = static_cast<float>(hub_cx) + static_cast<float>(out_dx) * exit_len;
+            float exit_head_y = static_cast<float>(hub_cy) + static_cast<float>(out_dy) * exit_len;
+
+            if (out_dx != 0) {
+                float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : exit_head_x;
+                Draw::rect(rx, static_cast<float>(world_y + offset), exit_len, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+            } else if (out_dy != 0) {
+                float ry = (out_dy > 0) ? static_cast<float>(hub_cy) : exit_head_y;
+                Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), exit_len, stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+
+            if (t < 0.98f) {
+                Draw::circle(exit_head_x, exit_head_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+        }
+
+        if (t >= 0.45f) {
+            Draw::rect(static_cast<float>(hub_cx - stream_w / 2), static_cast<float>(hub_cy - stream_w / 2), static_cast<float>(stream_w), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+    } else {
+        // --- DRAINING CORNER ---
+        if (t <= 0.5f) {
+            float entry_t = std::clamp(t / 0.5f, 0.0f, 1.0f);
+            float tail_len = entry_t * static_cast<float>(half_tile);
+            float entry_start_x = static_cast<float>(hub_cx - in_dx * half_tile);
+            float entry_start_y = static_cast<float>(hub_cy - in_dy * half_tile);
+            float tail_x = entry_start_x + static_cast<float>(in_dx) * tail_len;
+            float tail_y = entry_start_y + static_cast<float>(in_dy) * tail_len;
+
+            float rem_len = static_cast<float>(half_tile) - tail_len;
+
+            if (in_dx != 0) {
+                float rx = (in_dx > 0) ? tail_x : static_cast<float>(hub_cx);
+                Draw::rect(rx, static_cast<float>(world_y + offset), rem_len, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+            } else if (in_dy != 0) {
+                float ry = (in_dy > 0) ? tail_y : static_cast<float>(hub_cy);
+                Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), rem_len, stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+            Draw::circle(tail_x, tail_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+
+            // Exit branch remains full during first half of drain
+            if (out_dx != 0) {
+                float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : static_cast<float>(hub_cx + out_dx * half_tile);
+                Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(half_tile), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+            } else if (out_dy != 0) {
+                float ry = (out_dy > 0) ? static_cast<float>(hub_cy) : static_cast<float>(hub_cy + out_dy * half_tile);
+                Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(half_tile), stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+        } else {
+            float exit_t = std::clamp((t - 0.5f) / 0.5f, 0.0f, 1.0f);
+            float tail_len = exit_t * static_cast<float>(half_tile);
+            float tail_x = static_cast<float>(hub_cx) + static_cast<float>(out_dx) * tail_len;
+            float tail_y = static_cast<float>(hub_cy) + static_cast<float>(out_dy) * tail_len;
+            float rem_len = static_cast<float>(half_tile) - tail_len;
+
+            float exit_end_x = static_cast<float>(hub_cx + out_dx * half_tile);
+            float exit_end_y = static_cast<float>(hub_cy + out_dy * half_tile);
+
+            if (out_dx != 0) {
+                float rx = (out_dx > 0) ? tail_x : exit_end_x;
+                Draw::rect(rx, static_cast<float>(world_y + offset), rem_len, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+            } else if (out_dy != 0) {
+                float ry = (out_dy > 0) ? tail_y : exit_end_y;
+                Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), rem_len, stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+            if (t < 0.98f) {
+                Draw::circle(tail_x, tail_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+            }
+        }
+
+        if (t <= 0.55f) {
+            Draw::rect(static_cast<float>(hub_cx - stream_w / 2), static_cast<float>(hub_cy - stream_w / 2), static_cast<float>(stream_w), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+    }
+}
+
+void draw_seep_dark_mana_connector(int world_x, int world_y, int tile_size, int out_dx, int out_dy, int stream_w) {
+    if (out_dx == 0 && out_dy == 0) return;
+
+    uint32_t stream_color = 0xFF4A0088;
+    int offset = (tile_size - stream_w) / 2;
+    int hub_cx = world_x + tile_size / 2;
+    int hub_cy = world_y + tile_size / 2;
+    float cap_r = static_cast<float>(stream_w) * 0.5f;
+
+    Draw::circle(static_cast<float>(hub_cx), static_cast<float>(hub_cy), cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+
+    if (out_dx != 0) {
+        float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : static_cast<float>(world_x);
+        Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(tile_size / 2), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+    } else if (out_dy != 0) {
+        float ry = (out_dy > 0) ? static_cast<float>(hub_cy) : static_cast<float>(world_y);
+        Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(tile_size / 2), stream_color, true, 1, Layer::GroundFixtureItem);
+    }
+}
+
 } // namespace
 
 void draw_background(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty) {
@@ -155,6 +343,8 @@ void draw_background(const Network& network, int min_tx, int max_tx, int min_ty,
 
 void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float progress) {
     int tile_size = network.tile_size();
+    constexpr int STREAM_WIDTH = 6; // 6px stream width (1px grey wall margin on each side inside 8px pipe channel)
+
     for (int y = min_ty; y <= max_ty; ++y) {
         for (int x = min_tx; x <= max_tx; ++x) {
             const Fixture& fix = network.fixture(x, y);
@@ -167,12 +357,6 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                 if (fix.mana_state == ManaState::Light) {
                     draw_pipe_light_mana(network, fix, x, y, world_x, world_y, tile_size, progress);
                 } else if (fix.mana_state == ManaState::Dark) {
-                    // Render solid dark purple liquid stream underlay with rounded circle caps
-                    uint32_t stream_base_color = 0xFF4A0088; // Deep Twilight Purple Base
-                    int stream_w = 4;
-                    int offset = (tile_size - stream_w) / 2;
-                    float cap_r = static_cast<float>(stream_w) * 0.5f;
-
                     int in_dx = fix.move_dx;
                     int in_dy = fix.move_dy;
                     int out_dx = fix.out_dx;
@@ -186,24 +370,26 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                         out_dy = in_dy;
                     }
 
-                    int flow_dx = (in_dx != 0) ? in_dx : out_dx;
-                    int flow_dy = (in_dy != 0) ? in_dy : out_dy;
-
-                    if (flow_dx != 0) {
-                        // Horizontal stream line + rounded circle end-caps at tile edges
-                        Draw::rect(world_x, world_y + offset, tile_size, stream_w, stream_base_color, true, 1, Layer::GroundFixtureItem);
-                        Draw::circle(static_cast<float>(world_x), static_cast<float>(world_y + tile_size / 2), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
-                        Draw::circle(static_cast<float>(world_x + tile_size), static_cast<float>(world_y + tile_size / 2), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
-                    } else if (flow_dy != 0) {
-                        // Vertical stream line + rounded circle end-caps at tile edges
-                        Draw::rect(world_x + offset, world_y, stream_w, tile_size, stream_base_color, true, 1, Layer::GroundFixtureItem);
-                        Draw::circle(static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
-                        Draw::circle(static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                    bool is_corner = (in_dx != out_dx || in_dy != out_dy);
+                    if (!is_corner) {
+                        int flow_dx = (in_dx != 0) ? in_dx : out_dx;
+                        int flow_dy = (in_dy != 0) ? in_dy : out_dy;
+                        draw_pipe_dark_mana_straight(world_x, world_y, tile_size, flow_dx, flow_dy, progress, fix.is_draining, STREAM_WIDTH);
+                    } else {
+                        draw_pipe_dark_mana_corner(world_x, world_y, tile_size, in_dx, in_dy, out_dx, out_dy, progress, fix.is_draining, STREAM_WIDTH);
                     }
-
-                    // Center junction hub rect so pipe joints meet seamlessly
-                    Draw::rect(world_x + offset, world_y + offset, stream_w, stream_w, stream_base_color, true, 1, Layer::GroundFixtureItem);
                 }
+                continue;
+            }
+
+            if (fix.type == FixtureType::Seep && fix.mana_state == ManaState::Dark) {
+                int out_dx = fix.out_dx;
+                int out_dy = fix.out_dy;
+                if (out_dx == 0 && out_dy == 0) {
+                    out_dx = fix.move_dx;
+                    out_dy = fix.move_dy;
+                }
+                draw_seep_dark_mana_connector(world_x, world_y, tile_size, out_dx, out_dy, STREAM_WIDTH);
                 continue;
             }
 
