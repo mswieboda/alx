@@ -428,7 +428,7 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                     bool upstream_has_dark = network.in_bounds(upstream_x, upstream_y) &&
                         (network.fixture(upstream_x, upstream_y).mana_state == ManaState::Dark || network.fixture(upstream_x, upstream_y).type == FixtureType::Seep);
 
-                    bool is_head_tile = !downstream_has_dark && !fix.is_draining;
+                    bool is_head_tile = !downstream_has_dark;
                     bool is_tail_tile = !upstream_has_dark && fix.is_draining;
 
                     bool is_corner = (in_dx != out_dx || in_dy != out_dy);

@@ -311,7 +311,7 @@ int Network::find_downstream_pipe_neighbor(
             if (in_bounds(nx, ny)) {
                 int n_idx = ny * m_width + nx;
                 const Fixture& n = m_fixtures[n_idx];
-                if (n.type == FixtureType::Pipe && dist[n_idx] > my_d && dist[n_idx] < 9000) {
+                if ((n.type == FixtureType::Pipe || n.type == FixtureType::Refiner) && dist[n_idx] > my_d && dist[n_idx] < 9000) {
                     if (next_fixtures[n_idx].mana_state == ManaState::None) {
                         out_chosen_dir_idx = i;
                         return n_idx;
@@ -406,6 +406,9 @@ void Network::sim_pipe_flow(
         if (!is_connected) {
             next.is_draining = true;
         } else {
+            if (next.is_draining) {
+                Log::info_fmt_t("Pipeline reconnected to Seep at (%d, %d)", x, y);
+            }
             next.is_draining = false;
         }
 
@@ -428,7 +431,11 @@ void Network::sim_pipe_flow(
                 next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
                 if (!is_connected) {
                     Log::info_fmt_t("Draining dark mana head advancing from (%d, %d) to (%d, %d)", x, y, downstream_x, downstream_y);
+                } else {
+                    Log::info_fmt_t("Connected dark mana head advancing from (%d, %d) to (%d, %d)", x, y, downstream_x, downstream_y);
                 }
+            } else if (next_fixtures[downstream_idx].type == FixtureType::Refiner) {
+                Log::info_fmt_t("Dark mana head reached Refiner at (%d, %d)", downstream_x, downstream_y);
             }
         } else {
             // Downstream fallback for draining pipes (distance >= 9000)
