@@ -1,6 +1,7 @@
 #include "FixtureRenderer.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitters.h"
+#include "Random.h"
 #include "Layer.h"
 #include "Game.h"
 #include "core/Draw.h"
@@ -241,7 +242,7 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                     int flow_dx = (in_dx != 0) ? in_dx : out_dx;
                     int flow_dy = (in_dy != 0) ? in_dy : out_dy;
                     if (flow_dx != 0 || flow_dy != 0) {
-                        ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, 2, tile_size);
+                        ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, 1, tile_size);
                     }
                 }
             }

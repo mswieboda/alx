@@ -216,29 +216,33 @@ void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int di
             p->render_x = p->x;
             p->render_y = p->y;
 
-            // Lingering 0.5s - 0.8s lifetime for dense fluid trail
-            p->life = Random::get_float(0.5f, 0.8f);
+            // Lifetime 0.75s - 0.95s for a rich, continuous fluid body
+            p->life = Random::get_float(0.75f, 1.0f);
             p->max_life = p->life;
             p->param_a = Random::get_float(0.0f, 6.28318f); // Initial wave phase
 
             p->tile_x = static_cast<uint16_t>(tile_x);
             p->tile_y = static_cast<uint16_t>(tile_y);
 
-            // Multi-tone Twilight Violet & Magenta palette
-            int color_choice = Random::get_int(0, 2);
-            if (color_choice == 0) {
-                p->color = 0xFF9900FF; // Glowing Twilight Violet
-            } else if (color_choice == 1) {
-                p->color = 0xFF5500AA; // Deep Purple
+            // Dominant Liquid Twilight Purple Palette (80% rich purple, 15% deep purple, 5% bright highlight)
+            float color_roll = Random::get_float(0.0f, 1.0f);
+            if (color_roll < 0.85f) {
+                // Cohesive Rich Liquid Purple with subtle organic tone variance
+                uint8_t r = static_cast<uint8_t>(Random::get_int(140, 150));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 10));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(230, 250));
+                p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
+            } else if (color_roll < 0.95f) {
+                p->color = 0xFF6600BB; // Deeper liquid core purple
             } else {
-                p->color = 0xFF3A0066; // Dark Shadow Purple
+                p->color = 0xFFDD44FF; // Bright liquid highlight droplet
             }
 
-            // Size profile: 60% 2x2px, 30% 1x1px droplets, 10% 3x3px core blobs
+            // Size profile: 70% 2x2px, 20% 3x3px core blobs, 10% 1x1px droplets
             float size_roll = Random::get_float(0.0f, 1.0f);
-            if (size_roll < 0.30f) {
+            if (size_roll < 0.10f) {
                 p->size = 1;
-            } else if (size_roll < 0.90f) {
+            } else if (size_roll < 0.80f) {
                 p->size = 2;
             } else {
                 p->size = 3;
