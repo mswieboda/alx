@@ -30,7 +30,7 @@ This plan is structured to execute each sub-task independently, run build verifi
 
 ## Phase 1: Core Particle Engine Infrastructure
 
-### Subtask 1.1: Data Layout (`Particle.h`)
+### Subtask 1.1: Data Layout (`Particle.h`) [COMPLETED]
 
 * **Objective:** Define a compact, cache-aligned struct that supports both Kinematic Physics (Route A) and Parametric Pathing (Route B) without dynamic allocations.
 * **Algorithm / Data Fields:**
