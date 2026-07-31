@@ -77,29 +77,25 @@ Re-pack top 8 bits of color with calculated alpha byte.
 
 ## Phase 2: Generic Emitters & Preset Behaviors
 
-### Subtask 2.1: Kinematic Physics Loop (Route A)
+### Subtask 2.1: Header/CPP Refactoring & Emitter Infrastructure (`ParticleSystem.cpp`, `ParticleEmitters.h`, `ParticleEmitters.cpp`) [COMPLETED]
+
+* **Objective:** Move `ParticleSystem` method definitions into `ParticleSystem.cpp` and create `ParticleEmitters.h` / `ParticleEmitters.cpp` to decouple particle creation logic from system storage.
+* **Files:** `src/alx/ParticleSystem.h`, `src/alx/ParticleSystem.cpp`, `src/alx/ParticleEmitters.h`, `src/alx/ParticleEmitters.cpp`.
+
+### Subtask 2.2: Kinematic Physics Loop (Route A)
 
 * **Objective:** Implement physics-driven particles for combat impacts and ambient spires.
 * **Algorithms:**
-* **Sword Sparks (`ParticleType::Spark`):**
-* Update: Apply velocity drag $\vec{V} = \vec{V} \times (0.90)^{\text{dt\_scale}}$.
-* Motion: $\vec{P} = \vec{P} + \vec{V} \cdot dt$.
+  * **Sword Sparks (`ParticleType::Spark`):** Linear drag friction ($\vec{V} -= \vec{V} \cdot \text{drag} \cdot dt$).
+  * **Light Spire Embers (`ParticleType::LightEmber`):** Upward buoyancy ($v_y -= 15.0 \cdot dt$) and random lateral wobble ($v_x += \text{rand\_range}(-10, 10) \cdot dt$).
 
+### Subtask 2.3: Preset Emitters & Gameplay Event Hookups
 
-* **Light Spire Embers (`ParticleType::LightEmber`):**
-* Update: Upward buoyancy ($v_y -= 15.0 \cdot dt$) and random lateral wobble ($v_x += \text{rand\_range}(-10, 10) \cdot dt$).
-* Motion: $\vec{P} = \vec{P} + \vec{V} \cdot dt$.
-
-
-
-
-
-### Subtask 2.2: Combat & Spire Helper Emitters
-
-* **Objective:** Expose clean trigger functions for `MainScene`.
-* **Sub-Steps:**
-* `spawn_hit_sparks(float x, float y, int count)`: Spawns a radial burst of 8–12 bright amber/gold sparks upon sword-to-enemy collision.
-* `spawn_spire_embers(float x, float y)`: Periodically called by active Light Spires to float cyan light particles upward into the room.
+* **Objective:** Expose clean standalone emitter functions in `ParticleEmitters.cpp` and connect to gameplay events in `EnemyManager` and `MainScene`.
+* **Functions:**
+  * `ParticleEmitters::spawn_hit_sparks(ps, x, y, count)`: Amber/gold radial burst upon sword-to-enemy hit.
+  * `ParticleEmitters::spawn_alloy_pickup(ps, x, y, count)`: Sparkle burst on alloy nugget pickup.
+  * `ParticleEmitters::spawn_spire_embers(ps, x, y, count)`: Floating cyan embers from active spires.
 
 
 
