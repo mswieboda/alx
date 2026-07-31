@@ -6,6 +6,8 @@
 
 namespace alx {
 
+struct Camera;
+
 class ParticleSystem {
 public:
     static constexpr size_t POOL_CAPACITY = 1024; // 256; // could even do 2048 if needed
@@ -22,8 +24,8 @@ public:
     /// Updates lifetime timers and particle movement.
     void update(float dt);
 
-    /// Enqueues draw commands for all active particles with dynamic alpha falloff.
-    void draw() const;
+    /// Enqueues draw commands for active particles with camera viewport culling.
+    void draw(const Camera* camera = nullptr) const;
 
     /// Returns the number of currently active particles.
     [[nodiscard]] size_t active_count() const;

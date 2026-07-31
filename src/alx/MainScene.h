@@ -239,7 +239,7 @@ public:
         draw_tiles_and_network(pixel_buffer, sub_tick_progress);
         m_enemy_manager.draw_enemies(pixel_buffer, alpha);
         m_player.draw(pixel_buffer, alpha);
-        m_particle_system.draw();
+        m_particle_system.draw(&m_camera);
     }
 
     void draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) override {
@@ -399,7 +399,7 @@ public:
         FixtureRenderer::draw_powered_indicators(m_network, min_tx, max_tx, min_ty, max_ty);
 
         // Trigger Particle Emitters for active network tiles
-        FixtureRenderer::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty, m_last_dt);
+        FixtureRenderer::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty, m_last_dt, SIM_TICK_RATE);
     }
 
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size) {

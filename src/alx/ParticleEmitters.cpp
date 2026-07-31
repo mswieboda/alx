@@ -180,7 +180,7 @@ void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count) {
     }
 }
 
-void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int dir_x, int dir_y, int count, int tile_size) {
+void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int dir_x, int dir_y, float sim_tick_rate, int count, int tile_size) {
     if (dir_x == 0 && dir_y == 0) return;
 
     for (int i = 0; i < count; ++i) {
@@ -216,8 +216,9 @@ void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int di
             p->render_x = p->x;
             p->render_y = p->y;
 
-            // Lifetime 0.75s - 0.95s for a rich, continuous fluid body
-            p->life = Random::get_float(0.75f, 1.0f);
+            // Dynamically scale TTL based on sim_tick_rate so particles seamlessly cross tile boundaries
+            float base_rate = (sim_tick_rate > 0.01f) ? sim_tick_rate : 0.6f;
+            p->life = base_rate * Random::get_float(1.15f, 1.40f);
             p->max_life = p->life;
             p->param_a = Random::get_float(0.0f, 6.28318f); // Initial wave phase
 

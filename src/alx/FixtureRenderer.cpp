@@ -166,8 +166,44 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
             if (fix.type == FixtureType::Pipe) {
                 if (fix.mana_state == ManaState::Light) {
                     draw_pipe_light_mana(network, fix, x, y, world_x, world_y, tile_size, progress);
+                } else if (fix.mana_state == ManaState::Dark) {
+                    // Render solid dark purple liquid stream underlay with rounded circle caps
+                    uint32_t stream_base_color = 0xFF4A0088; // Deep Twilight Purple Base
+                    int stream_w = 4;
+                    int offset = (tile_size - stream_w) / 2;
+                    float cap_r = static_cast<float>(stream_w) * 0.5f;
+
+                    int in_dx = fix.move_dx;
+                    int in_dy = fix.move_dy;
+                    int out_dx = fix.out_dx;
+                    int out_dy = fix.out_dy;
+
+                    if (out_dx == 0 && out_dy == 0) {
+                        network.downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
+                    }
+                    if (out_dx == 0 && out_dy == 0) {
+                        out_dx = in_dx;
+                        out_dy = in_dy;
+                    }
+
+                    int flow_dx = (in_dx != 0) ? in_dx : out_dx;
+                    int flow_dy = (in_dy != 0) ? in_dy : out_dy;
+
+                    if (flow_dx != 0) {
+                        // Horizontal stream line + rounded circle end-caps at tile edges
+                        Draw::rect(world_x, world_y + offset, tile_size, stream_w, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                        Draw::circle(static_cast<float>(world_x), static_cast<float>(world_y + tile_size / 2), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                        Draw::circle(static_cast<float>(world_x + tile_size), static_cast<float>(world_y + tile_size / 2), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                    } else if (flow_dy != 0) {
+                        // Vertical stream line + rounded circle end-caps at tile edges
+                        Draw::rect(world_x + offset, world_y, stream_w, tile_size, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                        Draw::circle(static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                        Draw::circle(static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size), cap_r, stream_base_color, true, 1, Layer::GroundFixtureItem);
+                    }
+
+                    // Center junction hub rect so pipe joints meet seamlessly
+                    Draw::rect(world_x + offset, world_y + offset, stream_w, stream_w, stream_base_color, true, 1, Layer::GroundFixtureItem);
                 }
-                // Note: Dark mana for pipes is handled via particle system in emit_particles!
                 continue;
             }
 
@@ -212,17 +248,17 @@ void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int
     }
 }
 
-void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float dt) {
+void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float dt, float sim_tick_rate) {
     static float emit_timer = 0.0f;
     emit_timer += dt;
 
-    constexpr float EMIT_INTERVAL = 0.04f; // 25 Hz framerate-independent particle emission rate
+    float emit_interval = (sim_tick_rate > 0.01f) ? (sim_tick_rate / 15.0f) : 0.04f;
 
     bool should_emit_pipe = false;
-    if (emit_timer >= EMIT_INTERVAL) {
+    if (emit_timer >= emit_interval) {
         should_emit_pipe = true;
-        emit_timer -= EMIT_INTERVAL;
-        if (emit_timer > EMIT_INTERVAL * 2.0f) {
+        emit_timer -= emit_interval;
+        if (emit_timer > emit_interval * 2.0f) {
             emit_timer = 0.0f; // Clamp accumulator lag spikes
         }
     }
@@ -258,7 +294,7 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                     int flow_dx = (in_dx != 0) ? in_dx : out_dx;
                     int flow_dy = (in_dy != 0) ? in_dy : out_dy;
                     if (flow_dx != 0 || flow_dy != 0) {
-                        ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, 1, tile_size);
+                        ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, sim_tick_rate, 1, tile_size);
                     }
                 }
             }

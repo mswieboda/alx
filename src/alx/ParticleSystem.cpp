@@ -1,6 +1,8 @@
 #include "alx/ParticleSystem.h"
 #include "alx/Random.h"
 #include "alx/Layer.h"
+#include "alx/Camera.h"
+#include "Game.h"
 #include "core/Draw.h"
 #include "core/Log.h"
 #include <cmath>
@@ -108,9 +110,29 @@ void ParticleSystem::update(float dt) {
     }
 }
 
-void ParticleSystem::draw() const {
+void ParticleSystem::draw(const Camera* camera) const {
+    float cam_min_x = -99999.0f, cam_max_x = 99999.0f;
+    float cam_min_y = -99999.0f, cam_max_y = 99999.0f;
+
+    if (camera) {
+        float view_w = static_cast<float>(Game::WIDTH) / camera->zoom;
+        float view_h = static_cast<float>(Game::HEIGHT) / camera->zoom;
+        constexpr float margin = 16.0f;
+
+        cam_min_x = camera->x - margin;
+        cam_max_x = camera->x + view_w + margin;
+        cam_min_y = camera->y - margin;
+        cam_max_y = camera->y + view_h + margin;
+    }
+
     for (const auto& p : m_pool) {
         if (!p.active || p.life <= 0.0f) continue;
+
+        // Viewport Culling Check
+        if (p.render_x < cam_min_x || p.render_x > cam_max_x ||
+            p.render_y < cam_min_y || p.render_y > cam_max_y) {
+            continue;
+        }
 
         float progress = (p.max_life > 0.0f) ? (p.life / p.max_life) : 1.0f;
         uint32_t alpha = static_cast<uint8_t>(progress * 255.0f);
@@ -118,7 +140,7 @@ void ParticleSystem::draw() const {
 
         int z_idx = PARTICLE_Z_INDEX;
         if (p.type == ParticleType::ManaPulseStraight || p.type == ParticleType::ManaPulseCurved) {
-            z_idx = Layer::GroundFixtureItem;
+            z_idx = Layer::GroundFixtureItemFX; // Z = 3 (sloshing ripples render on top of solid underlay stream Z = 2)
         }
 
         if (p.size <= 2) {
