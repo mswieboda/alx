@@ -376,53 +376,73 @@ void Network::sim_pipe_flow(
     const std::vector<int>& light_dist,
     std::vector<Fixture>& next_fixtures
 ) {
-    // 1. Process Continuous Dark Mana Flow & Receding Draining
+    // 1. Process Iterative Dark Mana Pipeline Flow & Receding Draining
+    struct DarkPipeIndex {
+        int x, y, idx, dist;
+    };
+    std::vector<DarkPipeIndex> dark_pipes;
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             int idx = y * m_width + x;
-            Fixture& next = next_fixtures[idx];
+            const Fixture& current = m_fixtures[idx];
+            if (current.type == FixtureType::Pipe && current.mana_state == ManaState::Dark) {
+                dark_pipes.push_back({ x, y, idx, dark_dist[idx] });
+            }
+        }
+    }
 
-            if (next.type == FixtureType::Pipe) {
-                if (dark_dist[idx] < 9000) {
-                    // Pipe is connected to an active Seep -> Continuous Dark Mana Stream!
-                    next.mana_state = ManaState::Dark;
-                    next.is_powered = true;
-                    next.is_draining = false;
+    // Sort by distance from Seep ascending (closest to Seep first)
+    std::sort(dark_pipes.begin(), dark_pipes.end(), [](const DarkPipeIndex& a, const DarkPipeIndex& b) {
+        return a.dist < b.dist;
+    });
 
-                    int chosen_dir = -1;
-                    int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
-                    if (downstream_idx != -1) {
-                        next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
-                        int downstream_x = downstream_idx % m_width;
-                        int downstream_y = downstream_idx / m_width;
-                        next.out_dx = static_cast<int8_t>(downstream_x - x);
-                        next.out_dy = static_cast<int8_t>(downstream_y - y);
-                        next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
-                        next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
-                    } else {
-                        // Set downstream dir towards adjacent Refiner if applicable
-                        int out_dx = 0, out_dy = 0;
-                        downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
-                        next.out_dx = static_cast<int8_t>(out_dx);
-                        next.out_dy = static_cast<int8_t>(out_dy);
-                    }
-                } else if (next.mana_state == ManaState::Dark) {
-                    // Disconnected from Seep -> Enter Draining State!
-                    next.is_draining = true;
+    for (const auto& pipe_node : dark_pipes) {
+        int idx = pipe_node.idx;
+        int x = pipe_node.x;
+        int y = pipe_node.y;
+        Fixture& next = next_fixtures[idx];
 
-                    // Check if upstream neighbor is empty/none -> empty this tile
-                    int in_x = x - next.move_dx;
-                    int in_y = y - next.move_dy;
-                    if (!in_bounds(in_x, in_y) || fixture(in_x, in_y).mana_state == ManaState::None || fixture(in_x, in_y).is_empty()) {
-                        next.mana_state = ManaState::None;
-                        next.is_powered = false;
-                        next.is_draining = false;
-                        next.move_dx = 0;
-                        next.move_dy = 0;
-                        next.out_dx = 0;
-                        next.out_dy = 0;
-                    }
+        if (dark_dist[idx] < 9000) {
+            // Connected to active Seep -> Advance flow 1 tile downstream per tick
+            next.is_draining = false;
+
+            int chosen_dir = -1;
+            int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
+            if (downstream_idx != -1) {
+                next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                int downstream_x = downstream_idx % m_width;
+                int downstream_y = downstream_idx / m_width;
+                next.out_dx = static_cast<int8_t>(downstream_x - x);
+                next.out_dy = static_cast<int8_t>(downstream_y - y);
+
+                // Advance Dark Mana to downstream pipe on this tick!
+                if (next_fixtures[downstream_idx].mana_state == ManaState::None) {
+                    next_fixtures[downstream_idx].mana_state = ManaState::Dark;
+                    next_fixtures[downstream_idx].is_powered = true;
+                    next_fixtures[downstream_idx].is_draining = false;
+                    next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
+                    next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
                 }
+            } else {
+                int out_dx = 0, out_dy = 0;
+                downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
+                next.out_dx = static_cast<int8_t>(out_dx);
+                next.out_dy = static_cast<int8_t>(out_dy);
+            }
+        } else {
+            // Disconnected from Seep -> Enter Draining State!
+            next.is_draining = true;
+
+            int in_x = x - next.move_dx;
+            int in_y = y - next.move_dy;
+            if (!in_bounds(in_x, in_y) || m_fixtures[in_y * m_width + in_x].mana_state == ManaState::None || m_fixtures[in_y * m_width + in_x].is_empty()) {
+                next.mana_state = ManaState::None;
+                next.is_powered = false;
+                next.is_draining = false;
+                next.move_dx = 0;
+                next.move_dy = 0;
+                next.out_dx = 0;
+                next.out_dy = 0;
             }
         }
     }

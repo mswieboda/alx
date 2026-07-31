@@ -140,7 +140,7 @@ void draw_pipe_light_mana(const Network& network, const Fixture& fix, int gx, in
     draw_tile_pipe_light_mana(fix, anim_offset_x, anim_offset_y, world_x, world_y, tile_size);
 }
 
-void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int flow_dx, int flow_dy, float progress, bool is_draining, int stream_w) {
+void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int flow_dx, int flow_dy, float progress, bool is_head_tile, bool is_tail_tile, int stream_w) {
     if (flow_dx == 0 && flow_dy == 0) return;
 
     uint32_t stream_color = 0xFF4A0088; // Deep Twilight Purple Base
@@ -157,8 +157,15 @@ void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int f
 
     float t = std::clamp(progress, 0.0f, 1.0f);
 
-    if (!is_draining) {
-        // --- FILLING / CONTINUOUS FLOW ---
+    if (!is_head_tile && !is_tail_tile) {
+        // --- FULLY FILLED MIDDLE TILE (Solid 16px Edge-to-Edge Stream) ---
+        if (flow_dx != 0) {
+            Draw::rect(static_cast<float>(world_x), static_cast<float>(world_y + offset), static_cast<float>(tile_size), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            Draw::rect(static_cast<float>(world_x + offset), static_cast<float>(world_y), static_cast<float>(stream_w), static_cast<float>(tile_size), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+    } else if (is_head_tile) {
+        // --- ADVANCING LEADING HEAD TILE ---
         float head_dist = t * static_cast<float>(tile_size);
         float head_x = start_x + static_cast<float>(flow_dx) * head_dist;
         float head_y = start_y + static_cast<float>(flow_dy) * head_dist;
@@ -176,8 +183,8 @@ void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int f
         if (t < 0.98f) {
             Draw::circle(head_x, head_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
         }
-    } else {
-        // --- RECEDING DRAINING FLOW ---
+    } else if (is_tail_tile) {
+        // --- RECEDING DRAINING TAIL TILE ---
         float tail_dist = t * static_cast<float>(tile_size);
         float tail_x = start_x + static_cast<float>(flow_dx) * tail_dist;
         float tail_y = start_y + static_cast<float>(flow_dy) * tail_dist;
@@ -198,7 +205,7 @@ void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int f
     }
 }
 
-void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_dx, int in_dy, int out_dx, int out_dy, float progress, bool is_draining, int stream_w) {
+void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_dx, int in_dy, int out_dx, int out_dy, float progress, bool is_head_tile, bool is_tail_tile, int stream_w) {
     uint32_t stream_color = 0xFF4A0088;
     int hub_cx = world_x + tile_size / 2;
     int hub_cy = world_y + tile_size / 2;
@@ -208,8 +215,30 @@ void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_
 
     float t = std::clamp(progress, 0.0f, 1.0f);
 
-    if (!is_draining) {
-        // --- FILLING CORNER ---
+    if (!is_head_tile && !is_tail_tile) {
+        // --- FULLY FILLED CORNER TILE (Seamless 90-degree Hub Connection) ---
+        float entry_start_x = static_cast<float>(hub_cx - in_dx * half_tile);
+        float entry_start_y = static_cast<float>(hub_cy - in_dy * half_tile);
+
+        if (in_dx != 0) {
+            float rx = (in_dx > 0) ? entry_start_x : static_cast<float>(hub_cx);
+            Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(half_tile), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else if (in_dy != 0) {
+            float ry = (in_dy > 0) ? entry_start_y : static_cast<float>(hub_cy);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(half_tile), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        if (out_dx != 0) {
+            float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : static_cast<float>(hub_cx + out_dx * half_tile);
+            Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(half_tile), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else if (out_dy != 0) {
+            float ry = (out_dy > 0) ? static_cast<float>(hub_cy) : static_cast<float>(hub_cy + out_dy * half_tile);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(half_tile), stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        Draw::rect(static_cast<float>(hub_cx - stream_w / 2), static_cast<float>(hub_cy - stream_w / 2), static_cast<float>(stream_w), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+    } else if (is_head_tile) {
+        // --- ADVANCING LEADING HEAD CORNER ---
         float entry_t = std::clamp(t / 0.5f, 0.0f, 1.0f);
         float entry_len = entry_t * static_cast<float>(half_tile);
 
@@ -251,8 +280,8 @@ void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_
         if (t >= 0.45f) {
             Draw::rect(static_cast<float>(hub_cx - stream_w / 2), static_cast<float>(hub_cy - stream_w / 2), static_cast<float>(stream_w), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
         }
-    } else {
-        // --- DRAINING CORNER ---
+    } else if (is_tail_tile) {
+        // --- RECEDING DRAINING TAIL CORNER ---
         if (t <= 0.5f) {
             float entry_t = std::clamp(t / 0.5f, 0.0f, 1.0f);
             float tail_len = entry_t * static_cast<float>(half_tile);
@@ -260,7 +289,6 @@ void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_
             float entry_start_y = static_cast<float>(hub_cy - in_dy * half_tile);
             float tail_x = entry_start_x + static_cast<float>(in_dx) * tail_len;
             float tail_y = entry_start_y + static_cast<float>(in_dy) * tail_len;
-
             float rem_len = static_cast<float>(half_tile) - tail_len;
 
             if (in_dx != 0) {
@@ -272,7 +300,6 @@ void draw_pipe_dark_mana_corner(int world_x, int world_y, int tile_size, int in_
             }
             Draw::circle(tail_x, tail_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
 
-            // Exit branch remains full during first half of drain
             if (out_dx != 0) {
                 float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : static_cast<float>(hub_cx + out_dx * half_tile);
                 Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(half_tile), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
@@ -370,13 +397,27 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                         out_dy = in_dy;
                     }
 
+                    int downstream_x = x + out_dx;
+                    int downstream_y = y + out_dy;
+                    int upstream_x = x - in_dx;
+                    int upstream_y = y - in_dy;
+
+                    bool downstream_has_dark = network.in_bounds(downstream_x, downstream_y) &&
+                        (network.fixture(downstream_x, downstream_y).mana_state == ManaState::Dark || network.fixture(downstream_x, downstream_y).type == FixtureType::Refiner);
+
+                    bool upstream_has_dark = network.in_bounds(upstream_x, upstream_y) &&
+                        (network.fixture(upstream_x, upstream_y).mana_state == ManaState::Dark || network.fixture(upstream_x, upstream_y).type == FixtureType::Seep);
+
+                    bool is_head_tile = !downstream_has_dark && !fix.is_draining;
+                    bool is_tail_tile = !upstream_has_dark && fix.is_draining;
+
                     bool is_corner = (in_dx != out_dx || in_dy != out_dy);
                     if (!is_corner) {
                         int flow_dx = (in_dx != 0) ? in_dx : out_dx;
                         int flow_dy = (in_dy != 0) ? in_dy : out_dy;
-                        draw_pipe_dark_mana_straight(world_x, world_y, tile_size, flow_dx, flow_dy, progress, fix.is_draining, STREAM_WIDTH);
+                        draw_pipe_dark_mana_straight(world_x, world_y, tile_size, flow_dx, flow_dy, progress, is_head_tile, is_tail_tile, STREAM_WIDTH);
                     } else {
-                        draw_pipe_dark_mana_corner(world_x, world_y, tile_size, in_dx, in_dy, out_dx, out_dy, progress, fix.is_draining, STREAM_WIDTH);
+                        draw_pipe_dark_mana_corner(world_x, world_y, tile_size, in_dx, in_dy, out_dx, out_dy, progress, is_head_tile, is_tail_tile, STREAM_WIDTH);
                     }
                 }
                 continue;
@@ -474,15 +515,17 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                     out_dy = in_dy;
                 }
 
-                // If straight segment (or entry segment)
-                bool is_corner = (in_dx != out_dx || in_dy != out_dy);
-                if (!is_corner) {
-                    int flow_dx = (in_dx != 0) ? in_dx : out_dx;
-                    int flow_dy = (in_dy != 0) ? in_dy : out_dy;
-                    if (flow_dx != 0 || flow_dy != 0) {
-                        ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, sim_tick_rate, 1, tile_size);
-                    }
+                int flow_dx = (in_dx != 0) ? in_dx : out_dx;
+                int flow_dy = (in_dy != 0) ? in_dy : out_dy;
+
+                if (flow_dx == 0 && flow_dy == 0) {
+                    network.downstream_dir(x, y, ManaState::Dark, flow_dx, flow_dy);
                 }
+                if (flow_dx == 0 && flow_dy == 0) {
+                    flow_dx = 1; // Fallback rightwards flow
+                }
+
+                ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, sim_tick_rate, 1, tile_size);
             }
             else if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
                 ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));
