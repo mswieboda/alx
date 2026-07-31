@@ -59,15 +59,23 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
 void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count) {
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {
-            p->x = x + Random::get_float(-4.0f, 4.0f);
-            p->y = y + Random::get_float(-4.0f, 4.0f);
+            // Tight 1px emit radius at exact contact point
+            p->x = x + Random::get_float(-1.5f, 1.5f);
+            p->y = y + Random::get_float(-1.5f, 1.5f);
             p->render_x = p->x;
             p->render_y = p->y;
-            p->vx = Random::get_float(-110.0f, 110.0f);
-            p->vy = Random::get_float(-110.0f, 110.0f);
-            p->life = Random::get_float(0.3f, 0.5f);
+            p->vx = Random::get_float(-25.0f, 25.0f);
+            p->vy = Random::get_float(-25.0f, 25.0f);
+            p->life = Random::get_float(0.35f, 0.75f);
             p->max_life = p->life;
-            p->color = 0xFFFFD700; // Gold / amber hit spark
+
+            // Range of Dark Orange to Dark Red
+            uint8_t r = static_cast<uint8_t>(Random::get_int(135, 155)); // Warm red base
+            uint8_t g = static_cast<uint8_t>(Random::get_int(10, 55));   // Low = Dark Red, High = Dark Orange
+            uint8_t b = static_cast<uint8_t>(Random::get_int(0, 10));    // Keep blue near zero
+            uint32_t c = 0xFF000000 | (r << 16) | (g << 8) | b;
+            p->color = c;
+
             p->size = 2;
             p->type = ParticleType::Spark;
         }
@@ -153,18 +161,19 @@ void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count) {
             p->y = y + Random::get_float(-3.0f, 3.0f);
             p->render_x = p->x;
             p->render_y = p->y;
-            p->vx = Random::get_float(-70.0f, 70.0f);
-            p->vy = Random::get_float(-70.0f, 70.0f);
-            p->life = Random::get_float(0.3f, 0.5f);
+            p->vx = Random::get_float(-75.0f, 75.0f);
+            p->vy = Random::get_float(-75.0f, 75.0f);
+            p->life = Random::get_float(0.5f, 0.75f);
             p->max_life = p->life;
 
             bool is_silver = Random::chance(0.5f);
             if (is_silver) {
-                uint8_t s = static_cast<uint8_t>(Random::get_int(200, 245));
+                uint8_t s = static_cast<uint8_t>(Random::get_int(150, 200));
                 p->color = 0xFF000000 | (s << 16) | (s << 8) | s; // Metallic Silver
             } else {
                 p->color = 0xFF00E5FF; // Bright Cyan
             }
+
             p->size = Random::chance(0.5f) ? 1 : 2;
             p->type = ParticleType::Spark;
         }

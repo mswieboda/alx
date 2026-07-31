@@ -36,6 +36,30 @@ namespace Collision {
         return (dx * dx + dy * dy) < (min_dist * min_dist);
     }
 
+    inline bool circle_contact_point(const Circle& a, const Circle& b, float& contact_x, float& contact_y) {
+        float dx = b.cx - a.cx;
+        float dy = b.cy - a.cy;
+        float dist_sq = dx * dx + dy * dy;
+        float min_dist = a.radius + b.radius;
+
+        if (dist_sq < min_dist * min_dist) {
+            if (dist_sq > 0.0001f) {
+                float dist = std::sqrt(dist_sq);
+                float nx = dx / dist;
+                float ny = dy / dist;
+                contact_x = a.cx + nx * (a.radius - (min_dist - dist) * 0.5f);
+                contact_y = a.cy + ny * (a.radius - (min_dist - dist) * 0.5f);
+            } else {
+                contact_x = a.cx;
+                contact_y = a.cy;
+            }
+            return true;
+        }
+        contact_x = a.cx;
+        contact_y = a.cy;
+        return false;
+    }
+
     inline bool circle_vs_aabb(const Circle& c, float rx, float ry, float rw, float rh) {
         float closest_x = std::clamp(c.cx, rx, rx + rw);
         float closest_y = std::clamp(c.cy, ry, ry + rh);

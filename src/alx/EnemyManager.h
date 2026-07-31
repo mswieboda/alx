@@ -597,15 +597,9 @@ public:
                     }
 
                     Collision::Circle hurt_c = enemy.hurt_circle();
-                    int enemy_cx = static_cast<int>(hurt_c.cx);
-                    int enemy_cy = static_cast<int>(hurt_c.cy);
-                    int enemy_r  = static_cast<int>(hurt_c.radius);
+                    float contact_x = 0.0f, contact_y = 0.0f;
 
-                    int dx = attack_cx - enemy_cx;
-                    int dy = attack_cy - enemy_cy;
-                    int combined_r = attack_r + enemy_r;
-
-                    if ((dx * dx + dy * dy) <= (combined_r * combined_r)) {
+                    if (Collision::circle_contact_point(hit_c, hurt_c, contact_x, contact_y)) {
                         enemy.last_hit_swing_id = player.current_swing_id;
 
                         float push_dx = enemy.center_x() - player.center_x();
@@ -621,7 +615,7 @@ public:
                         }
                         enemy.take_damage(1, push_dx, push_dy);
                         if (particles) {
-                            ParticleEmitters::spawn_hit_sparks(*particles, enemy.center_x(), enemy.center_y());
+                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y);
                         }
                     }
                 }

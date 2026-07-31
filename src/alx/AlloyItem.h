@@ -12,7 +12,7 @@ namespace alx {
 struct AlloyItemConstants {
     static constexpr float DEFAULT_WIDTH = 8.0f;
     static constexpr float DEFAULT_HEIGHT = 8.0f;
-    static constexpr uint32_t COLOR = 0xFFFF9900; // Glowing Amber/Gold Cursed Alloy
+    static constexpr uint32_t COLOR = 0xFF83BDC3; // 0xFFA7E0E6; // sleek slight cyan silver
     static constexpr int Z_INDEX = Layer::GroundItem;
 };
 
