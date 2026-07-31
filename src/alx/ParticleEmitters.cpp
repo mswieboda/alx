@@ -180,5 +180,74 @@ void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count) {
     }
 }
 
+void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int dir_x, int dir_y, int count, int tile_size) {
+    if (dir_x == 0 && dir_y == 0) return;
+
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            float center_x = static_cast<float>(tile_x * tile_size + tile_size / 2);
+            float center_y = static_cast<float>(tile_y * tile_size + tile_size / 2);
+            float half_tile = static_cast<float>(tile_size) * 0.5f;
+
+            float dir_len = std::sqrt(static_cast<float>(dir_x * dir_x + dir_y * dir_y));
+            float dx = static_cast<float>(dir_x) / dir_len;
+            float dy = static_cast<float>(dir_y) / dir_len;
+
+            // Entry (P0) and Exit (P1) points along pipe axis
+            float start_x = center_x - dx * half_tile;
+            float start_y = center_y - dy * half_tile;
+            float target_x = center_x + dx * half_tile;
+            float target_y = center_y + dy * half_tile;
+
+            // Normal perpendicular vector N = (-dy, dx)
+            float nx = -dy;
+            float ny = dx;
+
+            // Random lateral offset within inner pipe width (+/- 2.5px)
+            float lateral_offset = Random::get_float(-2.5f, 2.5f);
+
+            p->start_x = start_x + nx * lateral_offset;
+            p->start_y = start_y + ny * lateral_offset;
+            p->target_x = target_x + nx * lateral_offset;
+            p->target_y = target_y + ny * lateral_offset;
+
+            p->x = p->start_x;
+            p->y = p->start_y;
+            p->render_x = p->x;
+            p->render_y = p->y;
+
+            // Lingering 0.5s - 0.8s lifetime for dense fluid trail
+            p->life = Random::get_float(0.5f, 0.8f);
+            p->max_life = p->life;
+            p->param_a = Random::get_float(0.0f, 6.28318f); // Initial wave phase
+
+            p->tile_x = static_cast<uint16_t>(tile_x);
+            p->tile_y = static_cast<uint16_t>(tile_y);
+
+            // Multi-tone Twilight Violet & Magenta palette
+            int color_choice = Random::get_int(0, 2);
+            if (color_choice == 0) {
+                p->color = 0xFF9900FF; // Glowing Twilight Violet
+            } else if (color_choice == 1) {
+                p->color = 0xFF5500AA; // Deep Purple
+            } else {
+                p->color = 0xFF3A0066; // Dark Shadow Purple
+            }
+
+            // Size profile: 60% 2x2px, 30% 1x1px droplets, 10% 3x3px core blobs
+            float size_roll = Random::get_float(0.0f, 1.0f);
+            if (size_roll < 0.30f) {
+                p->size = 1;
+            } else if (size_roll < 0.90f) {
+                p->size = 2;
+            } else {
+                p->size = 3;
+            }
+
+            p->type = ParticleType::ManaPulseStraight;
+        }
+    }
+}
+
 } // namespace ParticleEmitters
 } // namespace alx

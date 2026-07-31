@@ -1,6 +1,8 @@
 #include "alx/ParticleSystem.h"
 #include "alx/Random.h"
+#include "alx/Layer.h"
 #include "core/Draw.h"
+#include <cmath>
 
 namespace alx {
 
@@ -59,6 +61,37 @@ void ParticleSystem::update(float dt) {
             p.render_y = p.y;
             break;
         }
+        case ParticleType::ManaPulseStraight: {
+            float t = p.progress();
+
+            // Base Linear Position
+            float base_x = p.start_x + (p.target_x - p.start_x) * t;
+            float base_y = p.start_y + (p.target_y - p.start_y) * t;
+
+            // Viscous Perpendicular Ripple Modulation
+            float dx = p.target_x - p.start_x;
+            float dy = p.target_y - p.start_y;
+            float len = std::sqrt(dx * dx + dy * dy);
+
+            if (len > 0.001f) {
+                float nx = -dy / len;
+                float ny = dx / len;
+
+                constexpr float frequency = 16.0f;
+                constexpr float amplitude = 2.0f;
+                float ripple = std::sin(t * frequency + p.param_a) * amplitude;
+
+                p.x = base_x + nx * ripple;
+                p.y = base_y + ny * ripple;
+            } else {
+                p.x = base_x;
+                p.y = base_y;
+            }
+
+            p.render_x = p.x;
+            p.render_y = p.y;
+            break;
+        }
         default: {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
@@ -78,12 +111,17 @@ void ParticleSystem::draw() const {
         uint32_t alpha = static_cast<uint8_t>(progress * 255.0f);
         uint32_t current_color = (p.color & 0x00FFFFFF) | (alpha << 24);
 
+        int z_idx = PARTICLE_Z_INDEX;
+        if (p.type == ParticleType::ManaPulseStraight || p.type == ParticleType::ManaPulseCurved) {
+            z_idx = Layer::GroundFixtureItem;
+        }
+
         if (p.size <= 2) {
             float s = static_cast<float>(p.size);
-            Draw::rect(p.render_x, p.render_y, s, s, current_color, true, 1, PARTICLE_Z_INDEX);
+            Draw::rect(p.render_x, p.render_y, s, s, current_color, true, 1, z_idx);
         } else {
             float r = static_cast<float>(p.size) * 0.5f;
-            Draw::circle(p.render_x, p.render_y, r, current_color, true, 1, PARTICLE_Z_INDEX);
+            Draw::circle(p.render_x, p.render_y, r, current_color, true, 1, z_idx);
         }
     }
 }
