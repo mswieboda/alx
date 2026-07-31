@@ -82,7 +82,7 @@ Re-pack top 8 bits of color with calculated alpha byte.
 * **Objective:** Move `ParticleSystem` method definitions into `ParticleSystem.cpp` and create `ParticleEmitters.h` / `ParticleEmitters.cpp` to decouple particle creation logic from system storage.
 * **Files:** `src/alx/ParticleSystem.h`, `src/alx/ParticleSystem.cpp`, `src/alx/ParticleEmitters.h`, `src/alx/ParticleEmitters.cpp`.
 
-### Subtask 2.2: Kinematic Physics Loop (Route A)
+### Subtask 2.2: Kinematic Physics Loop (Route A) [COMPLETED]
 
 * **Objective:** Implement physics-driven particles for combat impacts and ambient spires.
 * **Algorithms:**
