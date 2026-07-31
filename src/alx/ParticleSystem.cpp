@@ -75,7 +75,7 @@ void ParticleSystem::update(float dt) {
             float base_x = p.start_x + (p.target_x - p.start_x) * t;
             float base_y = p.start_y + (p.target_y - p.start_y) * t;
 
-            // Viscous Perpendicular Ripple Modulation
+            // Gentle Liquid Wave Modulation (6.0f frequency, 1.2px amplitude)
             float dx = p.target_x - p.start_x;
             float dy = p.target_y - p.start_y;
             float len = std::sqrt(dx * dx + dy * dy);
@@ -84,8 +84,43 @@ void ParticleSystem::update(float dt) {
                 float nx = -dy / len;
                 float ny = dx / len;
 
-                constexpr float frequency = 16.0f;
-                constexpr float amplitude = 2.0f;
+                constexpr float frequency = 6.0f;
+                constexpr float amplitude = 1.2f;
+                float ripple = std::sin(t * frequency + p.param_a) * amplitude;
+
+                p.x = base_x + nx * ripple;
+                p.y = base_y + ny * ripple;
+            } else {
+                p.x = base_x;
+                p.y = base_y;
+            }
+
+            p.render_x = p.x;
+            p.render_y = p.y;
+            break;
+        }
+        case ParticleType::ManaPulseCurved: {
+            float t = p.progress();
+
+            // Quadratic Bezier Formula: P(t) = (1-t)^2 * P0 + 2(1-t)t * P_control + t^2 * P1
+            float u = 1.0f - t;
+            float tt = t * t;
+            float uu = u * u;
+
+            float base_x = uu * p.start_x + 2.0f * u * t * p.control_x + tt * p.target_x;
+            float base_y = uu * p.start_y + 2.0f * u * t * p.control_y + tt * p.target_y;
+
+            // Gentle Liquid Wave Modulation
+            float dx = p.target_x - p.start_x;
+            float dy = p.target_y - p.start_y;
+            float len = std::sqrt(dx * dx + dy * dy);
+
+            if (len > 0.001f) {
+                float nx = -dy / len;
+                float ny = dx / len;
+
+                constexpr float frequency = 6.0f;
+                constexpr float amplitude = 1.2f;
                 float ripple = std::sin(t * frequency + p.param_a) * amplitude;
 
                 p.x = base_x + nx * ripple;
@@ -141,6 +176,18 @@ void ParticleSystem::draw(const Camera* camera) const {
         int z_idx = PARTICLE_Z_INDEX;
         if (p.type == ParticleType::ManaPulseStraight || p.type == ParticleType::ManaPulseCurved) {
             z_idx = Layer::GroundFixtureItemFX; // Z = 3 (sloshing ripples render on top of solid underlay stream Z = 2)
+
+            // Render flowing liquid streak line oriented along flow direction
+            float dx = p.target_x - p.start_x;
+            float dy = p.target_y - p.start_y;
+            if (std::abs(dx) >= std::abs(dy)) {
+                // Horizontal liquid streak (3.5px wide, 1px high)
+                Draw::rect(p.render_x - 1.75f, p.render_y, 3.5f, 1.0f, current_color, true, 1, z_idx);
+            } else {
+                // Vertical liquid streak (1px wide, 3.5px high)
+                Draw::rect(p.render_x, p.render_y - 1.75f, 1.0f, 3.5f, current_color, true, 1, z_idx);
+            }
+            continue;
         }
 
         if (p.size <= 2) {

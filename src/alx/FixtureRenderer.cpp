@@ -479,7 +479,7 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
     static float emit_timer = 0.0f;
     emit_timer += dt;
 
-    float emit_interval = (sim_tick_rate > 0.01f) ? (sim_tick_rate / 15.0f) : 0.04f;
+    float emit_interval = (sim_tick_rate > 0.01f) ? (sim_tick_rate / 2.5f) : 0.24f;
 
     bool should_emit_pipe = false;
     if (emit_timer >= emit_interval) {
@@ -515,17 +515,22 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                     out_dy = in_dy;
                 }
 
-                int flow_dx = (in_dx != 0) ? in_dx : out_dx;
-                int flow_dy = (in_dy != 0) ? in_dy : out_dy;
+                bool is_corner = (in_dx != out_dx || in_dy != out_dy) && (in_dx != 0 || in_dy != 0) && (out_dx != 0 || out_dy != 0);
+                if (is_corner) {
+                    ParticleEmitters::spawn_corner_pipe_mana(ps, x, y, in_dx, in_dy, out_dx, out_dy, sim_tick_rate, 1, tile_size);
+                } else {
+                    int flow_dx = (in_dx != 0) ? in_dx : out_dx;
+                    int flow_dy = (in_dy != 0) ? in_dy : out_dy;
 
-                if (flow_dx == 0 && flow_dy == 0) {
-                    network.downstream_dir(x, y, ManaState::Dark, flow_dx, flow_dy);
-                }
-                if (flow_dx == 0 && flow_dy == 0) {
-                    flow_dx = 1; // Fallback rightwards flow
-                }
+                    if (flow_dx == 0 && flow_dy == 0) {
+                        network.downstream_dir(x, y, ManaState::Dark, flow_dx, flow_dy);
+                    }
+                    if (flow_dx == 0 && flow_dy == 0) {
+                        flow_dx = 1; // Fallback rightwards flow
+                    }
 
-                ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, sim_tick_rate, 1, tile_size);
+                    ParticleEmitters::spawn_straight_pipe_mana(ps, x, y, flow_dx, flow_dy, sim_tick_rate, 1, tile_size);
+                }
             }
             else if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
                 ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));

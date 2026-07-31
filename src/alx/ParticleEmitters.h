@@ -12,6 +12,7 @@ void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count = 1);
 void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count = 1);
 void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count = 15);
 void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int dir_x, int dir_y, float sim_tick_rate, int count = 1, int tile_size = 16);
+void spawn_corner_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int in_dx, int in_dy, int out_dx, int out_dy, float sim_tick_rate, int count = 1, int tile_size = 16);
 
 } // namespace ParticleEmitters
 } // namespace alx

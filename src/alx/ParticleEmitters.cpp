@@ -203,8 +203,8 @@ void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int di
             float nx = -dy;
             float ny = dx;
 
-            // Random lateral offset within inner pipe width (+/- 2.5px)
-            float lateral_offset = Random::get_float(-2.5f, 2.5f);
+            // Random lateral offset across full 6px stream width (+/- 2.0px)
+            float lateral_offset = Random::get_float(-2.0f, 2.0f);
 
             p->start_x = start_x + nx * lateral_offset;
             p->start_y = start_y + ny * lateral_offset;
@@ -225,31 +225,81 @@ void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int di
             p->tile_x = static_cast<uint16_t>(tile_x);
             p->tile_y = static_cast<uint16_t>(tile_y);
 
-            // Dominant Liquid Twilight Purple Palette (80% rich purple, 15% deep purple, 5% bright highlight)
+            // Dominant Liquid Twilight Purple Palette
             float color_roll = Random::get_float(0.0f, 1.0f);
             if (color_roll < 0.85f) {
-                // Cohesive Rich Liquid Purple with subtle organic tone variance
                 uint8_t r = static_cast<uint8_t>(Random::get_int(140, 150));
                 uint8_t g = static_cast<uint8_t>(Random::get_int(0, 10));
                 uint8_t b = static_cast<uint8_t>(Random::get_int(230, 250));
                 p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
             } else if (color_roll < 0.95f) {
-                p->color = 0xFF6600BB; // Deeper liquid core purple
+                p->color = 0xFF6600BB;
             } else {
-                p->color = 0xFFDD44FF; // Bright liquid highlight droplet
+                p->color = 0xFFDD44FF;
             }
 
-            // Size profile: 70% 2x2px, 20% 3x3px core blobs, 10% 1x1px droplets
-            float size_roll = Random::get_float(0.0f, 1.0f);
-            if (size_roll < 0.10f) {
-                p->size = 1;
-            } else if (size_roll < 0.80f) {
-                p->size = 2;
-            } else {
-                p->size = 3;
-            }
-
+            p->size = 1;
             p->type = ParticleType::ManaPulseStraight;
+        }
+    }
+}
+
+void spawn_corner_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int in_dx, int in_dy, int out_dx, int out_dy, float sim_tick_rate, int count, int tile_size) {
+    if (in_dx == 0 && in_dy == 0 && out_dx == 0 && out_dy == 0) return;
+
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            float hub_cx = static_cast<float>(tile_x * tile_size + tile_size / 2);
+            float hub_cy = static_cast<float>(tile_y * tile_size + tile_size / 2);
+            float half_tile = static_cast<float>(tile_size) * 0.5f;
+
+            float start_x = hub_cx - static_cast<float>(in_dx) * half_tile;
+            float start_y = hub_cy - static_cast<float>(in_dy) * half_tile;
+            float target_x = hub_cx + static_cast<float>(out_dx) * half_tile;
+            float target_y = hub_cy + static_cast<float>(out_dy) * half_tile;
+
+            // Normal vector perpendicular to incoming direction
+            float dx = static_cast<float>(in_dx);
+            float dy = static_cast<float>(in_dy);
+            float nx = -dy;
+            float ny = dx;
+
+            float lateral_offset = Random::get_float(-2.0f, 2.0f);
+
+            p->start_x = start_x + nx * lateral_offset;
+            p->start_y = start_y + ny * lateral_offset;
+            p->control_x = hub_cx;
+            p->control_y = hub_cy;
+            p->target_x = target_x + nx * lateral_offset;
+            p->target_y = target_y + ny * lateral_offset;
+
+            p->x = p->start_x;
+            p->y = p->start_y;
+            p->render_x = p->x;
+            p->render_y = p->y;
+
+            float base_rate = (sim_tick_rate > 0.01f) ? sim_tick_rate : 0.6f;
+            p->life = base_rate * Random::get_float(1.15f, 1.40f);
+            p->max_life = p->life;
+            p->param_a = Random::get_float(0.0f, 6.28318f);
+
+            p->tile_x = static_cast<uint16_t>(tile_x);
+            p->tile_y = static_cast<uint16_t>(tile_y);
+
+            float color_roll = Random::get_float(0.0f, 1.0f);
+            if (color_roll < 0.85f) {
+                uint8_t r = static_cast<uint8_t>(Random::get_int(140, 150));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 10));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(230, 250));
+                p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
+            } else if (color_roll < 0.95f) {
+                p->color = 0xFF6600BB;
+            } else {
+                p->color = 0xFFDD44FF;
+            }
+
+            p->size = 1;
+            p->type = ParticleType::ManaPulseCurved;
         }
     }
 }
