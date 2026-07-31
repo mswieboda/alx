@@ -402,26 +402,54 @@ void Network::sim_pipe_flow(
         int y = pipe_node.y;
         Fixture& next = next_fixtures[idx];
 
-        if (dark_dist[idx] < 9000) {
-            // Connected to active Seep -> Advance flow 1 tile downstream per tick
+        bool is_connected = (dark_dist[idx] < 9000);
+        if (!is_connected) {
+            next.is_draining = true;
+        } else {
             next.is_draining = false;
+        }
 
-            int chosen_dir = -1;
-            int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
-            if (downstream_idx != -1) {
-                next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
-                int downstream_x = downstream_idx % m_width;
-                int downstream_y = downstream_idx / m_width;
-                next.out_dx = static_cast<int8_t>(downstream_x - x);
-                next.out_dy = static_cast<int8_t>(downstream_y - y);
+        // Always attempt to advance Dark Mana downstream 1 tile per sim tick!
+        int chosen_dir = -1;
+        int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, chosen_dir);
+        if (downstream_idx != -1) {
+            next.last_dir_idx = static_cast<uint8_t>(chosen_dir);
+            int downstream_x = downstream_idx % m_width;
+            int downstream_y = downstream_idx / m_width;
+            next.out_dx = static_cast<int8_t>(downstream_x - x);
+            next.out_dy = static_cast<int8_t>(downstream_y - y);
 
-                // Advance Dark Mana to downstream pipe on this tick!
-                if (next_fixtures[downstream_idx].mana_state == ManaState::None) {
-                    next_fixtures[downstream_idx].mana_state = ManaState::Dark;
-                    next_fixtures[downstream_idx].is_powered = true;
-                    next_fixtures[downstream_idx].is_draining = false;
-                    next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
-                    next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
+            // Advance Dark Mana to downstream empty pipe tile on this tick!
+            if (next_fixtures[downstream_idx].mana_state == ManaState::None) {
+                next_fixtures[downstream_idx].mana_state = ManaState::Dark;
+                next_fixtures[downstream_idx].is_powered = true;
+                next_fixtures[downstream_idx].is_draining = !is_connected; // Inherit draining state!
+                next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
+                next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
+                if (!is_connected) {
+                    Log::info_fmt_t("Draining dark mana head advancing from (%d, %d) to (%d, %d)", x, y, downstream_x, downstream_y);
+                }
+            }
+        } else {
+            // Downstream fallback for draining pipes (distance >= 9000)
+            int flow_dx = (next.out_dx != 0) ? next.out_dx : next.move_dx;
+            int flow_dy = (next.out_dy != 0) ? next.out_dy : next.move_dy;
+
+            if (flow_dx != 0 || flow_dy != 0) {
+                int nx = x + flow_dx;
+                int ny = y + flow_dy;
+                if (in_bounds(nx, ny)) {
+                    int n_idx = ny * m_width + nx;
+                    if (next_fixtures[n_idx].type == FixtureType::Pipe && next_fixtures[n_idx].mana_state == ManaState::None) {
+                        next.out_dx = static_cast<int8_t>(flow_dx);
+                        next.out_dy = static_cast<int8_t>(flow_dy);
+                        next_fixtures[n_idx].mana_state = ManaState::Dark;
+                        next_fixtures[n_idx].is_powered = true;
+                        next_fixtures[n_idx].is_draining = true;
+                        next_fixtures[n_idx].move_dx = static_cast<int8_t>(flow_dx);
+                        next_fixtures[n_idx].move_dy = static_cast<int8_t>(flow_dy);
+                        Log::info_fmt_t("Draining dark mana head advancing downstream from (%d, %d) to (%d, %d)", x, y, nx, ny);
+                    }
                 }
             } else {
                 int out_dx = 0, out_dy = 0;
@@ -429,10 +457,10 @@ void Network::sim_pipe_flow(
                 next.out_dx = static_cast<int8_t>(out_dx);
                 next.out_dy = static_cast<int8_t>(out_dy);
             }
-        } else {
-            // Disconnected from Seep -> Enter Draining State!
-            next.is_draining = true;
+        }
 
+        // Process upstream empty check for draining tail recession
+        if (next.is_draining) {
             int in_x = x - next.move_dx;
             int in_y = y - next.move_dy;
             if (!in_bounds(in_x, in_y) || m_fixtures[in_y * m_width + in_x].mana_state == ManaState::None || m_fixtures[in_y * m_width + in_x].is_empty()) {

@@ -164,6 +164,26 @@ void draw_pipe_dark_mana_straight(int world_x, int world_y, int tile_size, int f
         } else {
             Draw::rect(static_cast<float>(world_x + offset), static_cast<float>(world_y), static_cast<float>(stream_w), static_cast<float>(tile_size), stream_color, true, 1, Layer::GroundFixtureItem);
         }
+    } else if (is_head_tile && is_tail_tile) {
+        // --- SINGLE-TILE MOVING SLUG (Advancing Head + Receding Tail) ---
+        float tail_dist = t * static_cast<float>(tile_size);
+        float tail_x = start_x + static_cast<float>(flow_dx) * tail_dist;
+        float tail_y = start_y + static_cast<float>(flow_dy) * tail_dist;
+        float head_x = target_x;
+        float head_y = target_y;
+
+        if (flow_dx != 0) {
+            float rx = (flow_dx > 0) ? tail_x : head_x;
+            float rw = std::abs(head_x - tail_x);
+            Draw::rect(rx, static_cast<float>(world_y + offset), rw, static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
+        } else {
+            float ry = (flow_dy > 0) ? tail_y : head_y;
+            float rh = std::abs(head_y - tail_y);
+            Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), rh, stream_color, true, 1, Layer::GroundFixtureItem);
+        }
+
+        Draw::circle(tail_x, tail_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
+        Draw::circle(head_x, head_y, cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
     } else if (is_head_tile) {
         // --- ADVANCING LEADING HEAD TILE ---
         float head_dist = t * static_cast<float>(tile_size);
