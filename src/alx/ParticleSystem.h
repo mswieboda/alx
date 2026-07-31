@@ -8,7 +8,7 @@ namespace alx {
 
 class ParticleSystem {
 public:
-    static constexpr size_t POOL_CAPACITY = 256;
+    static constexpr size_t POOL_CAPACITY = 1024; // 256; // could even do 2048 if needed
     static constexpr int PARTICLE_Z_INDEX = 8000;
 
     ParticleSystem() = default;

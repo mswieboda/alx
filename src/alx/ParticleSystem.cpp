@@ -2,6 +2,7 @@
 #include "alx/Random.h"
 #include "alx/Layer.h"
 #include "core/Draw.h"
+#include "core/Log.h"
 #include <cmath>
 
 namespace alx {
@@ -19,6 +20,10 @@ Particle* ParticleSystem::emit() {
 
     size_t idx = m_next_slot;
     m_next_slot = (m_next_slot + 1) % POOL_CAPACITY;
+    if (m_pool[idx].active && m_pool[idx].life > 0.0f) {
+        Log::warn_fmt_t("[ParticleSystem] Capacity (%zu) reached! Overwriting active particle (type=%d, remaining_life=%.2fs)",
+                        POOL_CAPACITY, static_cast<int>(m_pool[idx].type), m_pool[idx].life);
+    }
     m_pool[idx] = Particle{};
     m_pool[idx].active = true;
     return &m_pool[idx];

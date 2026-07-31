@@ -36,6 +36,7 @@ private:
     ParticleSystem m_particle_system;
     alx::Camera m_camera;
     float m_sim_timer = 0;
+    float m_last_dt = 0.016f;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
@@ -151,6 +152,7 @@ public:
             m_paused = !m_paused;
         }
 
+        m_last_dt = dt;
         update_tick_simulation(dt);
 
         m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
@@ -397,7 +399,7 @@ public:
         FixtureRenderer::draw_powered_indicators(m_network, min_tx, max_tx, min_ty, max_ty);
 
         // Trigger Particle Emitters for active network tiles
-        FixtureRenderer::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty);
+        FixtureRenderer::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty, m_last_dt);
     }
 
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size) {

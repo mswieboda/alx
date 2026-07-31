@@ -20,7 +20,7 @@ namespace FixtureRenderer {
     void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty);
 
     /// Triggers particle emissions for active network fixtures (Pipes, Refiners, Spires).
-    void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty);
+    void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float dt);
 
 } // namespace FixtureRenderer
 } // namespace alx

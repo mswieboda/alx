@@ -212,7 +212,21 @@ void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int
     }
 }
 
-void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty) {
+void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float dt) {
+    static float emit_timer = 0.0f;
+    emit_timer += dt;
+
+    constexpr float EMIT_INTERVAL = 0.04f; // 25 Hz framerate-independent particle emission rate
+
+    bool should_emit_pipe = false;
+    if (emit_timer >= EMIT_INTERVAL) {
+        should_emit_pipe = true;
+        emit_timer -= EMIT_INTERVAL;
+        if (emit_timer > EMIT_INTERVAL * 2.0f) {
+            emit_timer = 0.0f; // Clamp accumulator lag spikes
+        }
+    }
+
     int tile_size = network.tile_size();
     for (int y = min_ty; y <= max_ty; ++y) {
         for (int x = min_tx; x <= max_tx; ++x) {
@@ -223,6 +237,8 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
             int world_y = y * tile_size;
 
             if (fix.type == FixtureType::Pipe && fix.mana_state == ManaState::Dark) {
+                if (!should_emit_pipe) continue;
+
                 int in_dx = fix.move_dx;
                 int in_dy = fix.move_dy;
                 int out_dx = fix.out_dx;
