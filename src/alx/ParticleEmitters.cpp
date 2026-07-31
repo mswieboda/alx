@@ -6,28 +6,51 @@
 namespace alx {
 namespace ParticleEmitters {
 
-void spawn_sword_slash_trail(ParticleSystem& ps, float arc_cx, float arc_cy, float arc_radius) {
-    // Spawn 2 crisp white/light-grey slash particles anchored near the outer edge of the sword attack circle
-    for (int i = 0; i < 2; ++i) {
-        if (Particle* p = ps.emit()) {
-            float angle = Random::get_float(0.0f, 6.283185f);
-            float dist = arc_radius - Random::get_float(1.0f, 4.0f);
-            float spawn_x = arc_cx + std::cos(angle) * dist;
-            float spawn_y = arc_cy + std::sin(angle) * dist;
+void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_tip_y, float curr_tip_x, float curr_tip_y, float swing_progress, int count) {
+    if (count <= 0) return;
 
-            p->x = spawn_x;
-            p->y = spawn_y;
-            p->render_x = spawn_x;
-            p->render_y = spawn_y;
-            p->vx = Random::get_float(-15.0f, 15.0f);
-            p->vy = Random::get_float(-15.0f, 15.0f);
-            p->life = Random::get_float(0.1f, 0.2f); // Short lifespan for crisp trail
+    // Smoothly scale base size from 1 (start of swing) up to 4 (apex of swing)
+    int base_size = 1 + static_cast<int>(std::round(swing_progress * 2.6f));
+    base_size = std::clamp(base_size, 1, 4);
+
+    for (int i = 0; i < count; ++i) {
+        float t = (count > 1) ? (static_cast<float>(i) / static_cast<float>(count - 1)) : 0.5f;
+        float line_x = prev_tip_x + (curr_tip_x - prev_tip_x) * t;
+        float line_y = prev_tip_y + (curr_tip_y - prev_tip_y) * t;
+
+        // Primary slice particle along line segment
+        if (Particle* p = ps.emit()) {
+            p->x = line_x + Random::get_float(-0.5f, 0.5f);
+            p->y = line_y + Random::get_float(-0.5f, 0.5f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+            p->vx = Random::get_float(-2.0f, 2.0f);
+            p->vy = Random::get_float(-2.0f, 2.0f);
+            p->life = Random::get_float(0.12f, 0.18f); // Smooth 7-11 frame lingering line fade
             p->max_life = p->life;
 
             uint8_t shade = static_cast<uint8_t>(Random::get_int(220, 255));
-            p->color = 0xFF000000 | (shade << 16) | (shade << 8) | shade; // White / light grey
-            p->size = 1;
+            p->color = 0xFF000000 | (shade << 16) | (shade << 8) | shade; // Crisp white / light grey
+            p->size = static_cast<uint8_t>(base_size);
             p->type = ParticleType::Spark;
+        }
+
+        // Secondary inner core layer near apex for rich depth
+        if (swing_progress > 0.4f && (i % 2 == 0)) {
+            if (Particle* p2 = ps.emit()) {
+                p2->x = line_x + Random::get_float(-0.75f, 0.75f);
+                p2->y = line_y + Random::get_float(-0.75f, 0.75f);
+                p2->render_x = p2->x;
+                p2->render_y = p2->y;
+                p2->vx = Random::get_float(-1.5f, 1.5f);
+                p2->vy = Random::get_float(-1.5f, 1.5f);
+                p2->life = Random::get_float(0.10f, 0.15f);
+                p2->max_life = p2->life;
+
+                p2->color = 0xFFFFFFFF; // Pure white core
+                p2->size = static_cast<uint8_t>(std::max(1, base_size - 1));
+                p2->type = ParticleType::Spark;
+            }
         }
     }
 }

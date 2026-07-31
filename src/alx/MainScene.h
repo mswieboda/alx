@@ -44,6 +44,11 @@ private:
     float m_wand_radius = 56.0f;
     int m_current_level_id = 1;
 
+    // Sword slash tip tracking for gapless swipe line rendering
+    float m_slash_prev_tip_x = 0.0f;
+    float m_slash_prev_tip_y = 0.0f;
+    bool m_slash_was_attacking = false;
+
 public:
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }
@@ -156,7 +161,35 @@ public:
 
         if (m_player.is_attacking()) {
             Collision::Circle hit_circle = m_player.attack_hit_circle(1.0f);
-            ParticleEmitters::spawn_sword_slash_trail(m_particle_system, hit_circle.cx, hit_circle.cy, hit_circle.radius);
+            float pcx = m_player.center_x(1.0f);
+            float pcy = m_player.center_y(1.0f);
+
+            float dir_x = hit_circle.cx - pcx;
+            float dir_y = hit_circle.cy - pcy;
+            float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
+            if (len > 0.001f) {
+                dir_x /= len;
+                dir_y /= len;
+            } else {
+                dir_x = 0.0f;
+                dir_y = 1.0f;
+            }
+
+            float curr_tip_x = hit_circle.cx + dir_x * (hit_circle.radius - 1.0f);
+            float curr_tip_y = hit_circle.cy + dir_y * (hit_circle.radius - 1.0f);
+
+            if (!m_slash_was_attacking) {
+                m_slash_prev_tip_x = curr_tip_x;
+                m_slash_prev_tip_y = curr_tip_y;
+                m_slash_was_attacking = true;
+            }
+
+            ParticleEmitters::spawn_sword_slash_trail(m_particle_system, m_slash_prev_tip_x, m_slash_prev_tip_y, curr_tip_x, curr_tip_y, m_player.swing_progress_curr, 16);
+
+            m_slash_prev_tip_x = curr_tip_x;
+            m_slash_prev_tip_y = curr_tip_y;
+        } else {
+            m_slash_was_attacking = false;
         }
 
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
