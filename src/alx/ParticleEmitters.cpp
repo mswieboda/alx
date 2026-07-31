@@ -9,9 +9,10 @@ namespace ParticleEmitters {
 void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_tip_y, float curr_tip_x, float curr_tip_y, float swing_progress, int count) {
     if (count <= 0) return;
 
-    // Smoothly scale base size from 1 (start of swing) up to 4 (apex of swing)
-    int base_size = 1 + static_cast<int>(std::round(swing_progress * 2.6f));
-    base_size = std::clamp(base_size, 1, 4);
+    // Quadratic Ease-In: keeps first 50% paper-thin (1-2px) and swells to 5px at the apex
+    float curved_progress = swing_progress * swing_progress;
+    int base_size = 1 + static_cast<int>(std::round(curved_progress * 4.0f));
+    base_size = std::clamp(base_size, 1, 5);
 
     for (int i = 0; i < count; ++i) {
         float t = (count > 1) ? (static_cast<float>(i) / static_cast<float>(count - 1)) : 0.5f;
