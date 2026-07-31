@@ -15,6 +15,7 @@
 #include "EnemyManager.h"
 #include "Random.h"
 #include "Layer.h"
+#include "ParticleSystem.h"
 
 namespace alx {
 
@@ -30,6 +31,7 @@ private:
     Network m_network;
     Player m_player;
     EnemyManager m_enemy_manager;
+    ParticleSystem m_particle_system;
     alx::Camera m_camera;
     float m_sim_timer = 0;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
@@ -149,6 +151,27 @@ public:
 
         m_player.update(dt, m_tiles, m_network, m_camera);
         m_enemy_manager.update(dt, &m_player, m_tiles, m_network);
+        m_particle_system.update(dt);
+
+        if (Action::is_just_pressed(Action::Attack)) {
+            float px = m_player.center_x(1.0f);
+            float py = m_player.center_y(1.0f);
+            for (int i = 0; i < 10; ++i) {
+                if (Particle* p = m_particle_system.emit()) {
+                    p->x = px;
+                    p->y = py;
+                    p->render_x = px;
+                    p->render_y = py;
+                    p->vx = Random::get_float(-80.0f, 80.0f);
+                    p->vy = Random::get_float(-80.0f, 80.0f);
+                    p->life = Random::get_float(0.3f, 0.6f);
+                    p->max_life = p->life;
+                    p->color = 0xFFFFD700; // Gold spark
+                    p->size = 2;
+                    p->type = ParticleType::Spark;
+                }
+            }
+        }
 
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
         if (tw_inc > 0.0f) {
@@ -194,6 +217,7 @@ public:
         draw_tiles_and_network(pixel_buffer, sub_tick_progress);
         m_enemy_manager.draw_enemies(pixel_buffer, alpha);
         m_player.draw(pixel_buffer, alpha);
+        m_particle_system.draw();
     }
 
     void draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) override {

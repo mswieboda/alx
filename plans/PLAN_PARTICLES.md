@@ -50,13 +50,13 @@ This plan is structured to execute each sub-task independently, run build verifi
 
 
 
-### Subtask 1.2: Fixed Pool Manager (`ParticleSystem.h`)
+### Subtask 1.2: Fixed Pool Manager (`ParticleSystem.h`) [COMPLETED]
 
 * **Objective:** Create a zero-heap-allocation manager class using a fixed array.
 * **Data Structure:** `std::array<Particle, 256> m_pool;`
 * **Allocation Strategy:** Ring-buffer fallback pointer (`m_next_slot`). When emitting, search for the first `active == false` slot. If all 256 slots are busy, overwrite `m_pool[m_next_slot]` and increment `m_next_slot = (m_next_slot + 1) % 256` to ensure new gameplay juice never stalls.
 
-### Subtask 1.3: Main Update & Deferred Render Command Pass
+### Subtask 1.3: Main Update & Deferred Render Command Pass [COMPLETED]
 
 * **Objective:** Update lifetimes and enqueue draw calls to your `Draw` command queue.
 * **Algorithms:**
