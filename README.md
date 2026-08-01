@@ -161,9 +161,9 @@ The asset system uses a **Crystal** asset packer (`toolchain/src/pack_assets.cr`
 
 | Source Folder | Input Formats | Generated Output Header |
 | :--- | :--- | :--- |
-| `assets/images/` | `.aseprite`, `.ase`, `.png` | `src/assets/images.h` |
-| `assets/fonts/` | `.png`, `.bmp` | `src/assets/font_data.h` |
-| `assets/audio/` | `.mod`, `.xm`, `.wav` | `src/assets/audio_data.h` |
+| `assets/images/` | `.aseprite` | `src/assets/Images.h` |
+| `assets/fonts/` | `.psf`, `.txt` | `src/assets/Fonts.h` |
+| `assets/audio/` | `.mod`| `src/assets/Music.h` |
 
 The asset packer runs automatically during `task build` whenever changes to raw assets or toolchain scripts are detected.
 
