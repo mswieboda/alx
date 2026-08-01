@@ -51,6 +51,6 @@ The world is caught in a permanent twilight. Two monolithic powers fight for tot
 * **Phase 1 (done):** Boilerplate engine, window rendering, delta time, input handling (sub-300Kb base).
 * **Phase 2 (done):** Grid floor tiles, Aseprite indexed sprite loader, player movement, and basic wall collision.
 * **Phase 3 (done):** Pipe-laying logic, item drop routing, and basic resource conversion states.
-* **Phase 4:** Enemy spawner, combat interaction
+* **Phase 4:** Enemy spawner, combat interaction (done), enemy attacking player (WIP - disabled or removed)
 * **Phase 5:** Levles: 3 compact levels (Cellar -> Hall -> Spire Rooftop).
 * **Phase 6:** Polishing UI text, adding juice, adding menus and title screen ("Aetherlux"), and final size check to ensure it stays well under the 1.44Mb limit.
