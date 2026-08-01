@@ -211,6 +211,9 @@ void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int di
             p->target_x = target_x + nx * lateral_offset;
             p->target_y = target_y + ny * lateral_offset;
 
+            p->nx = -dy; // (already have dx, dy as unit dir from lines ~193-194)
+            p->ny = dx;
+
             p->x = p->start_x;
             p->y = p->start_y;
             p->render_x = p->x;
@@ -272,6 +275,14 @@ void spawn_corner_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int in_d
             p->control_y = hub_cy;
             p->target_x = target_x + nx * lateral_offset;
             p->target_y = target_y + ny * lateral_offset;
+
+            float chord_dx = p->target_x - p->start_x;
+            float chord_dy = p->target_y - p->start_y;
+            float chord_len = std::sqrt(chord_dx * chord_dx + chord_dy * chord_dy);
+            if (chord_len > 0.001f) {
+                p->nx = -chord_dy / chord_len;
+                p->ny = chord_dx / chord_len;
+            }
 
             p->x = p->start_x;
             p->y = p->start_y;

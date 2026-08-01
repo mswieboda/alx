@@ -464,9 +464,6 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
                     primary_out_from_mask(fix.flow_out_mask, in_dx, in_dy, out_dx, out_dy);
 
                     if (out_dx == 0 && out_dy == 0) {
-                        network.downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
-                    }
-                    if (out_dx == 0 && out_dy == 0) {
                         out_dx = in_dx;
                         out_dy = in_dy;
                     }
@@ -602,9 +599,6 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                 primary_out_from_mask(fix.flow_out_mask, in_dx, in_dy, out_dx, out_dy);
 
                 if (out_dx == 0 && out_dy == 0) {
-                    network.downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
-                }
-                if (out_dx == 0 && out_dy == 0) {
                     out_dx = in_dx;
                     out_dy = in_dy;
                 }
@@ -616,9 +610,6 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                     int flow_dx = (in_dx != 0) ? in_dx : out_dx;
                     int flow_dy = (in_dy != 0) ? in_dy : out_dy;
 
-                    if (flow_dx == 0 && flow_dy == 0) {
-                        network.downstream_dir(x, y, ManaState::Dark, flow_dx, flow_dy);
-                    }
                     if (flow_dx == 0 && flow_dy == 0) {
                         flow_dx = 1; // Fallback rightwards flow
                     }

@@ -101,7 +101,7 @@ Re-pack top 8 bits of color with calculated alpha byte.
 
 ---
 
-## Phase 3: Dark Mana Flow — Straight Pipe Segments
+## Phase 3: Dark Mana Flow — Straight Pipe Segments [COMPLETED]
 
 ### Subtask 3.1: Straight Segment Emitter Math
 
@@ -147,7 +147,7 @@ $$y_{\text{base}} = \text{start\_y} + (\text{target\_y} - \text{start\_y}) \cdot
 
 ---
 
-## Phase 4: Dark Mana Flow — Curved Pipe Intersections
+## Phase 4: Dark Mana Flow — Curved Pipe Intersections [COMPLETED]
 
 ### Subtask 4.1: Corner Intersection Emitter Classification
 
@@ -182,7 +182,7 @@ $$B(t) = u^2 \cdot P_0 + 2u \cdot t \cdot P_{\text{ctrl}} + t^2 \cdot P_1$$
 
 ---
 
-## Phase 5: Backed-Up Pipes & Dead-End Freeze Logic (Strategy 2)
+## Phase 5: Backed-Up Pipes & Dead-End Freeze Logic (Strategy 2) [COMPLETED]
 
 ### Subtask 5.1: Network State Query Integration
 
@@ -224,7 +224,7 @@ $$\text{jitter\_y} = \cos(\text{global\_time} \cdot 18.0\text{f} + \text{p.start
 
 ## Phase 6: Network Integration, Emitter Hookups & Optimization
 
-### Subtask 6.1: Emitter Pulse Synchronization
+### Subtask 6.1: Emitter Pulse Synchronization [COMPLETED]
 
 * **Objective:** Tie particle generation directly to the `Network` BFS fluid update tick rather than spawning randomly every frame.
 * **Logic:** When the Network updates active flow paths (e.g., every 0.2 seconds), iterate over all active pipe fixtures and trigger 1–2 fluid emissions per flowing tile.

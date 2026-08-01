@@ -4,7 +4,6 @@
 #include "alx/Camera.h"
 #include "Game.h"
 #include "core/Draw.h"
-#include "core/Log.h"
 #include <cmath>
 
 namespace alx {
@@ -22,10 +21,7 @@ Particle* ParticleSystem::emit() {
 
     size_t idx = m_next_slot;
     m_next_slot = (m_next_slot + 1) % POOL_CAPACITY;
-    if (m_pool[idx].active && m_pool[idx].life > 0.0f) {
-        Log::warn_fmt_t("[ParticleSystem] Capacity (%zu) reached! Overwriting active particle (type=%d, remaining_life=%.2fs)",
-                        POOL_CAPACITY, static_cast<int>(m_pool[idx].type), m_pool[idx].life);
-    }
+
     m_pool[idx] = Particle{};
     m_pool[idx].active = true;
     return &m_pool[idx];
@@ -75,25 +71,12 @@ void ParticleSystem::update(float dt) {
             float base_x = p.start_x + (p.target_x - p.start_x) * t;
             float base_y = p.start_y + (p.target_y - p.start_y) * t;
 
-            // Gentle Liquid Wave Modulation (6.0f frequency, 1.2px amplitude)
-            float dx = p.target_x - p.start_x;
-            float dy = p.target_y - p.start_y;
-            float len = std::sqrt(dx * dx + dy * dy);
+            constexpr float frequency = 6.0f;
+            constexpr float amplitude = 1.2f;
+            float ripple = std::sin(t * frequency + p.param_a) * amplitude;
 
-            if (len > 0.001f) {
-                float nx = -dy / len;
-                float ny = dx / len;
-
-                constexpr float frequency = 6.0f;
-                constexpr float amplitude = 1.2f;
-                float ripple = std::sin(t * frequency + p.param_a) * amplitude;
-
-                p.x = base_x + nx * ripple;
-                p.y = base_y + ny * ripple;
-            } else {
-                p.x = base_x;
-                p.y = base_y;
-            }
+            p.x = base_x + p.nx * ripple;
+            p.y = base_y + p.ny * ripple;
 
             p.render_x = p.x;
             p.render_y = p.y;
@@ -110,25 +93,12 @@ void ParticleSystem::update(float dt) {
             float base_x = uu * p.start_x + 2.0f * u * t * p.control_x + tt * p.target_x;
             float base_y = uu * p.start_y + 2.0f * u * t * p.control_y + tt * p.target_y;
 
-            // Gentle Liquid Wave Modulation
-            float dx = p.target_x - p.start_x;
-            float dy = p.target_y - p.start_y;
-            float len = std::sqrt(dx * dx + dy * dy);
+            constexpr float frequency = 6.0f;
+            constexpr float amplitude = 1.2f;
+            float ripple = std::sin(t * frequency + p.param_a) * amplitude;
 
-            if (len > 0.001f) {
-                float nx = -dy / len;
-                float ny = dx / len;
-
-                constexpr float frequency = 6.0f;
-                constexpr float amplitude = 1.2f;
-                float ripple = std::sin(t * frequency + p.param_a) * amplitude;
-
-                p.x = base_x + nx * ripple;
-                p.y = base_y + ny * ripple;
-            } else {
-                p.x = base_x;
-                p.y = base_y;
-            }
+            p.x = base_x + p.nx * ripple;
+            p.y = base_y + p.ny * ripple;
 
             p.render_x = p.x;
             p.render_y = p.y;

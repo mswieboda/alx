@@ -29,6 +29,10 @@ struct Particle {
     float control_x{0.0f};
     float control_y{0.0f};
 
+    // Precomputed perpendicular normal (avoids per-frame sqrt)
+    float nx{0.0f};
+    float ny{0.0f};
+
     // Timers & custom modulation
     float life{0.0f};
     float max_life{1.0f};
