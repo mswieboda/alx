@@ -27,7 +27,7 @@ This document outlines the detailed roadmap, and design decisions for player wea
   3. **Obstacle Detour Handling**: If an enemy is blocked by any obstacle (wall tiles, fixtures, or impassable terrain) for > 1.5s without forward progress, automatically trigger a 3.0s wander state to break free and maneuver around obstructions. [COMPLETED]
 3. Implement grouped enemy spawn waves, spawning near each other in a tighter group, rather than all randomly around the outer walls. [COMPLETED]
 4. Implement player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range. [COMPLETED]
-5. Threat indicators should no longer track all enemies, they should only track when any fixture is being damaged. once a fixture is damaged it should add an indicator, and pulse/flash red on/off and have a timer for like 1.5s. any further damage resets the timer. once timer is off, the only way to determine a damaged fixture is to look at the graphics (different sprite frames), but for now we will interpolate it towards red in damaged increments, etc.
+5. Threat indicators: World position radar cache snapshotting offscreen enemies on a 2.0s–3.0s pulse timer, fading out over 0.5s with a 16px inward screen padding filter. [REPLACED & PLANNED]
 
 ### Phase 4: Enemy Attacking & Fixture Destruction
 1. Implement enemy melee attack against Player when within reach (0.3s attack windup, 1.0s attack cycle, 1 damage, triggering 0.5s i-frames).

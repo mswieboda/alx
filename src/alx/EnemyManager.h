@@ -20,8 +20,9 @@ namespace SpawnerConstants {
 
 }
 
-struct ThreatIndicatorConstants {
-
+struct CachedThreatPos {
+    float world_x = 0.0f;
+    float world_y = 0.0f;
 };
 
 class EnemyManager {
@@ -44,17 +45,21 @@ private:
     static constexpr int TARGET_PRIO_BONUS_PIPE_LIGHT_MANA = 25;
 
     // Threat Indicator
-    // TODO: will move to Network in favor of damaged fixtures)
     static constexpr int INDICATOR_SIZE = 6;
     static constexpr int INDICATOR_MARGIN = 4;
     static constexpr uint32_t INDICATOR_COLOR = 0x33AA0000; // Dim Red
     static constexpr int INDICATOR_Z_INDEX = 101;
-    static constexpr float INDICATOR_SCAN_INTERVAL_SEC = 2.0f;
+    static constexpr float INDICATOR_SCAN_INTERVAL_MIN = 2.0f;
+    static constexpr float INDICATOR_SCAN_INTERVAL_MAX = 3.0f;
+    static constexpr float INDICATOR_FADE_DURATION_SEC = 1.0f;
+    static constexpr float OFFSCREEN_PADDING = 16.0f; // 1 tile inward screen margin
 
     std::vector<Enemy> m_enemies;
     std::vector<AlloyItem> m_alloy_items;
     float m_scan_timer = 0.0f;
-    std::vector<size_t> m_cached_offscreen_indices;
+    float m_next_scan_interval = 2.0f;
+    float m_scan_age = 999.0f; // Prevent initial rendering until scan/spawn
+    std::vector<CachedThreatPos> m_cached_threat_positions;
     bool m_attack_hit_registered = false;
     float m_pending_twilight_increase = 0.0f;
 
@@ -63,8 +68,10 @@ public:
     void clear() {
         m_enemies.clear();
         m_alloy_items.clear();
-        m_cached_offscreen_indices.clear();
+        m_cached_threat_positions.clear();
         m_scan_timer = 0.0f;
+        m_scan_age = 999.0f;
+        m_next_scan_interval = 2.0f;
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
     }
@@ -206,13 +213,19 @@ public:
         }
 
         update_threat_cache();
+        m_scan_timer = 0.0f;
+        m_scan_age = 0.0f;
+        m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
     }
 
     void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr) {
         m_scan_timer += dt;
-        if (m_scan_timer >= INDICATOR_SCAN_INTERVAL_SEC) {
+        m_scan_age += dt;
+        if (m_scan_timer >= m_next_scan_interval) {
             m_scan_timer = 0.0f;
+            m_scan_age = 0.0f;
             update_threat_cache();
+            m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
         }
 
         update_enemy_ai(dt, player, tiles, network);
@@ -674,6 +687,10 @@ public:
     }
 
     void draw_threat_indicators(const alx::Camera& camera) const {
+        if (m_scan_age >= INDICATOR_FADE_DURATION_SEC) {
+            return;
+        }
+
         float sw = static_cast<float>(Game::WIDTH);
         float sh = static_cast<float>(Game::HEIGHT);
 
@@ -685,14 +702,21 @@ public:
         float margin_y_min = static_cast<float>(INDICATOR_MARGIN);
         float margin_y_max = sh - INDICATOR_MARGIN - INDICATOR_SIZE;
 
-        for (const auto& enemy : m_enemies) {
-            float enemy_cx = enemy.center_x();
-            float enemy_cy = enemy.center_y();
+        // Ease-in & Ease-out sine bell curve pulse: 0% -> 100% -> 0% over 0.5s
+        float progress = std::clamp(m_scan_age / INDICATOR_FADE_DURATION_SEC, 0.0f, 1.0f);
+        float pulse_curve = std::sin(progress * 3.1415926535f);
+        uint8_t base_alpha = (INDICATOR_COLOR >> 24) & 0xFF;
+        uint8_t faded_alpha = static_cast<uint8_t>(base_alpha * pulse_curve);
+        uint32_t faded_color = (static_cast<uint32_t>(faded_alpha) << 24) | (INDICATOR_COLOR & 0x00FFFFFF);
 
-            float esx = static_cast<float>(camera.to_screen_x(enemy_cx));
-            float esy = static_cast<float>(camera.to_screen_y(enemy_cy));
+        for (const auto& cached : m_cached_threat_positions) {
+            float esx = static_cast<float>(camera.to_screen_x(cached.world_x));
+            float esy = static_cast<float>(camera.to_screen_y(cached.world_y));
 
-            bool off_screen = (esx < 0.0f || esx > sw || esy < 0.0f || esy > sh);
+            // Viewport is padded inwards by OFFSCREEN_PADDING (16px)
+            // Indicators only show if enemy is past screen bounds + 16px buffer
+            bool off_screen = (esx < -OFFSCREEN_PADDING || esx > sw + OFFSCREEN_PADDING ||
+                               esy < -OFFSCREEN_PADDING || esy > sh + OFFSCREEN_PADDING);
 
             if (!off_screen) {
                 continue;
@@ -732,7 +756,7 @@ public:
                     static_cast<int>(std::round(iy)),
                     INDICATOR_SIZE,
                     INDICATOR_SIZE,
-                    INDICATOR_COLOR,
+                    faded_color,
                     true, // fill
                     1,    // thickness
                     INDICATOR_Z_INDEX
@@ -745,9 +769,10 @@ public:
 
 private:
     void update_threat_cache() {
-        m_cached_offscreen_indices.clear();
-        for (size_t i = 0; i < m_enemies.size(); ++i) {
-            m_cached_offscreen_indices.push_back(i);
+        m_cached_threat_positions.clear();
+        m_cached_threat_positions.reserve(m_enemies.size());
+        for (const auto& enemy : m_enemies) {
+            m_cached_threat_positions.push_back(CachedThreatPos{ enemy.center_x(), enemy.center_y() });
         }
     }
 };

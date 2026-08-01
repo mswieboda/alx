@@ -407,6 +407,10 @@ private:
             return;
         }
 
+        if (is_attacking()) {
+            return;
+        }
+
         float dx = 0.0f;
         float dy = 0.0f;
 
@@ -459,6 +463,7 @@ private:
         }
 
         if (Action::is_attack() && attack_phase == AttackPhase::Idle) {
+            sync_prev_transforms();
             attack_phase = AttackPhase::ActiveSweep;
             attack_timer = 0.0f;
             swing_progress_prev = 0.0f;
@@ -466,26 +471,28 @@ private:
             current_swing_id++;
         }
 
-        if (Action::is_build_cycle()) {
-            if (m_selected_fixture_type == FixtureType::Pipe) {
-                m_selected_fixture_type = FixtureType::Refiner;
-            } else if (m_selected_fixture_type == FixtureType::Refiner) {
-                m_selected_fixture_type = FixtureType::Spire;
-            } else {
-                m_selected_fixture_type = FixtureType::Pipe;
+        if (!is_attacking()) {
+            if (Action::is_build_cycle()) {
+                if (m_selected_fixture_type == FixtureType::Pipe) {
+                    m_selected_fixture_type = FixtureType::Refiner;
+                } else if (m_selected_fixture_type == FixtureType::Refiner) {
+                    m_selected_fixture_type = FixtureType::Spire;
+                } else {
+                    m_selected_fixture_type = FixtureType::Pipe;
+                }
             }
-        }
 
-        if (Action::is_just_pressed(Action::DebugResource)) {
-            m_cursed_alloy += 10;
-        }
+            if (Action::is_just_pressed(Action::DebugResource)) {
+                m_cursed_alloy += 10;
+            }
 
-        if (Action::is_build_tile()) {
-            try_build_tile(tiles, network);
-        }
+            if (Action::is_build_tile()) {
+                try_build_tile(tiles, network);
+            }
 
-        if (Action::is_remove_tile()) {
-            try_remove_tile(tiles, network);
+            if (Action::is_remove_tile()) {
+                try_remove_tile(tiles, network);
+            }
         }
     }
 
