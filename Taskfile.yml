@@ -310,10 +310,26 @@ tasks:
       - task: reset
         vars: { build: '{{.build}}' }
 
+  size-release:
+    desc: Calcs size of Release executable
+    vars:
+      build: Release
+      build_dir: 'build/{{.build}}'
+      binary: '{{.build_dir}}/{{.name}}{{.exe}}'
+    cmds:
+      - task: build-release
+      - cmd: |
+          echo '{{.binary}}'
+          ls -lah '{{.binary}}'
+        platforms: [windows]
+      - cmd: du -h '{{.binary}}'
+        platforms: [linux, darwin]
+
   release:
     desc: Pack assets, build Release and run game executable
     cmds:
       - task: build-release
+      - task: size-release
       - task: run-release
 
   # ==========================================
