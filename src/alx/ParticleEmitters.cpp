@@ -86,16 +86,16 @@ void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count) {
     for (int i = 0; i < count; ++i) {
         if (Random::chance(0.35f)) {
             if (Particle* p = ps.emit()) {
-                float spawn_x = x + Random::get_float(-6.0f, 6.0f);
-                float spawn_y = y + Random::get_float(-6.0f, 6.0f);
+                float spawn_x = x + Random::get_float(-4.0f, 4.0f);
+                float spawn_y = y + Random::get_float(-4.0f, 4.0f);
 
                 p->x = spawn_x;
                 p->y = spawn_y;
                 p->render_x = spawn_x;
                 p->render_y = spawn_y;
-                p->vx = Random::get_float(-10.0f, 10.0f);
-                p->vy = Random::get_float(-18.0f, -6.0f);
-                p->life = Random::get_float(0.8f, 1.4f);
+                p->vx = Random::get_float(-8.0f, 8.0f);
+                p->vy = Random::get_float(-18.0f, -4.0f);
+                p->life = Random::get_float(0.75f, 1.0f);
                 p->max_life = p->life;
 
                 uint8_t red = 0xFF;
@@ -114,16 +114,16 @@ void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count) {
     for (int i = 0; i < count; ++i) {
         if (Random::chance(0.35f)) {
             if (Particle* p = ps.emit()) {
-                float spawn_x = x + Random::get_float(-6.0f, 6.0f);
-                float spawn_y = y + Random::get_float(-6.0f, 6.0f);
+                float spawn_x = x + Random::get_float(-4.0f, 4.0f);
+                float spawn_y = y + Random::get_float(-4.0f, 4.0f);
 
                 p->x = spawn_x;
                 p->y = spawn_y;
                 p->render_x = spawn_x;
                 p->render_y = spawn_y;
-                p->vx = Random::get_float(-10.0f, 10.0f);
-                p->vy = Random::get_float(-18.0f, -6.0f);
-                p->life = Random::get_float(0.8f, 1.4f);
+                p->vx = Random::get_float(-8.0f, 8.0f);
+                p->vy = Random::get_float(-18.0f, -4.0f);
+                p->life = Random::get_float(0.75f, 1.0f);
                 p->max_life = p->life;
 
                 int color_variant = Random::get_int(0, 2);

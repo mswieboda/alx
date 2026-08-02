@@ -102,20 +102,8 @@ void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, 
             Draw::rect(world_x + dy, world_y - 4 - dy, 12, 1, top_color, true, 1, z_idx);
         }
 
-        // 4. Draw Outlines using Draw::line
-        Draw::line(world_x, world_y + 16, world_x + 12, world_y + 16, outline_color, 1, z_idx + 1);
-        Draw::line(world_x, world_y - 4, world_x, world_y + 16, outline_color, 1, z_idx + 1);
-        Draw::line(world_x + 12, world_y + 16, world_x + 16, world_y + 12, outline_color, 1, z_idx + 1);
-        Draw::line(world_x + 16, world_y - 8, world_x + 16, world_y + 12, outline_color, 1, z_idx + 1);
-        Draw::line(world_x + 4, world_y - 8, world_x + 16, world_y - 8, outline_color, 1, z_idx + 1);
-        Draw::line(world_x, world_y - 4, world_x + 4, world_y - 8, outline_color, 1, z_idx + 1);
-        Draw::line(world_x, world_y - 4, world_x + 12, world_y - 4, outline_color, 1, z_idx + 1);
-        Draw::line(world_x + 12, world_y - 4, world_x + 12, world_y + 16, outline_color, 1, z_idx + 1);
-        Draw::line(world_x + 12, world_y - 4, world_x + 16, world_y - 8, outline_color, 1, z_idx + 1);
-
-        // 5. Draw Front Window Cutout Background & Border (10x10 at world_x + 1, world_y + 4)
+        // 5. Draw Frameless Front Window Cutout Interior Background (10x10 at x+1, y+4, z_index = Layer::WorldObj + 1)
         Draw::rect(world_x + 1, world_y + 4, 10, 10, window_bg_color, true, 1, z_idx + 1);
-        Draw::rect(world_x + 1, world_y + 4, 10, 10, window_border_color, false, 1, z_idx + 2);
         return;
     }
 
@@ -140,8 +128,9 @@ void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, 
 
 void draw_node_dark_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer, bool fade) {
     uint32_t liquid_color = fade ? 0x669900FF : 0xFF9900FF; // Glowing twilight violet liquid
-    int z_idx = Layer::WorldObj + 3;
-    Draw::rect(world_x + 2, world_y + 6, 8, 8, liquid_color, true, 1, z_idx);
+    int z_idx = Layer::WorldObj + 2;
+    // Fills lower 4px of the 10x10 opening (y from y+10 to y+14, width 10)
+    Draw::rect(world_x + 1, world_y + 10, 10, 4, liquid_color, true, 1, z_idx);
 }
 
 void draw_node_light_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer, bool fade) {
@@ -149,11 +138,12 @@ void draw_node_light_mana(int world_x, int world_y, int tile_size, float progres
     uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
     uint32_t core_color = alpha | 0x00FFFFFF;  // White core
 
-    int z_idx_aura = Layer::WorldObj + 3;
-    int z_idx_core = Layer::WorldObj + 4;
+    int z_idx_aura = Layer::WorldObj + 2;
+    int z_idx_core = Layer::WorldObj + 3;
 
-    Draw::rect(world_x + 2, world_y + 6, 8, 8, aura_color, true, 1, z_idx_aura);
-    Draw::rect(world_x + 4, world_y + 8, 4, 4, core_color, true, 1, z_idx_core);
+    // Fills lower 4px of the 10x10 opening (y from y+10 to y+14, width 10)
+    Draw::rect(world_x + 4, world_y + 10, 7, 4, aura_color, true, 1, z_idx_aura);
+    Draw::rect(world_x + 6, world_y + 11, 5, 2, core_color, true, 1, z_idx_core);
 }
 
 void draw_tile_pipe_light_mana(const Fixture& fix, int anim_offset_x, int anim_offset_y, int world_x, int world_y, int tile_size) {
@@ -671,10 +661,12 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                 }
             }
             else if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
-                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 10));
+                // Temporarily commented out for testing visual geometry:
+                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8));
             }
             else if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
-                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 10));
+                // Temporarily commented out for testing visual geometry:
+                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8));
             }
         }
     }
