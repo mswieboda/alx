@@ -43,10 +43,10 @@ struct Enemy : public Entity {
     static constexpr int DEFAULT_MAX_HP = 3;
 
     static constexpr float KNOCKBACK_DIST = 2.0f;
-    static constexpr float GROUND_RADIUS_RATIO = 0.375f;   // 37.5% of width (6.0px)
+    static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of width
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (y + height - r)
-    static constexpr float HURT_RADIUS_RATIO = 0.4375f;   // 43.75% of width (7.0px)
-    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * 0.5)
+    static constexpr float HURT_RADIUS_RATIO = 0.30f;     // % of width
+    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Center Y (y + height * %)
 
     static constexpr float HIT_STUN_DURATION = 0.3f;
     static constexpr float MIN_IDLE_TIME = 0.5f;
@@ -196,6 +196,7 @@ struct Enemy : public Entity {
             transform.z_index
         );
 
+        // Enemy body
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
             Draw::rect(
                 world_draw_x,
@@ -210,15 +211,30 @@ struct Enemy : public Entity {
             );
         }
 
+        
         // Ground feet collision circle outline (cyan debug)
-        if (Debug::DRAW_COLLISION_AREAS) {
+        if (Debug::DRAW_GROUND_AREAS) {
             Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
-            Draw::oval(
+            Draw::circle(
                 ground.cx,
                 ground.cy,
                 ground.radius,
-                ground.radius,
                 0xFF00FFFF, // Bright Cyan debug outline
+                false,      // fill = false (outline only)
+                1,          // thickness = 1
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
+            );
+        }
+
+        // Ground hurt collision circle outline
+        if (Debug::DRAW_HURT_AREAS) {
+            Collision::Circle hurt = hurt_circle();
+            Draw::circle(
+                hurt.cx,
+                hurt.cy,
+                hurt.radius,
+                0xFFFFFF00, // Bright Yellow debug outline
                 false,      // fill = false (outline only)
                 1,          // thickness = 1
                 transform.z_index + 1,

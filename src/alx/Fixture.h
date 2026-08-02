@@ -75,9 +75,9 @@ struct Fixture {
 };
 
 inline Collision::AABB fixture_ground_aabb(int tx, int ty, float tile_size, FixtureType type = FixtureType::None) {
-    if (type == FixtureType::Refiner || type == FixtureType::Spire) {
-        return Collision::AABB{ static_cast<float>(tx) * tile_size, static_cast<float>(ty) * tile_size, tile_size, tile_size };
-    }
+    // if (type == FixtureType::Refiner || type == FixtureType::Spire) {
+    //     return Collision::AABB{ static_cast<float>(tx) * tile_size, static_cast<float>(ty) * tile_size, tile_size, tile_size };
+    // }
     float w = tile_size * FixtureConstants::GROUND_WIDTH_RATIO;
     float h = tile_size * FixtureConstants::GROUND_HEIGHT_RATIO;
     float x = static_cast<float>(tx) * tile_size + (tile_size - w) / 2.0f;

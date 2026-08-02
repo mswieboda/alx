@@ -84,6 +84,12 @@ struct PlayerInputBuffer {
 };
 
 struct Player : public Entity {
+    // visuals
+    static constexpr int SPRITE_WIDTH = 19;
+    static constexpr int SPRITE_HEIGHT = 29;
+    static constexpr float SHADOW_RX_RATIO = 0.45f;
+    static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
+
     // Movement speed in pixels per 60Hz physics tick.
     // NOTE FOR TUNING: Sticking to simple rational fractions (0.25f, 0.50f, 0.75f, 1.00f, 1.25f, 1.50f)
     // maintains a steady, harmonic multi-frame sub-pixel cadence without irregular rasterization stutter:
@@ -107,22 +113,21 @@ struct Player : public Entity {
 
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
+    // Relative collision ratio constants
+    static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of transform.width
+    static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
+    static constexpr float HURT_RADIUS_RATIO = 0.25f;     // % of transform.width
+    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * %)
+
+
     // Attack timing and radius constants
     static constexpr float ATTACK_SWEEP_DURATION    = 0.15f; // 0.15s active arc sweep
-    static constexpr float ATTACK_RECOVERY_DURATION = 0.10f; // 0.10s recovery delay
-    static constexpr float ATTACK_REACH_RADIUS      = 16.0f; // Reach distance from player center
-    static constexpr float ATTACK_HIT_RADIUS        = 8.0f;  // Radius of hit circle
-    static constexpr int ATTACK_ARC_SWEEP_DEG       = 90;    // -45° to +45° sweep arc
+    static constexpr float ATTACK_RECOVERY_DURATION = 0.15f; // 0.10s recovery delay
+    static constexpr float ATTACK_REACH_RADIUS      = 12.0f; // Reach distance from player center
+    static constexpr float ATTACK_HIT_RADIUS        = 4.0f;  // Radius of hit circle
+    static constexpr int ATTACK_ARC_SWEEP_START_DEG = -60;   // in degrees (where swing starts)
+    static constexpr int ATTACK_ARC_SWEEP_SWING_DEG = 125;    // in degrees (total swing motion)
 
-    // Relative collision ratio constants
-    static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // 50% of transform.width (6.0px)
-    static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
-    static constexpr float HURT_RADIUS_RATIO = 0.50f;     // 50% of transform.width (6.0px)
-    static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * 0.5)
-
-    // visuals
-    static constexpr float SHADOW_RX_RATIO = 0.8f;
-    static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
 
     AttackPhase attack_phase = AttackPhase::Idle;
     float attack_timer = 0.0f;
@@ -130,33 +135,20 @@ struct Player : public Entity {
     float swing_progress_prev = 0.0f;
     float swing_progress_curr = 0.0f;
 
-    struct AttackHitbox {
-        float x = 0.0f;
-        float y = 0.0f;
-        float width = 0.0f;
-        float height = 0.0f;
-    };
-
     Player(float x = 128.0f, float y = 128.0f)
-        // : Entity(
-        //     Transform{ x, y, 12, 24, Layer::WorldObj }, // Transform (x, y, w, h, z_index)
-        //     RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
-        //     true,                                           // Active
-        //     "player"                                        // Tag for easy lookups
-        //   )
         : Entity(
             Transform{ // Transform
                 x,
                 y,
-                48, // width
-                64, // height
+                SPRITE_WIDTH, // width
+                SPRITE_HEIGHT, // height
                 Layer::WorldObj // z-index
             },
             SpriteRender{
-                Assets::Images::mystic, // pixels
-                Assets::Images::mystic_len, // pixels size
-                48, // width
-                64 // height
+                Assets::Images::mystic_19x29, // pixels
+                Assets::Images::mystic_19x29_len, // pixels size
+                SPRITE_WIDTH, // width
+                SPRITE_HEIGHT // height
             },
             true, // active
             "player" // tag
@@ -241,7 +233,7 @@ struct Player : public Entity {
 
     Collision::Circle calculate_attack_circle_at(float progress, float px, float py) const {
         int base_deg = base_facing_angle_deg();
-        int offset_deg = -45 + static_cast<int>(progress * static_cast<float>(ATTACK_ARC_SWEEP_DEG));
+        int offset_deg = ATTACK_ARC_SWEEP_START_DEG + static_cast<int>(progress * ATTACK_ARC_SWEEP_SWING_DEG);
         int angle_deg = base_deg + offset_deg;
 
         float pcx = px + (transform.width / 2.0f);
@@ -352,13 +344,12 @@ struct Player : public Entity {
             );
         }
 
-        // Ground feet collision circle outline (cyan debug)
-        if (Debug::DRAW_COLLISION_AREAS) {
+        // Ground ground collision circle outline
+        if (Debug::DRAW_GROUND_AREAS) {
             Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
-            Draw::oval(
+            Draw::circle(
                 ground.cx,
                 ground.cy,
-                ground.radius,
                 ground.radius,
                 0xFF00FFFF, // Bright Cyan debug outline
                 false,      // fill = false (outline only)
@@ -368,8 +359,23 @@ struct Player : public Entity {
             );
         }
 
-        // Attack hit box/circle (2px inner-outlined circle)
-        if (is_attacking() && (Debug::DRAW_COLLISION_AREAS || Debug::DRAW_MELEE_ARCS)) {
+        // Ground hurt collision circle outline
+        if (Debug::DRAW_HURT_AREAS) {
+            Collision::Circle hurt = hurt_circle();
+            Draw::circle(
+                hurt.cx,
+                hurt.cy,
+                hurt.radius,
+                0xFFFFFF00, // Bright Yellow debug outline
+                false,      // fill = false (outline only)
+                1,          // thickness = 1
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
+            );
+        }
+
+        // Attack hit circle (2px inner-outlined circle)
+        if (is_attacking() && (Debug::DRAW_MELEE_ARCS)) {
             Collision::Circle hit_c = attack_hit_circle(alpha);
             Draw::circle(
                 hit_c.cx,
@@ -377,7 +383,7 @@ struct Player : public Entity {
                 hit_c.radius,
                 0xFF00FFFF, // Bright Cyan debug circle
                 false,      // fill = false (outline only)
-                2,          // thickness = 2 (2px inner-outlined circle)
+                1,          // thickness = 2 (2px inner-outlined circle)
                 transform.z_index + 2,
                 static_cast<int>(world_bottom_y) // sort Y override
             );
