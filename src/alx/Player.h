@@ -10,6 +10,7 @@
 #include "core/Collision.h"
 #include "core/Entity.h"
 #include "Debug.h"
+#include "assets/Images.h"
 
 
 namespace alx {
@@ -114,7 +115,7 @@ struct Player : public Entity {
     static constexpr int ATTACK_ARC_SWEEP_DEG       = 90;    // -45° to +45° sweep arc
 
     // Relative collision ratio constants
-    static constexpr float GROUND_RADIUS_RATIO = 0.50f;   // 50% of transform.width (6.0px)
+    static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // 50% of transform.width (6.0px)
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
     static constexpr float HURT_RADIUS_RATIO = 0.50f;     // 50% of transform.width (6.0px)
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * 0.5)
@@ -137,12 +138,29 @@ struct Player : public Entity {
     };
 
     Player(float x = 128.0f, float y = 128.0f)
+        // : Entity(
+        //     Transform{ x, y, 12, 24, Layer::WorldObj }, // Transform (x, y, w, h, z_index)
+        //     RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
+        //     true,                                           // Active
+        //     "player"                                        // Tag for easy lookups
+        //   )
         : Entity(
-            Transform{ x, y, 12, 24, Layer::WorldObj }, // Transform (x, y, w, h, z_index)
-            RectangleRender{ 0xFFFF00FF, true, 1 },         // Visual (Magenta box representation)
-            true,                                           // Active
-            "player"                                        // Tag for easy lookups
-          )
+            Transform{ // Transform
+                x,
+                y,
+                48, // width
+                64, // height
+                Layer::WorldObj // z-index
+            },
+            SpriteRender{
+                Assets::Images::mystic, // pixels
+                Assets::Images::mystic_len, // pixels size
+                48, // width
+                64 // height
+            },
+            true, // active
+            "player" // tag
+        )
     {
     }
 
@@ -321,15 +339,14 @@ struct Player : public Entity {
         );
 
         // Player body
-        if (auto* rect = std::get_if<RectangleRender>(&visual)) {
-            Draw::rect(
+        if (auto* sprite = std::get_if<SpriteRender>(&visual)) {
+            Draw::sprite(
                 world_draw_x,
                 world_draw_y,
-                world_draw_w,
-                world_draw_h,
-                rect->color,
-                rect->fill,
-                rect->thickness,
+                sprite->pixels,
+                sprite->pixels_size,
+                sprite->width,
+                sprite->height,
                 transform.z_index,
                 static_cast<int>(world_bottom_y) // sort Y override
             );
