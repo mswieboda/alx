@@ -5,6 +5,7 @@
 #include "Layer.h"
 #include "Game.h"
 #include "core/Draw.h"
+#include "Player.h"
 #include <cmath>
 #include <algorithm>
 
@@ -25,7 +26,21 @@ bool is_node_fixture(const Network& network, int gx, int gy) {
     return fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire || fix.type == FixtureType::Seep;
 }
 
-void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, int gy, int world_x, int world_y, int tile_size) {
+bool is_player_behind(int world_x, int world_y, const Player* player) {
+    if (!player) return false;
+    float px = player->transform.x;
+    float py = player->transform.y;
+    float pw = player->transform.width;
+    float ph = player->transform.height;
+    float p_bottom_y = py + ph;
+
+    bool overlap_x = (px + pw > world_x) && (px < world_x + 16);
+    bool overlap_y = (py + ph > world_y - 8) && (py < world_y + 16);
+
+    return overlap_x && overlap_y && p_bottom_y <= world_y + 16;
+}
+
+void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, int gy, int world_x, int world_y, int tile_size, const Player* player = nullptr) {
     if (fix.type == FixtureType::Pipe) {
         uint32_t pipe_color = 0xFF4A4A60;
 
@@ -50,15 +65,63 @@ void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, 
         return;
     }
 
+    if (fix.type == FixtureType::Refiner || fix.type == FixtureType::Spire) {
+        bool fade = is_player_behind(world_x, world_y, player);
+        uint32_t top_color, front_color, right_color, outline_color;
+        uint32_t window_bg_color, window_border_color;
+        uint32_t alpha = fade ? 0x66000000 : 0xFF000000;
+
+        if (fix.type == FixtureType::Refiner) {
+            top_color = alpha | 0x004A2C8A;
+            front_color = alpha | 0x00241454;
+            right_color = alpha | 0x00301C66;
+            outline_color = alpha | 0x0010052C;
+            window_bg_color = alpha | 0x00120A2A;
+            window_border_color = alpha | 0x00090415;
+        } else {
+            top_color = alpha | 0x0000FF88;
+            front_color = alpha | 0x0000A340;
+            right_color = alpha | 0x0000D15C;
+            outline_color = alpha | 0x00003D18;
+            window_bg_color = alpha | 0x00005220;
+            window_border_color = alpha | 0x00002810;
+        }
+
+        int z_idx = Layer::WorldObj;
+
+        // 1. Draw Front Face (12x20 at x, y-4)
+        Draw::rect(world_x, world_y - 4, 12, 20, front_color, true, 1, z_idx);
+
+        // 2. Draw Right Face (slanted vertical columns from x+12 to x+16)
+        for (int dx = 0; dx < 4; ++dx) {
+            Draw::rect(world_x + 12 + dx, world_y - 4 - dx, 1, 20, right_color, true, 1, z_idx);
+        }
+
+        // 3. Draw Top Face (slanted horizontal rows from y-4 to y-8)
+        for (int dy = 0; dy <= 4; ++dy) {
+            Draw::rect(world_x + dy, world_y - 4 - dy, 12, 1, top_color, true, 1, z_idx);
+        }
+
+        // 4. Draw Outlines using Draw::line
+        Draw::line(world_x, world_y + 16, world_x + 12, world_y + 16, outline_color, 1, z_idx + 1);
+        Draw::line(world_x, world_y - 4, world_x, world_y + 16, outline_color, 1, z_idx + 1);
+        Draw::line(world_x + 12, world_y + 16, world_x + 16, world_y + 12, outline_color, 1, z_idx + 1);
+        Draw::line(world_x + 16, world_y - 8, world_x + 16, world_y + 12, outline_color, 1, z_idx + 1);
+        Draw::line(world_x + 4, world_y - 8, world_x + 16, world_y - 8, outline_color, 1, z_idx + 1);
+        Draw::line(world_x, world_y - 4, world_x + 4, world_y - 8, outline_color, 1, z_idx + 1);
+        Draw::line(world_x, world_y - 4, world_x + 12, world_y - 4, outline_color, 1, z_idx + 1);
+        Draw::line(world_x + 12, world_y - 4, world_x + 12, world_y + 16, outline_color, 1, z_idx + 1);
+        Draw::line(world_x + 12, world_y - 4, world_x + 16, world_y - 8, outline_color, 1, z_idx + 1);
+
+        // 5. Draw Front Window Cutout Background & Border (10x10 at world_x + 1, world_y + 4)
+        Draw::rect(world_x + 1, world_y + 4, 10, 10, window_bg_color, true, 1, z_idx + 1);
+        Draw::rect(world_x + 1, world_y + 4, 10, 10, window_border_color, false, 1, z_idx + 2);
+        return;
+    }
+
     uint32_t color = 0xFF00FF66;
     int z_idx = Layer::GroundFixture;
-    if (fix.type == FixtureType::Refiner) {
-        color = 0xFF301C66;
-        z_idx = Layer::WorldObj;
-    } else if (fix.type == FixtureType::Spire) {
-        color = 0xFF00FF66;
-        z_idx = Layer::WorldObj;
-    } else if (fix.type == FixtureType::Seep) {
+    if (fix.type == FixtureType::Seep) {
         color = 0xFF00FF66;
         z_idx = Layer::GroundFixture;
     }
@@ -75,37 +138,22 @@ void draw_single_fixture_bg(const Network& network, const Fixture& fix, int gx, 
     );
 }
 
-void draw_node_dark_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer) {
-    uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
-
-    float pulse = std::sin(progress * 3.14159f);
-    int pulse_extra = (timer > 0 && pulse > 0.5f) ? 2 : 0;
-
-    int pool_size = 6 + pulse_extra;
-    int offset = (tile_size - pool_size) / 2;
-    int z_idx = Layer::WorldObj + 1;
-
-    Draw::rect(world_x + offset, world_y + offset, pool_size, pool_size, liquid_color, true, 1, z_idx);
+void draw_node_dark_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer, bool fade) {
+    uint32_t liquid_color = fade ? 0x669900FF : 0xFF9900FF; // Glowing twilight violet liquid
+    int z_idx = Layer::WorldObj + 3;
+    Draw::rect(world_x + 2, world_y + 6, 8, 8, liquid_color, true, 1, z_idx);
 }
 
-void draw_node_light_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer) {
-    uint32_t aura_color = 0xFF00FFFF;  // Cyan aura
-    uint32_t core_color = 0xFFFFFFFF;  // White core
+void draw_node_light_mana(int world_x, int world_y, int tile_size, float progress, uint8_t timer, bool fade) {
+    uint32_t alpha = fade ? 0x66000000 : 0xFF000000;
+    uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
+    uint32_t core_color = alpha | 0x00FFFFFF;  // White core
 
-    float pulse = std::sin(progress * 3.14159f);
-    int pulse_extra = (timer > 0 && pulse > 0.5f) ? 2 : 0;
+    int z_idx_aura = Layer::WorldObj + 3;
+    int z_idx_core = Layer::WorldObj + 4;
 
-    int orb_size = 10 + pulse_extra;
-    int offset = (tile_size - orb_size) / 2;
-
-    int z_idx_aura = Layer::WorldObj + 1;
-    int z_idx_core = Layer::WorldObj + 2;
-
-    Draw::rect(world_x + offset, world_y + offset, orb_size, orb_size, aura_color, true, 1, z_idx_aura);
-
-    int core_size = std::max(4, orb_size - 4);
-    int core_offset = (tile_size - core_size) / 2;
-    Draw::rect(world_x + core_offset, world_y + core_offset, core_size, core_size, core_color, true, 1, z_idx_core);
+    Draw::rect(world_x + 2, world_y + 6, 8, 8, aura_color, true, 1, z_idx_aura);
+    Draw::rect(world_x + 4, world_y + 8, 4, 4, core_color, true, 1, z_idx_core);
 }
 
 void draw_tile_pipe_light_mana(const Fixture& fix, int anim_offset_x, int anim_offset_y, int world_x, int world_y, int tile_size) {
@@ -431,18 +479,18 @@ void draw_junction_branch_stubs(const Network& network, int x, int y, int world_
 
 } // namespace
 
-void draw_background(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty) {
+void draw_background(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, const Player* player) {
     int tile_size = network.tile_size();
     for (int y = min_ty; y <= max_ty; ++y) {
         for (int x = min_tx; x <= max_tx; ++x) {
             const Fixture& fix = network.fixture(x, y);
             if (fix.is_empty()) continue;
-            draw_single_fixture_bg(network, fix, x, y, x * tile_size, y * tile_size, tile_size);
+            draw_single_fixture_bg(network, fix, x, y, x * tile_size, y * tile_size, tile_size, player);
         }
     }
 }
 
-void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float progress) {
+void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float progress, const Player* player) {
     int tile_size = network.tile_size();
     constexpr int STREAM_WIDTH = 6; // 6px stream width (1px grey wall margin on each side inside 8px pipe channel)
 
@@ -526,12 +574,14 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
             }
 
             if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
-                draw_node_dark_mana(world_x, world_y, tile_size, progress, fix.process_timer);
+                bool fade = is_player_behind(world_x, world_y, player);
+                draw_node_dark_mana(world_x, world_y, tile_size, progress, fix.process_timer, fade);
                 continue;
             }
 
             if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
-                draw_node_light_mana(world_x, world_y, tile_size, progress, fix.process_timer);
+                bool fade = is_player_behind(world_x, world_y, player);
+                draw_node_light_mana(world_x, world_y, tile_size, progress, fix.process_timer, fade);
                 continue;
             }
 
@@ -552,7 +602,7 @@ void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int m
     }
 }
 
-void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty) {
+void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, const Player* player) {
     int tile_size = network.tile_size();
     for (int y = min_ty; y <= max_ty; ++y) {
         for (int x = min_tx; x <= max_tx; ++x) {
@@ -560,8 +610,11 @@ void draw_powered_indicators(const Network& network, int min_tx, int max_tx, int
             if (!fix.is_powered || (fix.type != FixtureType::Refiner && fix.type != FixtureType::Spire)) {
                 continue;
             }
-            uint32_t color = 0xFFFFFF00;
-            Draw::rect(x * tile_size, y * tile_size, tile_size, tile_size, color, false, 1, Layer::WorldObj);
+            int world_x = x * tile_size;
+            int world_y = y * tile_size;
+            bool fade = is_player_behind(world_x, world_y, player);
+            uint32_t color = fade ? 0x66FFFF00 : 0xFFFFFF00;
+            Draw::rect(world_x, world_y - 8, 16, 24, color, false, 1, Layer::WorldObj + 4);
         }
     }
 }
@@ -618,10 +671,10 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
                 }
             }
             else if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
-                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));
+                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 10));
             }
             else if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
-                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + tile_size / 2), static_cast<float>(world_y + tile_size / 2));
+                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 10));
             }
         }
     }

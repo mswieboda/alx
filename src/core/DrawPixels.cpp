@@ -141,6 +141,73 @@ void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, ui
     }
 }
 
+void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t color, int thickness) {
+    uint32_t alpha = (color >> 24) & 0xFF;
+    if (alpha == 0) return;
+
+    int dx = std::abs(x2 - x1);
+    int dy = std::abs(y2 - y1);
+    int sx = (x1 < x2) ? 1 : -1;
+    int sy = (y1 < y2) ? 1 : -1;
+    int err = dx - dy;
+
+    auto draw_brush = [&](int cx, int cy) {
+        int half_t = thickness / 2;
+        int start_x = std::max(0, cx - half_t);
+        int end_x = std::min(Game::WIDTH, cx - half_t + thickness);
+        int start_y = std::max(0, cy - half_t);
+        int end_y = std::min(Game::HEIGHT, cy - half_t + thickness);
+
+        for (int y = start_y; y < end_y; ++y) {
+            for (int x = start_x; x < end_x; ++x) {
+                uint32_t idx = y * Game::WIDTH + x;
+                if (alpha == 0xFF) {
+                    buf[idx] = color;
+                } else {
+                    buf[idx] = blend_pixel(buf[idx], color);
+                }
+            }
+        }
+    };
+
+    if (thickness <= 1) {
+        while (true) {
+            if (x1 >= 0 && x1 < Game::WIDTH && y1 >= 0 && y1 < Game::HEIGHT) {
+                uint32_t idx = y1 * Game::WIDTH + x1;
+                if (alpha == 0xFF) {
+                    buf[idx] = color;
+                } else {
+                    buf[idx] = blend_pixel(buf[idx], color);
+                }
+            }
+            if (x1 == x2 && y1 == y2) break;
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x1 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y1 += sy;
+            }
+        }
+    } else {
+        while (true) {
+            draw_brush(x1, y1);
+            if (x1 == x2 && y1 == y2) break;
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x1 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y1 += sy;
+            }
+        }
+    }
+}
+
 void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr) {
     if (!font_ptr) {
         font_ptr = &Font::DEFAULT_BLANK;

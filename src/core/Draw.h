@@ -68,13 +68,20 @@ namespace Draw {
         int height;
     };
 
+    struct LineData {
+        float x2;
+        float y2;
+        uint32_t color;
+        int thickness;
+    };
+
     // --- COMMAND ---
     struct Command {
         float x;
         float y;
         int z_index;
         int sort_y;
-        std::variant<TextData, RectData, OvalData, SpriteData, BlendPixelsData> data;
+        std::variant<TextData, RectData, OvalData, SpriteData, BlendPixelsData, LineData> data;
     };
 
     // --- 3. PUBLIC PIPELINE INTERFACE ---
@@ -104,6 +111,7 @@ namespace Draw {
     void rect(float x, float y, float width, float height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void circle(float cx, float cy, float radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
+    void line(float x1, float y1, float x2, float y2, uint32_t color, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void sprite_frame(
         float screen_x, float screen_y,

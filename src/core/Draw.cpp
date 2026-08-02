@@ -204,6 +204,17 @@ namespace Draw {
         oval(cx, cy, radius, radius, color, fill, thickness, z_index, sort_y_override);
     }
 
+    void line(float x1, float y1, float x2, float y2, uint32_t color, int thickness, int z_index, int sort_y_override) {
+        float dx1 = transform_x(x1);
+        float dy1 = transform_y(y1);
+        float dx2 = transform_x(x2);
+        float dy2 = transform_y(y2);
+        int override_y = transform_sort_y_override(sort_y_override);
+
+        int sort_y = calc_sort_y(static_cast<int>(std::max(dy1, dy2)), 0, override_y);
+        g_queue.push_back({ dx1, dy1, z_index, sort_y, LineData{ dx2, dy2, color, thickness } });
+    }
+
     void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index, int sort_y_override) {
         auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
@@ -297,6 +308,15 @@ namespace Draw {
                         arg.pixel_data_size,
                         arg.width,
                         arg.height
+                    );
+                }
+                else if constexpr (std::is_same_v<T, LineData>) {
+                    DrawPixels::line(
+                        buffer,
+                        static_cast<int>(cmd.x), static_cast<int>(cmd.y),
+                        static_cast<int>(arg.x2), static_cast<int>(arg.y2),
+                        arg.color,
+                        arg.thickness
                     );
                 }
             }, cmd.data);

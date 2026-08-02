@@ -386,7 +386,7 @@ public:
                     }
 
                     if (enemy.has_target) {
-                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
 
@@ -417,7 +417,7 @@ public:
                             m_pending_twilight_increase += twilight_inc;
                         }
 
-                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
                         float rdx = enemy.center_x() - target_cx;
@@ -523,7 +523,7 @@ public:
                         // Fix 2: If enemy is already within reach of its target fixture, ignore stuck counting
                         bool near_target = false;
                         if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos)) {
-                            Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size);
+                            Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
                             Collision::AABB padded_aabb{ fix_aabb.x - 4.0f, fix_aabb.y - 4.0f, fix_aabb.w + 8.0f, fix_aabb.h + 8.0f };
                             near_target = Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb);
                         }

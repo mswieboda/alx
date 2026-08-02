@@ -8,6 +8,9 @@
 #include "alx/WorldCollision.h"
 #include "alx/TrigLUT.h"
 #include "core/Collision.h"
+#include "core/Entity.h"
+#include "Debug.h"
+
 
 namespace alx {
 
@@ -179,7 +182,7 @@ struct Player : public Entity {
             int tx = static_cast<int>(std::floor(test_cx / tile_size));
             int ty = static_cast<int>(std::floor(test_cy / tile_size));
 
-            Collision::AABB proposed_aabb = fixture_ground_aabb(tx, ty, tile_size);
+            Collision::AABB proposed_aabb = fixture_ground_aabb(tx, ty, tile_size, m_selected_fixture_type);
             if (!Collision::circle_vs_aabb(g, proposed_aabb)) {
                 return PlacementPoint{ test_cx, test_cy };
             }
@@ -256,7 +259,7 @@ struct Player : public Entity {
         };
 
         // Self-overlap guard: reject placement if fixture's solid ground box intersects player's ground circle
-        Collision::AABB proposed_aabb = fixture_ground_aabb(target_pos.x, target_pos.y, tile_sz);
+        Collision::AABB proposed_aabb = fixture_ground_aabb(target_pos.x, target_pos.y, tile_sz, m_selected_fixture_type);
         if (Collision::circle_vs_aabb(ground_circle(), proposed_aabb)) {
             return false;
         }

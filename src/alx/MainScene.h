@@ -394,9 +394,9 @@ public:
         }
 
         // Layer 1: Render Fixture Backgrounds, Mana, and Powered Indicators via FixtureRenderer
-        FixtureRenderer::draw_background(m_network, min_tx, max_tx, min_ty, max_ty);
-        FixtureRenderer::draw_mana(m_network, min_tx, max_tx, min_ty, max_ty, progress);
-        FixtureRenderer::draw_powered_indicators(m_network, min_tx, max_tx, min_ty, max_ty);
+        FixtureRenderer::draw_background(m_network, min_tx, max_tx, min_ty, max_ty, &m_player);
+        FixtureRenderer::draw_mana(m_network, min_tx, max_tx, min_ty, max_ty, progress, &m_player);
+        FixtureRenderer::draw_powered_indicators(m_network, min_tx, max_tx, min_ty, max_ty, &m_player);
 
         // Trigger Particle Emitters for active network tiles
         FixtureRenderer::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty, m_last_dt, SIM_TICK_RATE);
