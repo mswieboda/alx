@@ -42,7 +42,7 @@ struct Enemy : public Entity {
 
     static constexpr int DEFAULT_MAX_HP = 3;
 
-    static constexpr float KNOCKBACK_DIST = 2.0f;
+    static constexpr float KNOCKBACK_DIST = 16.0f;
     static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of width
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (y + height - r)
     static constexpr float HURT_RADIUS_RATIO = 0.30f;     // % of width
@@ -78,6 +78,10 @@ struct Enemy : public Entity {
     float recoil_dx = 0.0f;
     float recoil_dy = 0.0f;
     float recoil_dist_remaining = 0.0f;
+    float knockback_dx = 0.0f;
+    float knockback_dy = 0.0f;
+    float knockback_speed = 0.0f;
+    float initial_knockback_speed = 0.0f;
     float state_timer = WANDER_DURATION;
     float reeval_timer = 0.0f;
     float stuck_timer = 0.0f;
@@ -163,10 +167,12 @@ struct Enemy : public Entity {
         is_moving = true;
     }
 
-    void take_damage(int amount, float push_dx, float push_dy) {
+    void take_damage(int amount, float kb_dx, float kb_dy, float kb_speed = 250.0f) {
         hp -= amount;
-        transform.x += push_dx * KNOCKBACK_DIST;
-        transform.y += push_dy * KNOCKBACK_DIST;
+        knockback_dx = kb_dx;
+        knockback_dy = kb_dy;
+        knockback_speed = kb_speed;
+        initial_knockback_speed = kb_speed;
         is_moving = false;
         move_dx = 0.0f;
         move_dy = 0.0f;

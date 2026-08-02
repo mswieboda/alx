@@ -488,7 +488,46 @@ public:
                 }
 
                 case EnemyState::HitStun: {
-                    if (enemy.state_timer <= 0.0f) {
+                    if (enemy.knockback_speed > 5.0f) {
+                        float step = enemy.knockback_speed * dt;
+                        bool blocked_x = false;
+                        bool blocked_y = false;
+
+                        if (enemy.knockback_dx != 0.0f) {
+                            float tx = enemy.transform.x + enemy.knockback_dx * step;
+                            if (!is_solid_ground(enemy.ground_circle(tx, enemy.transform.y), tiles, network)) {
+                                enemy.transform.x = tx;
+                            } else {
+                                blocked_x = true;
+                            }
+                        }
+
+                        if (enemy.knockback_dy != 0.0f) {
+                            float ty = enemy.transform.y + enemy.knockback_dy * step;
+                            if (!is_solid_ground(enemy.ground_circle(enemy.transform.x, ty), tiles, network)) {
+                                enemy.transform.y = ty;
+                            } else {
+                                blocked_y = true;
+                            }
+                        }
+
+                        if (blocked_x) {
+                            enemy.knockback_dx = -enemy.knockback_dx * 0.5f;
+                        }
+                        if (blocked_y) {
+                            enemy.knockback_dy = -enemy.knockback_dy * 0.5f;
+                        }
+
+                        float speed_ratio = enemy.knockback_speed / std::max(0.001f, enemy.initial_knockback_speed);
+                        float friction_coeff = 1.0f - (speed_ratio * speed_ratio);
+                        float deceleration = 100.0f + 1100.0f * friction_coeff;
+
+                        enemy.knockback_speed = std::max(0.0f, enemy.knockback_speed - deceleration * dt);
+                    } else {
+                        enemy.knockback_speed = 0.0f;
+                    }
+
+                    if (enemy.state_timer <= 0.0f && enemy.knockback_speed <= 0.0f) {
                         enemy.state = EnemyState::Wander;
                         enemy.state_timer = 0.0f;
                     }
@@ -605,6 +644,9 @@ public:
                 int attack_r  = static_cast<int>(hit_c.radius);
 
                 for (auto& enemy : m_enemies) {
+                    if (enemy.is_dead()) {
+                        continue;
+                    }
                     if (enemy.last_hit_swing_id == player.current_swing_id) {
                         continue;
                     }
@@ -626,7 +668,7 @@ public:
                             push_dx = player.facing_dx;
                             push_dy = player.facing_dy;
                         }
-                        enemy.take_damage(1, push_dx, push_dy);
+                        enemy.take_damage(1, push_dx, push_dy, Player::ATTACK_KNOCKBACK_SPEED);
                         if (particles) {
                             ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y);
                         }
@@ -638,7 +680,7 @@ public:
         // --- 2. ENEMY DEATH & LOOT DROP ---
         bool removed_any = false;
         for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
-            if (it->is_dead()) {
+            if (it->is_dead() && it->state != EnemyState::HitStun) {
                 m_alloy_items.emplace_back(it->center_x() - 4.0f, it->center_y() - 4.0f);
                 it = m_enemies.erase(it);
                 removed_any = true;

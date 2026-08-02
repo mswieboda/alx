@@ -124,9 +124,10 @@ struct Player : public Entity {
     static constexpr float ATTACK_SWEEP_DURATION    = 0.15f; // 0.15s active arc sweep
     static constexpr float ATTACK_RECOVERY_DURATION = 0.15f; // 0.10s recovery delay
     static constexpr float ATTACK_REACH_RADIUS      = 12.0f; // Reach distance from player center
-    static constexpr float ATTACK_HIT_RADIUS        = 4.0f;  // Radius of hit circle
+    static constexpr float ATTACK_HIT_RADIUS        = 8.0f;  // Radius of hit circle
     static constexpr int ATTACK_ARC_SWEEP_START_DEG = -60;   // in degrees (where swing starts)
     static constexpr int ATTACK_ARC_SWEEP_SWING_DEG = 125;    // in degrees (total swing motion)
+    static constexpr float ATTACK_KNOCKBACK_SPEED   = 115.0f;
 
 
     AttackPhase attack_phase = AttackPhase::Idle;
