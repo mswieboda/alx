@@ -31,7 +31,9 @@ namespace DrawPixels {
         int src_y,
         int src_w,
         int src_h,
-        const uint32_t* palette
+        const uint32_t* palette,
+        bool is_flip_h = false,
+        bool is_flip_v = false
     );
 
     void blend(

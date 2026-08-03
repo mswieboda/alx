@@ -13,6 +13,8 @@ struct SpriteRender {
     uint32_t pixels_size;
     int width;
     int height;
+    bool is_flip_h = false;
+    bool is_flip_v = false;
 };
 
 // Animated Sprite related concepts, for AnimatedSpriteRender
@@ -46,6 +48,8 @@ struct AnimatedSpriteRender {
     int current_sequence_index = 0;    // Where we are in the frame_indices loop
     float elapsed_time_ms = 0.0f;      // Ticker that accumulates delta time (dt)
     bool is_playing = true;
+    bool is_flip_h = false;
+    bool is_flip_v = false;
 };
 
 struct RectangleRender {

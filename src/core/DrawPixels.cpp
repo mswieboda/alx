@@ -267,7 +267,9 @@ void sprite_frame(
     int src_y,
     int src_w,
     int src_h,
-    const uint32_t* palette
+    const uint32_t* palette,
+    bool is_flip_h,
+    bool is_flip_v
 ) {
     int px_idx = 0;
     uint32_t cursor = 0;
@@ -289,8 +291,18 @@ void sprite_frame(
             if (lx >= src_x && lx < src_x + src_w &&
                 ly >= src_y && ly < src_y + src_h) {
 
-                int tx = x + (lx - src_x);
-                int ty = y + (ly - src_y);
+                int local_x = lx - src_x;
+                int local_y = ly - src_y;
+
+                if (is_flip_h) {
+                    local_x = (src_w - 1) - local_x;
+                }
+                if (is_flip_v) {
+                    local_y = (src_h - 1) - local_y;
+                }
+
+                int tx = x + local_x;
+                int ty = y + local_y;
 
                 if (tx >= 0 && tx < Game::WIDTH && ty >= 0 && ty < Game::HEIGHT) {
                     uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;

@@ -110,6 +110,7 @@ struct Player : public Entity {
     // Facing vector (default facing down)
     float facing_dx = 0.0f;
     float facing_dy = 1.0f;
+    bool is_facing_left = false;
 
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
@@ -341,7 +342,8 @@ struct Player : public Entity {
                 sprite->width,
                 sprite->height,
                 transform.z_index,
-                static_cast<int>(world_bottom_y) // sort Y override
+                static_cast<int>(world_bottom_y), // sort Y override
+                is_facing_left
             );
         }
 
@@ -449,6 +451,12 @@ private:
         FacingVector facing = input_buffer.update_facing(dt, dx, dy);
         facing_dx = facing.dx;
         facing_dy = facing.dy;
+
+        if (facing_dx < -0.01f) {
+            is_facing_left = true;
+        } else if (facing_dx > 0.01f) {
+            is_facing_left = false;
+        }
 
         // DIAGONAL SPEED SCALE OPTIONS:
         // 1.00f = Classic 16-bit SNES/Zelda grid-aligned (+41% speed boost, 100% 60Hz smooth)

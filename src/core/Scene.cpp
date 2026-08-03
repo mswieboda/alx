@@ -97,7 +97,10 @@ void Scene::draw_entities(std::vector<uint32_t>& screen_buffer, float alpha) {
                     visual_data.pixels_size,
                     visual_data.width,
                     visual_data.height,
-                    entity.transform.z_index
+                    entity.transform.z_index,
+                    Draw::NO_SORT_Y_OVERRIDE,
+                    visual_data.is_flip_h,
+                    visual_data.is_flip_v
                 );
             },
             [&](const AnimatedSpriteRender& visual_data) {
@@ -119,7 +122,10 @@ void Scene::draw_entities(std::vector<uint32_t>& screen_buffer, float alpha) {
                     current_frame.y,
                     current_frame.width,
                     current_frame.height,
-                    entity.transform.z_index
+                    entity.transform.z_index,
+                    Draw::NO_SORT_Y_OVERRIDE,
+                    visual_data.is_flip_h,
+                    visual_data.is_flip_v
                 );
             },
             [&](const TextRender& visual_data) {

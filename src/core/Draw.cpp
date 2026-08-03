@@ -215,13 +215,13 @@ namespace Draw {
         g_queue.push_back({ dx1, dy1, z_index, sort_y, LineData{ dx2, dy2, color, thickness } });
     }
 
-    void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index, int sort_y_override) {
+    void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index, int sort_y_override, bool is_flip_h, bool is_flip_v) {
         auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
 
         int sort_y = calc_sort_y(dy, dh, override_y);
         g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y,
-            SpriteData{ pixel_data, pixel_data_size, dw, dh, 0, 0, dw, dh }
+            SpriteData{ pixel_data, pixel_data_size, dw, dh, 0, 0, dw, dh, is_flip_h, is_flip_v }
         });
     }
 
@@ -231,14 +231,16 @@ namespace Draw {
         float width, float height,
         int src_x, int src_y, int src_w, int src_h,
         int z_index,
-        int sort_y_override
+        int sort_y_override,
+        bool is_flip_h,
+        bool is_flip_v
     ) {
         auto [dx, dy, dw, dh] = transform_rect(screen_x, screen_y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
 
         int sort_y = calc_sort_y(dy, src_h, override_y);
         g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y,
-            SpriteData{ pixels, pixels_size, dw, dh, src_x, src_y, src_w, src_h }
+            SpriteData{ pixels, pixels_size, dw, dh, src_x, src_y, src_w, src_h, is_flip_h, is_flip_v }
         });
     }
 
@@ -297,7 +299,9 @@ namespace Draw {
                         arg.src_y,
                         arg.src_w,
                         arg.src_h,
-                        g_palette
+                        g_palette,
+                        arg.is_flip_h,
+                        arg.is_flip_v
                     );
                 }
                 else if constexpr (std::is_same_v<T, BlendPixelsData>) {
