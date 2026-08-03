@@ -60,28 +60,65 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
     }
 }
 
-void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
-    for (int i = 0; i < count; ++i) {
+void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override) {
+    // 1. Sword Impact Flash ([SIF]): 5-8 bright white/light-cyan micro sparks at contact point (renders on top)
+    int flash_count = Random::get_int(5, 8);
+    for (int i = 0; i < flash_count; ++i) {
         if (Particle* p = ps.emit()) {
-            // Tight 1px emit radius at exact contact point
             p->x = x + Random::get_float(-1.5f, 1.5f);
             p->y = y + Random::get_float(-1.5f, 1.5f);
             p->render_x = p->x;
             p->render_y = p->y;
-            p->vx = Random::get_float(-25.0f, 25.0f);
-            p->vy = Random::get_float(-25.0f, 25.0f);
-            p->life = Random::get_float(0.35f, 0.75f);
+            p->vx = Random::get_float(-35.0f, 35.0f);
+            p->vy = Random::get_float(-35.0f, 35.0f);
+            p->life = Random::get_float(0.08f, 0.14f);
             p->max_life = p->life;
 
-            // Range of Dark Orange to Dark Red
-            uint8_t r = static_cast<uint8_t>(Random::get_int(135, 155)); // Warm red base
-            uint8_t g = static_cast<uint8_t>(Random::get_int(10, 55));   // Low = Dark Red, High = Dark Orange
-            uint8_t b = static_cast<uint8_t>(Random::get_int(0, 10));    // Keep blue near zero
-            uint32_t c = 0xFF000000 | (r << 16) | (g << 8) | b;
-            p->color = c;
+            float col_chance = Random::get_float(0.0f, 1.0f);
+            if (col_chance < 0.5f) {
+                p->color = 0xFFFFFFFF; // Pure White
+            } else if (col_chance < 0.8f) {
+                p->color = 0xFFE0FFFF; // Light Cyan
+            } else {
+                p->color = 0xFFFFFFC0; // Warm White Flash
+            }
 
-            p->size = 2;
+            p->size = static_cast<uint8_t>(Random::get_int(2, 3));
             p->type = ParticleType::Spark;
+            p->z_index = z_index + 5; // Layer on top of enemy body & sword trail
+            p->y_sort_override = y_sort_override;
+        }
+    }
+
+    // 2. Directional Twilight Blood Particle Spray ([TBC], [KBP], [MSL])
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-1.5f, 1.5f);
+            p->y = y + Random::get_float(-1.5f, 1.5f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+
+            // Inherit knockback momentum vector + directional spray spread
+            p->vx = (kb_vx * 0.35f) + Random::get_float(-35.0f, 35.0f);
+            p->vy = (kb_vy * 0.35f) + Random::get_float(-35.0f, 35.0f);
+            p->life = Random::get_float(0.25f, 0.45f);
+            p->max_life = p->life;
+
+            // Twilight-corrupted blood palette: 50% dusky purple/violet, 50% dark crimson
+            if (Random::chance(0.5f)) {
+                uint8_t r = static_cast<uint8_t>(Random::get_int(110, 160));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 35));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(130, 200));
+                p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
+            } else {
+                uint8_t r = static_cast<uint8_t>(Random::get_int(170, 230));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 25));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(20, 60));
+                p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
+            }
+
+            p->size = Random::chance(0.4f) ? 1 : (Random::chance(0.6f) ? 2 : 3);
+            p->type = ParticleType::Blood;
             p->z_index = z_index;
             p->y_sort_override = y_sort_override;
         }

@@ -7,7 +7,8 @@ enum class ParticleType : uint8_t {
     Spark = 0,
     LightEmber,
     ManaPulseStraight,
-    ManaPulseCurved
+    ManaPulseCurved,
+    Blood
 };
 
 struct Particle {

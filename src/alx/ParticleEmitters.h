@@ -7,7 +7,7 @@ class ParticleSystem;
 namespace ParticleEmitters {
 
 void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_tip_y, float curr_tip_x, float curr_tip_y, float swing_progress, int count = 16, int z_index = 10, int y_sort_override = -2147483647 - 1);
-void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count = 25, int z_index = 10, int y_sort_override = -2147483647 - 1);
+void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx = 0.0f, float kb_vy = 0.0f, int count = 35, int z_index = 10, int y_sort_override = -2147483647 - 1);
 void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count = 1, int z_index = 8000, int y_sort_override = -2147483647 - 1);
 void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count = 1, int z_index = 8000, int y_sort_override = -2147483647 - 1);
 void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count = 15, int z_index = 10, int y_sort_override = -2147483647 - 1);

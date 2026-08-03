@@ -55,6 +55,18 @@ void ParticleSystem::update(float dt) {
             p.render_y = p.y;
             break;
         }
+        case ParticleType::Blood: {
+            constexpr float drag = 4.0f;
+            constexpr float gravity = 60.0f;
+            p.vx -= p.vx * drag * dt;
+            p.vy -= p.vy * drag * dt;
+            p.vy += gravity * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.render_x = p.x;
+            p.render_y = p.y;
+            break;
+        }
         case ParticleType::LightEmber: {
             p.vy -= 15.0f * dt;
             p.vx += Random::get_float(-10.0f, 10.0f) * dt;

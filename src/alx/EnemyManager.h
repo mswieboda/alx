@@ -671,8 +671,10 @@ public:
                         }
                         enemy.take_damage(1, push_dx, push_dy, Player::ATTACK_KNOCKBACK_SPEED);
                         if (particles) {
+                            float kb_vx = push_dx * Player::ATTACK_KNOCKBACK_SPEED;
+                            float kb_vy = push_dy * Player::ATTACK_KNOCKBACK_SPEED;
                             int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
-                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, 25, Layer::WorldObj, enemy_sort_y);
+                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, kb_vx, kb_vy, 35, Layer::WorldObj, enemy_sort_y);
                         }
                     }
                 }
