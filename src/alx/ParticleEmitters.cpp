@@ -30,8 +30,8 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
             p->life = Random::get_float(0.12f, 0.18f); // Smooth 7-11 frame lingering line fade
             p->max_life = p->life;
 
-            uint8_t shade = static_cast<uint8_t>(Random::get_int(220, 255));
-            p->color = 0xFF000000 | (shade << 16) | (shade << 8) | shade; // Crisp white / light grey
+            uint8_t shade = static_cast<uint8_t>(Random::get_int(128, 192));
+            p->color = 0x33000000 | (shade << 16) | (shade << 8) | shade; // 20% alpha opacity
             p->size = static_cast<uint8_t>(base_size);
             p->type = ParticleType::Spark;
             p->z_index = z_index;
@@ -50,7 +50,7 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
                 p2->life = Random::get_float(0.10f, 0.15f);
                 p2->max_life = p2->life;
 
-                p2->color = 0xFFFFFFFF; // Pure white core
+                p2->color = 0x33C0C0C0; // 20% alpha opacity
                 p2->size = static_cast<uint8_t>(std::max(1, base_size - 1));
                 p2->type = ParticleType::Spark;
                 p2->z_index = z_index;
@@ -61,36 +61,7 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
 }
 
 void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override) {
-    // 1. Sword Impact Flash ([SIF]): 5-8 bright white/light-cyan micro sparks at contact point (renders on top)
-    int flash_count = Random::get_int(5, 8);
-    for (int i = 0; i < flash_count; ++i) {
-        if (Particle* p = ps.emit()) {
-            p->x = x + Random::get_float(-1.5f, 1.5f);
-            p->y = y + Random::get_float(-1.5f, 1.5f);
-            p->render_x = p->x;
-            p->render_y = p->y;
-            p->vx = Random::get_float(-35.0f, 35.0f);
-            p->vy = Random::get_float(-35.0f, 35.0f);
-            p->life = Random::get_float(0.08f, 0.14f);
-            p->max_life = p->life;
-
-            float col_chance = Random::get_float(0.0f, 1.0f);
-            if (col_chance < 0.5f) {
-                p->color = 0xFFFFFFFF; // Pure White
-            } else if (col_chance < 0.8f) {
-                p->color = 0xFFE0FFFF; // Light Cyan
-            } else {
-                p->color = 0xFFFFFFC0; // Warm White Flash
-            }
-
-            p->size = static_cast<uint8_t>(Random::get_int(2, 3));
-            p->type = ParticleType::Spark;
-            p->z_index = z_index + 5; // Layer on top of enemy body & sword trail
-            p->y_sort_override = y_sort_override;
-        }
-    }
-
-    // 2. Directional Twilight Blood Particle Spray ([TBC], [KBP], [MSL])
+    // Directional Twilight Blood Particle Spray ([TBC], [KBP], [MSL])
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {
             p->x = x + Random::get_float(-1.5f, 1.5f);

@@ -152,7 +152,8 @@ void ParticleSystem::draw(const Camera* camera) const {
         }
 
         float progress = (p.max_life > 0.0f) ? (p.life / p.max_life) : 1.0f;
-        uint32_t alpha = static_cast<uint8_t>(progress * 255.0f);
+        uint32_t base_alpha = (p.color >> 24) & 0xFF;
+        uint32_t alpha = static_cast<uint8_t>(progress * static_cast<float>(base_alpha));
         uint32_t current_color = (p.color & 0x00FFFFFF) | (alpha << 24);
 
         int z_idx = p.z_index;
