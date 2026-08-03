@@ -153,14 +153,19 @@ void pipe_light_mana(const Network& network, const Fixture& fix, int gx, int gy,
     uint32_t aura_color = (alpha << 24) | 0x0000FFFF;
     uint32_t core_color = (alpha << 24) | 0x00FFFFFF;
 
-    int orb_size = 10;
-    int offset = (tile_size - orb_size) / 2;
+    int aura_w = 10;
+    int aura_h = 4;
+    int core_w = 6;
+    int core_h = 2;
 
-    int orb_x = world_x + offset + anim_offset_x;
-    int orb_y = world_y + offset + anim_offset_y;
+    int offset_x = (tile_size - aura_w) / 2;
+    int offset_y = (tile_size - aura_h) / 2;
 
-    Draw::rect(orb_x, orb_y, orb_size, orb_size, aura_color, true, 1, Layer::GroundFixtureItem);
-    Draw::rect(orb_x + 2, orb_y + 2, orb_size - 4, orb_size - 4, core_color, true, 1, Layer::GroundFixtureItemFX);
+    int orb_x = world_x + offset_x + anim_offset_x;
+    int orb_y = world_y + offset_y + anim_offset_y;
+
+    Draw::rect(orb_x, orb_y, aura_w, aura_h, aura_color, true, 1, Layer::GroundFixtureItem);
+    Draw::rect(orb_x + 2, orb_y + 1, core_w, core_h, core_color, true, 1, Layer::GroundFixtureItemFX);
 }
 
 // --- DRAW PIPE - DARK MANA ---

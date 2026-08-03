@@ -184,12 +184,13 @@ void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count, int z_i
             p->life = Random::get_float(0.5f, 0.75f);
             p->max_life = p->life;
 
-            bool is_silver = Random::chance(0.5f);
-            if (is_silver) {
-                uint8_t s = static_cast<uint8_t>(Random::get_int(150, 200));
-                p->color = 0xFF000000 | (s << 16) | (s << 8) | s; // Metallic Silver
+            int color_choice = Random::get_int(0, 2);
+            if (color_choice == 0) {
+                p->color = 0xFF1E242C; // Dark charcoal steel
+            } else if (color_choice == 1) {
+                p->color = 0xFF323A44; // Dark slate silver
             } else {
-                p->color = 0xFF00E5FF; // Bright Cyan
+                p->color = 0xFF8A94A4; // Metallic sheen silver
             }
 
             p->size = Random::chance(0.5f) ? 1 : 2;

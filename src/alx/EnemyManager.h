@@ -728,7 +728,7 @@ public:
         bool removed_any = false;
         for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
             if (it->is_dead() && it->state != EnemyState::HitStun) {
-                m_alloy_items.emplace_back(it->center_x() - 4.0f, it->center_y() - 4.0f);
+                m_alloy_items.emplace_back(it->center_x() - 5.0f, it->center_y() - 2.0f);
                 it = m_enemies.erase(it);
                 removed_any = true;
             } else {
@@ -756,7 +756,7 @@ public:
                     player.add_cursed_alloy(1);
                     if (particles) {
                         int alloy_sort_y = static_cast<int>(it->y + it->height);
-                        ParticleEmitters::spawn_alloy_pickup(*particles, it->x + 4.0f, it->y + 4.0f, 15, Layer::WorldObj, alloy_sort_y);
+                        ParticleEmitters::spawn_alloy_pickup(*particles, it->center_x(), it->center_y(), 15, Layer::WorldObj, alloy_sort_y);
                     }
                     it = m_alloy_items.erase(it);
                     continue;
