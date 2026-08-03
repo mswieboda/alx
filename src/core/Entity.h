@@ -3,16 +3,9 @@
 #include <string>
 #include <variant>
 #include <cstdint>
+#include "Transform.h"
 #include "Font.h"
 #include "assets/Fonts.h"
-
-struct Transform {
-    float x = 0.0f;
-    float y = 0.0f;
-    float width = 0.0f;
-    float height = 0.0f;
-    int z_index = 0;
-};
 
 // Renderable variants
 struct SpriteRender {

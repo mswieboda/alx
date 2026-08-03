@@ -2,6 +2,8 @@
 #include <queue>
 #include <algorithm>
 #include "core/Log.h"
+#include "core/Transform.h"
+#include "DrawFixtures.h"
 
 namespace alx {
 
@@ -128,6 +130,11 @@ bool Network::is_solid(GridPos pos) const noexcept {
 
 bool Network::is_solid(int x, int y) const noexcept {
     return is_solid(GridPos{ x, y });
+}
+
+bool Network::is_building(FixtureType type) const noexcept {
+    return type == FixtureType::Refiner
+        || type == FixtureType::Spire;
 }
 
 void Network::update_neighbor_masks(GridPos pos) {
@@ -602,14 +609,17 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                     int ny = y + dy[i];
                     if (in_bounds(nx, ny)) {
                         int n_idx = ny * m_width + nx;
-                        if (m_fixtures[n_idx].type == FixtureType::Pipe
-                            && m_fixtures[n_idx].mana_state == ManaState::None
-                            && next_fixtures[n_idx].mana_state == ManaState::None) {
-                            next_fixtures[n_idx].mana_state = ManaState::Dark;
-                            next_fixtures[n_idx].is_powered = true;
-                            next_fixtures[n_idx].move_dx = static_cast<int8_t>(dx[i]);
-                            next_fixtures[n_idx].move_dy = static_cast<int8_t>(dy[i]);
-                            out_mask |= DirectionMask::from_delta(dx[i], dy[i]);
+                        if (m_fixtures[n_idx].type == FixtureType::Pipe) {
+                            if (m_fixtures[n_idx].mana_state == ManaState::None
+                                && next_fixtures[n_idx].mana_state == ManaState::None) {
+                                next_fixtures[n_idx].mana_state = ManaState::Dark;
+                                next_fixtures[n_idx].is_powered = true;
+                                next_fixtures[n_idx].move_dx = static_cast<int8_t>(dx[i]);
+                                next_fixtures[n_idx].move_dy = static_cast<int8_t>(dy[i]);
+                            }
+                            if (next_fixtures[n_idx].mana_state == ManaState::Dark) {
+                                out_mask |= DirectionMask::from_delta(dx[i], dy[i]);
+                            }
                         }
                     }
                 }
@@ -684,6 +694,48 @@ NetworkSimResults Network::sim_tick() {
 
     m_fixtures = std::move(next_fixtures);
     return results;
+}
+
+bool Network::is_behind_tile(Transform xform, int world_x, int world_y) const noexcept {
+    float bottom_y = xform.y + xform.height;
+
+    int h_tile_size = m_tile_size / 2;
+    bool overlap_x = (xform.x + xform.width > world_x) && (xform.x < world_x + m_tile_size);
+    bool overlap_y = (xform.y + xform.height > world_y - h_tile_size) && (xform.y < world_y + m_tile_size);
+
+    return overlap_x && overlap_y && bottom_y <= world_y + m_tile_size;
+}
+
+void Network::draw(
+    int min_tx, int max_tx, int min_ty, int max_ty,
+    Transform p_xform, float progress,
+    ParticleSystem& ps, float last_dt, const float sim_tick_rate
+) {
+    DrawFixtures::begin_frame(last_dt, sim_tick_rate);
+
+    for (int gy = min_ty; gy <= max_ty; ++gy) {
+        for (int gx = min_tx; gx <= max_tx; ++gx) {
+            const Fixture& fix = fixture(gx, gy);
+            if (fix.is_empty()) continue;
+
+            FixtureType type = fix.type;
+            int world_x = gx * m_tile_size;
+            int world_y = gy * m_tile_size;
+            bool is_player_behind = is_behind_tile(p_xform, world_x, world_y);
+
+            if (type == FixtureType::Pipe) {
+                DrawFixtures::pipe(*this, ps, fix, gx, gy, world_x, world_y, m_tile_size, progress, last_dt, sim_tick_rate);
+            } else if (is_building(type)) {
+                DrawFixtures::building(
+                    *this, ps, fix,
+                    world_x, world_y, is_player_behind,
+                    progress, last_dt, sim_tick_rate
+                );
+            } else if (type == FixtureType::Seep) {
+                DrawFixtures::seep(fix, world_x, world_y, m_tile_size);
+            }
+        }
+    }
 }
 
 } // namespace alx

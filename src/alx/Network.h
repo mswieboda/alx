@@ -3,10 +3,12 @@
 #include <vector>
 #include <cstdint>
 
+#include "Game.h"
+#include "core/Transform.h"
 #include "GridPos.h"
 #include "Fixture.h"
 #include "Tiles.h"
-#include "Game.h"
+#include "ParticleSystem.h"
 
 namespace alx {
 
@@ -62,6 +64,9 @@ public:
     [[nodiscard]] bool is_solid(GridPos pos) const noexcept;
     [[nodiscard]] bool is_solid(int x, int y) const noexcept;
 
+    // --- Fixture Type Groupings ---
+    [[nodiscard]] bool is_building(FixtureType type) const noexcept;
+
     // --- Auto-Tiling Mask & Downstream Query ---
     void update_neighbor_masks(GridPos pos);
     void downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
@@ -73,6 +78,15 @@ public:
     [[nodiscard]] int height() const noexcept { return m_height; }
     [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
     [[nodiscard]] const std::vector<int32_t>& active_indices() const noexcept { return m_active_indices; }
+
+    [[nodiscard]] bool is_behind_tile(Transform xform, int world_x, int world_y) const noexcept;
+
+    // --- Draw ---
+    void draw(
+        int min_tx, int max_tx, int min_ty, int max_ty,
+        Transform p_xform, float progress,
+        ParticleSystem& particle_system, float last_dt, const float sim_tick_rate
+    );
 };
 
 } // namespace alx

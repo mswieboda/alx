@@ -522,7 +522,6 @@ private:
             }
         }
     }
-
 };
 
 } // namespace alx

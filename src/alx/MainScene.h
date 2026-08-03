@@ -17,7 +17,6 @@
 #include "Layer.h"
 #include "ParticleSystem.h"
 #include "ParticleEmitters.h"
-#include "DrawFixtures.h"
 
 namespace alx {
 
@@ -393,12 +392,11 @@ public:
             }
         }
 
-        // Layer 1: Render Fixture Backgrounds, Mana, and Powered Indicators via DrawFixtures
-        DrawFixtures::draw_backgrounds(m_network, min_tx, max_tx, min_ty, max_ty, &m_player);
-        DrawFixtures::draw_mana(m_network, min_tx, max_tx, min_ty, max_ty, progress, &m_player);
-
-        // Trigger Particle Emitters for active network tiles
-        DrawFixtures::emit_particles(m_particle_system, m_network, min_tx, max_tx, min_ty, max_ty, m_last_dt, SIM_TICK_RATE);
+        m_network.draw(
+            min_tx, max_tx, min_ty, max_ty,
+            m_player.transform, progress,
+            m_particle_system, m_last_dt, SIM_TICK_RATE
+        );
     }
 
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size) {

@@ -10,15 +10,20 @@ class ParticleSystem;
 struct Player;
 
 namespace DrawFixtures {
+    void begin_frame(float dt, float sim_tick_rate);
 
-    /// Renders base tile geometry for all network fixtures (pipe hubs, refiners, spires, seeps).
-    void draw_backgrounds(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, const Player* player = nullptr);
+    void pipe(
+        const Network& network, ParticleSystem& ps, const Fixture& fix,
+        int gx, int gy, int world_x, int world_y, int tile_size,
+        float progress, float dt, float sim_tick_rate
+    );
 
-    /// Renders non-particle static/pulsing fixture mana components (Light Mana Orbs, Refiner/Spire cores).
-    void draw_mana(const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float progress, const Player* player = nullptr);
+    void building(
+        const Network& network, ParticleSystem& ps, const Fixture& fix,
+        int world_x, int world_y, bool is_player_behind,
+        float progress, float last_dt, float sim_tick_rate
+    );
 
-    /// Triggers particle emissions for active network fixtures (Pipes, Refiners, Spires).
-    void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int max_tx, int min_ty, int max_ty, float dt, float sim_tick_rate);
-
+    void seep(const Fixture& fix, int world_x, int world_y, int tile_size);
 } // namespace DrawFixtures
 } // namespace alx
