@@ -50,6 +50,11 @@ struct Particle {
     ParticleType type{ParticleType::Spark};
     bool active{false};
 
+    // Layer/render ordering overrides
+    int z_index{8000};
+    int y_sort_override{-2147483647 - 1}; // INT32_MIN
+
+
     [[nodiscard]] inline bool is_alive() const {
         return active && life > 0.0f;
     }

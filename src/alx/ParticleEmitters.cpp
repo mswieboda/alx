@@ -82,7 +82,7 @@ void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count) {
     }
 }
 
-void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count) {
+void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
     for (int i = 0; i < count; ++i) {
         if (Random::chance(0.35f)) {
             if (Particle* p = ps.emit()) {
@@ -105,12 +105,14 @@ void spawn_spire_embers(ParticleSystem& ps, float x, float y, int count) {
 
                 p->size = 3;
                 p->type = ParticleType::LightEmber;
+                p->z_index = z_index;
+                p->y_sort_override = y_sort_override;
             }
         }
     }
 }
 
-void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count) {
+void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
     for (int i = 0; i < count; ++i) {
         if (Random::chance(0.35f)) {
             if (Particle* p = ps.emit()) {
@@ -149,6 +151,8 @@ void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count) {
 
                 p->size = 3;
                 p->type = ParticleType::LightEmber;
+                p->z_index = z_index;
+                p->y_sort_override = y_sort_override;
             }
         }
     }

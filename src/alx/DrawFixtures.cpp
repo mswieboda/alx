@@ -651,11 +651,15 @@ void emit_particles(ParticleSystem& ps, const Network& network, int min_tx, int 
             }
             else if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
                 // Temporarily commented out for testing visual geometry:
-                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8));
+                int world_bottom_y = world_y - 4;
+                int y_sort_override = world_bottom_y + 20;
+                ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8), 1, Layer::WorldObj, y_sort_override);
             }
             else if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
                 // Temporarily commented out for testing visual geometry:
-                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8));
+                int world_bottom_y = world_y - 4;
+                int y_sort_override = world_bottom_y + 20;
+                ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8), 1, Layer::WorldObj, y_sort_override);
             }
         }
     }

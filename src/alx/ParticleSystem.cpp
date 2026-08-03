@@ -143,7 +143,7 @@ void ParticleSystem::draw(const Camera* camera) const {
         uint32_t alpha = static_cast<uint8_t>(progress * 255.0f);
         uint32_t current_color = (p.color & 0x00FFFFFF) | (alpha << 24);
 
-        int z_idx = PARTICLE_Z_INDEX;
+        int z_idx = p.z_index;
         if (p.type == ParticleType::ManaPulseStraight || p.type == ParticleType::ManaPulseCurved) {
             z_idx = Layer::GroundFixtureItemFX; // Z = 3 (sloshing ripples render on top of solid underlay stream Z = 2)
 
@@ -152,20 +152,20 @@ void ParticleSystem::draw(const Camera* camera) const {
             float dy = p.target_y - p.start_y;
             if (std::abs(dx) >= std::abs(dy)) {
                 // Horizontal liquid streak (3.5px wide, 1px high)
-                Draw::rect(p.render_x - 1.75f, p.render_y, 3.5f, 1.0f, current_color, true, 1, z_idx);
+                Draw::rect(p.render_x - 1.75f, p.render_y, 3.5f, 1.0f, current_color, true, 1, z_idx, p.y_sort_override);
             } else {
                 // Vertical liquid streak (1px wide, 3.5px high)
-                Draw::rect(p.render_x, p.render_y - 1.75f, 1.0f, 3.5f, current_color, true, 1, z_idx);
+                Draw::rect(p.render_x, p.render_y - 1.75f, 1.0f, 3.5f, current_color, true, 1, z_idx, p.y_sort_override);
             }
             continue;
         }
 
         if (p.size <= 2) {
             float s = static_cast<float>(p.size);
-            Draw::rect(p.render_x, p.render_y, s, s, current_color, true, 1, z_idx);
+            Draw::rect(p.render_x, p.render_y, s, s, current_color, true, 1, z_idx, p.y_sort_override);
         } else {
             float r = static_cast<float>(p.size) * 0.5f;
-            Draw::circle(p.render_x, p.render_y, r, current_color, true, 1, z_idx);
+            Draw::circle(p.render_x, p.render_y, r, current_color, true, 1, z_idx, p.y_sort_override);
         }
     }
 }
