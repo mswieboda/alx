@@ -12,6 +12,7 @@
 #include "alx/AlloyItem.h"
 #include "alx/WorldCollision.h"
 #include "alx/ParticleEmitters.h"
+#include "alx/Layer.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -670,7 +671,8 @@ public:
                         }
                         enemy.take_damage(1, push_dx, push_dy, Player::ATTACK_KNOCKBACK_SPEED);
                         if (particles) {
-                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y);
+                            int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
+                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, 25, Layer::WorldObj, enemy_sort_y);
                         }
                     }
                 }
@@ -708,7 +710,8 @@ public:
                 if (collected) {
                     player.add_cursed_alloy(1);
                     if (particles) {
-                        ParticleEmitters::spawn_alloy_pickup(*particles, it->x + 4.0f, it->y + 4.0f);
+                        int alloy_sort_y = static_cast<int>(it->y + it->height);
+                        ParticleEmitters::spawn_alloy_pickup(*particles, it->x + 4.0f, it->y + 4.0f, 15, Layer::WorldObj, alloy_sort_y);
                     }
                     it = m_alloy_items.erase(it);
                     continue;

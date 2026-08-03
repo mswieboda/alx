@@ -6,7 +6,7 @@
 namespace alx {
 namespace ParticleEmitters {
 
-void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_tip_y, float curr_tip_x, float curr_tip_y, float swing_progress, int count) {
+void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_tip_y, float curr_tip_x, float curr_tip_y, float swing_progress, int count, int z_index, int y_sort_override) {
     if (count <= 0) return;
 
     // Quadratic Ease-In: keeps first 50% paper-thin (1-2px) and swells to 5px at the apex
@@ -34,6 +34,8 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
             p->color = 0xFF000000 | (shade << 16) | (shade << 8) | shade; // Crisp white / light grey
             p->size = static_cast<uint8_t>(base_size);
             p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
         }
 
         // Secondary inner core layer near apex for rich depth
@@ -51,12 +53,14 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
                 p2->color = 0xFFFFFFFF; // Pure white core
                 p2->size = static_cast<uint8_t>(std::max(1, base_size - 1));
                 p2->type = ParticleType::Spark;
+                p2->z_index = z_index;
+                p2->y_sort_override = y_sort_override;
             }
         }
     }
 }
 
-void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count) {
+void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {
             // Tight 1px emit radius at exact contact point
@@ -78,6 +82,8 @@ void spawn_hit_sparks(ParticleSystem& ps, float x, float y, int count) {
 
             p->size = 2;
             p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
         }
     }
 }
@@ -158,7 +164,7 @@ void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count, int z
     }
 }
 
-void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count) {
+void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {
             p->x = x + Random::get_float(-3.0f, 3.0f);
@@ -180,6 +186,8 @@ void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count) {
 
             p->size = Random::chance(0.5f) ? 1 : 2;
             p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
         }
     }
 }
