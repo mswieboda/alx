@@ -229,7 +229,7 @@ public:
             m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
         }
 
-        update_enemy_ai(dt, player, tiles, network);
+        update_enemy_ai(dt, player, tiles, network, particles);
         update_enemy_push_separation(tiles, network);
 
         if (player) {
@@ -292,7 +292,7 @@ public:
         return best_pos;
     }
 
-    void update_enemy_ai(float dt, Player* player, const Tiles& tiles, Network& network) {
+    void update_enemy_ai(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr) {
         float tile_size = static_cast<float>(tiles.tile_size());
 
         for (auto& enemy : m_enemies) {
@@ -489,6 +489,33 @@ public:
                 }
 
                 case EnemyState::HitStun: {
+                    // [MWB]: Multi-wave continuous bleed spurting from moving wound during knockback
+                    if (enemy.bleed_waves_left > 0 && particles != nullptr) {
+                        enemy.bleed_timer -= dt;
+                        if (enemy.bleed_timer <= 0.0f) {
+                            enemy.bleed_timer = 0.07f;
+                            int wave_index = 3 - enemy.bleed_waves_left;
+                            enemy.bleed_waves_left--;
+
+                            float emit_x = enemy.transform.x + enemy.hit_wound_offset_x;
+                            float emit_y = enemy.transform.y + enemy.hit_wound_offset_y;
+                            float kb_vx = enemy.knockback_dx * enemy.knockback_speed;
+                            float kb_vy = enemy.knockback_dy * enemy.knockback_speed;
+                            int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
+
+                            int blood_z = Layer::WorldObj + 5; // z = 15: Renders on top of player and enemy sprites (z = 10)
+                            int blood_sort_y = enemy_sort_y + 20;
+
+                            if (wave_index == 1) {
+                                // Wave 2: 17 droplets mid-slide, 50% momentum
+                                ParticleEmitters::spawn_hit_sparks(*particles, emit_x, emit_y, kb_vx, kb_vy, 17, blood_z, blood_sort_y, 0.50f);
+                            } else {
+                                // Wave 3: 13 droplets final deceleration drip, 20% momentum
+                                ParticleEmitters::spawn_hit_sparks(*particles, emit_x, emit_y, kb_vx, kb_vy, 13, blood_z, blood_sort_y, 0.20f);
+                            }
+                        }
+                    }
+
                     if (enemy.knockback_speed > 5.0f) {
                         float step = enemy.knockback_speed * dt;
                         bool blocked_x = false;
@@ -669,12 +696,28 @@ public:
                             push_dx = player.facing_dx;
                             push_dy = player.facing_dy;
                         }
-                        enemy.take_damage(1, push_dx, push_dy, Player::ATTACK_KNOCKBACK_SPEED);
+                        // Calculate wound offset relative to enemy sprite (+1px to +3px shifted toward enemy center)
+                        float wound_ox = contact_x - enemy.transform.x;
+                        float wound_oy = contact_y - enemy.transform.y;
+                        float to_center_x = enemy.center_x() - contact_x;
+                        float to_center_y = enemy.center_y() - contact_y;
+                        float c_len = std::sqrt(to_center_x * to_center_x + to_center_y * to_center_y);
+                        if (c_len > 0.001f) {
+                            float shift_dist = Random::get_float(1.0f, 3.0f);
+                            wound_ox += (to_center_x / c_len) * shift_dist;
+                            wound_oy += (to_center_y / c_len) * shift_dist;
+                        }
+
+                        enemy.take_damage(1, push_dx, push_dy, Player::ATTACK_KNOCKBACK_SPEED, wound_ox, wound_oy);
                         if (particles) {
                             float kb_vx = push_dx * Player::ATTACK_KNOCKBACK_SPEED;
                             float kb_vy = push_dy * Player::ATTACK_KNOCKBACK_SPEED;
                             int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
-                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, kb_vx, kb_vy, 35, Layer::WorldObj, enemy_sort_y);
+                            int blood_z = Layer::WorldObj + 5; // z = 15: Renders on top of player and enemy sprites (z = 10)
+                            int blood_sort_y = enemy_sort_y + 20;
+
+                            // Wave 1: 20 droplets on hit contact, 85% momentum
+                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, kb_vx, kb_vy, 20, blood_z, blood_sort_y, 0.85f);
                         }
                     }
                 }

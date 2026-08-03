@@ -55,9 +55,10 @@ void ParticleSystem::update(float dt) {
             p.render_y = p.y;
             break;
         }
-        case ParticleType::Blood: {
-            constexpr float drag = 4.0f;
-            constexpr float gravity = 60.0f;
+        case ParticleType::Blood:
+        case ParticleType::OozeDrip: {
+            constexpr float drag = 3.0f;
+            constexpr float gravity = 220.0f;
             p.vx -= p.vx * drag * dt;
             p.vy -= p.vy * drag * dt;
             p.vy += gravity * dt;
@@ -170,6 +171,15 @@ void ParticleSystem::draw(const Camera* camera) const {
                 // Vertical liquid streak (1px wide, 3.5px high)
                 Draw::rect(p.render_x, p.render_y - 1.75f, 1.0f, 3.5f, current_color, true, 1, z_idx, p.y_sort_override);
             }
+            continue;
+        }
+
+        if (p.type == ParticleType::OozeDrip) {
+            // [VTR]: Dynamic vertical teardrop rendering (3.0px to 5.0px height based on downward speed vy)
+            float speed_ratio = std::clamp((p.vy - 10.0f) / 100.0f, 0.0f, 1.0f);
+            float teardrop_h = 3.0f + speed_ratio * 2.0f; // 3.0px to 5.0px
+            float teardrop_w = static_cast<float>(p.size); // 1.0px or 2.0px
+            Draw::rect(p.render_x, p.render_y, teardrop_w, teardrop_h, current_color, true, 1, z_idx, p.y_sort_override);
             continue;
         }
 

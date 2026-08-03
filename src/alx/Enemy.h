@@ -87,6 +87,12 @@ struct Enemy : public Entity {
     float stuck_timer = 0.0f;
     bool is_moving = false;
 
+    // [EBS]: Multi-wave continuous bleed tracking fields
+    float hit_wound_offset_x = 0.0f;
+    float hit_wound_offset_y = 0.0f;
+    int bleed_waves_left = 0;
+    float bleed_timer = 0.0f;
+
     EnemyState state = EnemyState::Wander;
     EnemyMovement::MovementState move_state;
     GridPos target_fixture_pos{-1, -1};
@@ -167,7 +173,7 @@ struct Enemy : public Entity {
         is_moving = true;
     }
 
-    void take_damage(int amount, float kb_dx, float kb_dy, float kb_speed = 250.0f) {
+    void take_damage(int amount, float kb_dx, float kb_dy, float kb_speed = 250.0f, float wound_ox = 0.0f, float wound_oy = 0.0f) {
         hp -= amount;
         knockback_dx = kb_dx;
         knockback_dy = kb_dy;
@@ -178,6 +184,10 @@ struct Enemy : public Entity {
         move_dy = 0.0f;
         state = EnemyState::HitStun;
         state_timer = HIT_STUN_DURATION;
+        hit_wound_offset_x = wound_ox;
+        hit_wound_offset_y = wound_oy;
+        bleed_waves_left = 2; // Wave 1 emitted immediately; Waves 2 & 3 remaining
+        bleed_timer = 0.07f;
     }
 
     bool is_dead() const {
@@ -202,14 +212,27 @@ struct Enemy : public Entity {
             transform.z_index
         );
 
-        // Enemy body
+        // Enemy body ([EFO]: Combine 0x66880018 hit flash overlay with base body color during initial HitStun)
         if (auto* rect = std::get_if<RectangleRender>(&visual)) {
+            uint32_t body_color = rect->color;
+            if (state == EnemyState::HitStun && state_timer > (HIT_STUN_DURATION - 0.08f)) {
+                constexpr uint32_t flash_col = 0x66880018;
+                uint32_t a = (flash_col >> 24) & 0xFF;
+                uint32_t inv_a = 255 - a;
+
+                uint32_t r = (((flash_col >> 16) & 0xFF) * a + ((body_color >> 16) & 0xFF) * inv_a) / 255;
+                uint32_t g = (((flash_col >> 8) & 0xFF) * a + ((body_color >> 8) & 0xFF) * inv_a) / 255;
+                uint32_t b = ((flash_col & 0xFF) * a + (body_color & 0xFF) * inv_a) / 255;
+
+                body_color = (body_color & 0xFF000000) | (r << 16) | (g << 8) | b;
+            }
+
             Draw::rect(
                 world_draw_x,
                 world_draw_y,
                 world_draw_w,
                 world_draw_h,
-                rect->color,
+                body_color,
                 rect->fill,
                 rect->thickness,
                 transform.z_index,

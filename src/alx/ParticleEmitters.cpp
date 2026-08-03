@@ -60,36 +60,36 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
     }
 }
 
-void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override) {
-    // Directional Twilight Blood Particle Spray ([TBC], [KBP], [MSL])
+void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override, float momentum_scale) {
+    // Viscous Twilight Blood Ooze & Droop Spray ([KTA], [BDD], [TDO], [VTR], [DBC])
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {
-            p->x = x + Random::get_float(-1.5f, 1.5f);
-            p->y = y + Random::get_float(-1.5f, 1.5f);
+            p->x = x + Random::get_float(-2.0f, 2.0f);
+            p->y = y + Random::get_float(-2.0f, 2.0f);
             p->render_x = p->x;
             p->render_y = p->y;
 
-            // Inherit knockback momentum vector + directional spray spread
-            p->vx = (kb_vx * 0.35f) + Random::get_float(-35.0f, 35.0f);
-            p->vy = (kb_vy * 0.35f) + Random::get_float(-35.0f, 35.0f);
-            p->life = Random::get_float(0.25f, 0.45f);
+            // [KTA]: Inherit momentum_scale of enemy's knockback horizontal speed so blood streams alongside sliding enemy
+            p->vx = (kb_vx * momentum_scale) + Random::get_float(-10.0f, 10.0f);
+            p->vy = (kb_vy * 0.35f) + Random::get_float(-15.0f, 5.0f);
+            p->life = Random::get_float(0.35f, 0.60f);
             p->max_life = p->life;
 
-            // Twilight-corrupted blood palette: 50% dusky purple/violet, 50% dark crimson
+            // [DBC]: Visceral dark twilight blood palette (50% deep dark purple/violet, 50% deep dark crimson)
             if (Random::chance(0.5f)) {
-                uint8_t r = static_cast<uint8_t>(Random::get_int(110, 160));
-                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 35));
-                uint8_t b = static_cast<uint8_t>(Random::get_int(130, 200));
+                uint8_t r = static_cast<uint8_t>(Random::get_int(30, 60));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 10));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(45, 85));
                 p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
             } else {
-                uint8_t r = static_cast<uint8_t>(Random::get_int(170, 230));
-                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 25));
-                uint8_t b = static_cast<uint8_t>(Random::get_int(20, 60));
+                uint8_t r = static_cast<uint8_t>(Random::get_int(75, 125));
+                uint8_t g = static_cast<uint8_t>(Random::get_int(0, 10));
+                uint8_t b = static_cast<uint8_t>(Random::get_int(10, 25));
                 p->color = 0xFF000000 | (r << 16) | (g << 8) | b;
             }
 
-            p->size = Random::chance(0.4f) ? 1 : (Random::chance(0.6f) ? 2 : 3);
-            p->type = ParticleType::Blood;
+            p->size = Random::chance(0.6f) ? 1 : 2;
+            p->type = ParticleType::OozeDrip;
             p->z_index = z_index;
             p->y_sort_override = y_sort_override;
         }
