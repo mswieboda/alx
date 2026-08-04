@@ -9,16 +9,12 @@
 #include "alx/TrigLUT.h"
 #include "core/Collision.h"
 #include "core/Entity.h"
+#include "core/Facing.h"
 #include "Debug.h"
 #include "assets/Images.h"
 
 
 namespace alx {
-
-struct FacingVector {
-    float dx = 0.0f;
-    float dy = 1.0f;
-};
 
 struct PlayerInputBuffer {
     static constexpr float FACING_DIAGONAL_LATCH_TIME = 0.050f; // 50ms (~3 frames at 60 FPS)
@@ -146,12 +142,12 @@ struct Player : public Entity {
                 SPRITE_HEIGHT, // height
                 Layer::WorldObj // z-index
             },
-            SpriteRender{
-                Assets::Images::mystic_19x29, // pixels
-                Assets::Images::mystic_19x29_len, // pixels size
-                SPRITE_WIDTH, // width
-                SPRITE_HEIGHT // height
-            },
+            AnimatedSpriteRender::create(
+                Assets::Images::mystic,
+                Assets::Images::mystic_len,
+                Assets::Images::mystic_frames,
+                Assets::Images::mystic_anims
+            ),
             true, // active
             "player" // tag
         )
@@ -221,16 +217,16 @@ struct Player : public Entity {
         transform_prev = transform;
     }
 
+    Facing::Type facing() const {
+        return Facing::from_vector(facing_dx, facing_dy);
+    }
+
+    bool is_facing(Facing::Type dir) const {
+        return facing() == dir;
+    }
+
     int base_facing_angle_deg() const {
-        if (facing_dx > 0.5f && facing_dy > 0.5f) return 45;
-        if (facing_dx > 0.5f && facing_dy < -0.5f) return 315;
-        if (facing_dx < -0.5f && facing_dy > 0.5f) return 135;
-        if (facing_dx < -0.5f && facing_dy < -0.5f) return 225;
-        if (facing_dx > 0.5f) return 0;
-        if (facing_dx < -0.5f) return 180;
-        if (facing_dy > 0.5f) return 90;
-        if (facing_dy < -0.5f) return 270;
-        return 90; // Default down
+        return Facing::to_degrees(facing());
     }
 
     Collision::Circle calculate_attack_circle_at(float progress, float px, float py) const {
@@ -345,6 +341,31 @@ struct Player : public Entity {
                 static_cast<int>(world_bottom_y), // sort Y override
                 is_facing_left
             );
+        } else if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
+            if (!anim->current_anim.frame_indices.empty()) {
+                int frame_pool_index = anim->current_anim.frame_indices[anim->current_sequence_index];
+                const SpriteFrame& current_frame = anim->master_frames[frame_pool_index];
+
+                const uint8_t* frame_pixels = anim->sheet_pixels + current_frame.offset;
+                uint32_t frame_pixels_size = (current_frame.len > 0) ? static_cast<uint32_t>(current_frame.len) : anim->sheet_pixels_size;
+
+                Draw::sprite_frame(
+                    world_draw_x,
+                    world_draw_y,
+                    frame_pixels,
+                    frame_pixels_size,
+                    static_cast<float>(current_frame.width),
+                    static_cast<float>(current_frame.height),
+                    current_frame.x,
+                    current_frame.y,
+                    current_frame.width,
+                    current_frame.height,
+                    transform.z_index,
+                    static_cast<int>(world_bottom_y), // sort Y override
+                    anim->is_flip_h,
+                    anim->is_flip_v
+                );
+            }
         }
 
         // Ground ground collision circle outline
@@ -448,14 +469,31 @@ private:
         if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
-        FacingVector facing = input_buffer.update_facing(dt, dx, dy);
-        facing_dx = facing.dx;
-        facing_dy = facing.dy;
+        FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
+        facing_dx = facing_vec.dx;
+        facing_dy = facing_vec.dy;
 
+        auto f = facing();
         if (facing_dx < -0.01f) {
             is_facing_left = true;
         } else if (facing_dx > 0.01f) {
             is_facing_left = false;
+        }
+
+        if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
+            if (f == Facing::East) {
+                anim->set_frame(1);
+                anim->is_flip_h = false;
+            } else if (f == Facing::West) {
+                anim->set_frame(1);
+                anim->is_flip_h = true;
+            } else if (f == Facing::NorthWest || f == Facing::SouthWest) {
+                anim->set_frame(0);
+                anim->is_flip_h = true;
+            } else {
+                anim->set_frame(0);
+                anim->is_flip_h = false;
+            }
         }
 
         // DIAGONAL SPEED SCALE OPTIONS:

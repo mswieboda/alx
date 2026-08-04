@@ -110,14 +110,17 @@ void Scene::draw_entities(std::vector<uint32_t>& screen_buffer, float alpha) {
                 int frame_pool_index = visual_data.current_anim.frame_indices[visual_data.current_sequence_index];
                 const SpriteFrame& current_frame = visual_data.master_frames[frame_pool_index];
 
+                const uint8_t* frame_pixels = visual_data.sheet_pixels + current_frame.offset;
+                uint32_t frame_pixels_size = (current_frame.len > 0) ? static_cast<uint32_t>(current_frame.len) : visual_data.sheet_pixels_size;
+
                 // Submit sub-rect slice coordinates to the pipeline queue
                 Draw::sprite_frame(
                     static_cast<int>(draw_world_x),
                     static_cast<int>(draw_world_y),
-                    visual_data.sheet_pixels,
-                    visual_data.sheet_pixels_size,
-                    visual_data.sheet_width,
-                    visual_data.sheet_height,
+                    frame_pixels,
+                    frame_pixels_size,
+                    current_frame.width,
+                    current_frame.height,
                     current_frame.x,
                     current_frame.y,
                     current_frame.width,

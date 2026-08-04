@@ -66,8 +66,10 @@ if should_run?("images", target_filter)
     # Check for dedicated master palette file (e.g. assets/images/palette.aseprite)
     master_palette_file = image_files.find { |f| File.basename(f).downcase.starts_with?("palette") }
 
-    # Exclude master palette file from sprite array generation
-    sprite_files = image_files.reject { |f| f == master_palette_file }
+    # Exclude master palette file and any files starting with '_' from sprite array generation
+    sprite_files = image_files.reject do |f|
+      f == master_palette_file || File.basename(f).starts_with?("_")
+    end
 
     gpl_file = "assets/images/palette.gpl"
     gpl_palette = [] of String
@@ -107,6 +109,21 @@ if should_run?("images", target_filter)
       str << "namespace Assets {\n"
       str << "    namespace Images {\n\n"
 
+      str << "        struct FrameDescriptor {\n"
+      str << "            size_t offset;\n"
+      str << "            size_t len;\n"
+      str << "            uint16_t width;\n"
+      str << "            uint16_t height;\n"
+      str << "            uint16_t duration_ms;\n"
+      str << "        };\n\n"
+
+      str << "        struct TagDescriptor {\n"
+      str << "            const char* name;\n"
+      str << "            uint16_t from_frame;\n"
+      str << "            uint16_t to_frame;\n"
+      str << "            bool loop;\n"
+      str << "        };\n\n"
+
       global_palette = Array(String).new(256, "0x00FF00FF") # Default padding with magenta transparency
 
       if gpl_palette.any?
@@ -135,11 +152,25 @@ if should_run?("images", target_filter)
       end
       str << "        };\n\n"
 
-      # Export individual RLE arrays (excluding master_palette_file)
+      # Export individual RLE arrays and descriptors (excluding master_palette_file)
       processed_sprites.each do |sprite|
+        str << "        inline const uint16_t #{sprite.name}_width = #{sprite.width};\n"
+        str << "        inline const uint16_t #{sprite.name}_height = #{sprite.height};\n"
         str << "        inline const size_t #{sprite.name}_len = #{sprite.compressed_size};\n"
         str << "        inline const uint8_t #{sprite.name}[#{sprite.compressed_size}] = {\n"
         str << "            " << sprite.c_array_string << "\n"
+        str << "        };\n\n"
+
+        str << "        inline const FrameDescriptor #{sprite.name}_frames[#{sprite.frames.size}] = {\n"
+        sprite.frames.each do |f|
+          str << "            { #{f.offset}, #{f.len}, #{f.width}, #{f.height}, #{f.duration_ms} },\n"
+        end
+        str << "        };\n\n"
+
+        str << "        inline const TagDescriptor #{sprite.name}_anims[#{sprite.tags.size}] = {\n"
+        sprite.tags.each do |t|
+          str << "            { \"#{t.name}\", #{t.from_frame}, #{t.to_frame}, #{t.loop ? "true" : "false"} },\n"
+        end
         str << "        };\n\n"
       end
 
@@ -151,6 +182,7 @@ if should_run?("images", target_filter)
     puts "Generated -> src/assets/Images.h"
   end
 end
+
 
 # -------------------------------------------------------------
 # MUSIC -> src/assets/Music.h
