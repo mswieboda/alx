@@ -80,12 +80,6 @@ struct PlayerInputBuffer {
 };
 
 struct Player : public Entity {
-    // visuals
-    static constexpr int SPRITE_WIDTH = 19;
-    static constexpr int SPRITE_HEIGHT = 29;
-    static constexpr float SHADOW_RX_RATIO = 0.45f;
-    static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
-
     // Movement speed in pixels per 60Hz physics tick.
     // NOTE FOR TUNING: Sticking to simple rational fractions (0.25f, 0.50f, 0.75f, 1.00f, 1.25f, 1.50f)
     // maintains a steady, harmonic multi-frame sub-pixel cadence without irregular rasterization stutter:
@@ -110,14 +104,13 @@ struct Player : public Entity {
 
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
-    // Relative collision ratio constants
+    // Collision areas ratios
     static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of transform.width
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
     static constexpr float HURT_RADIUS_RATIO = 0.25f;     // % of transform.width
     static constexpr float HURT_OFFSET_Y_RATIO = 0.50f;   // Torso center (transform.y + transform.height * %)
 
-
-    // Attack timing and radius constants
+    // Attack timing and radius
     static constexpr float ATTACK_SWEEP_DURATION    = 0.15f; // 0.15s active arc sweep
     static constexpr float ATTACK_RECOVERY_DURATION = 0.15f; // 0.10s recovery delay
     static constexpr float ATTACK_REACH_RADIUS      = 12.0f; // Reach distance from player center
@@ -126,6 +119,9 @@ struct Player : public Entity {
     static constexpr int ATTACK_ARC_SWEEP_SWING_DEG = 125;    // in degrees (total swing motion)
     static constexpr float ATTACK_KNOCKBACK_SPEED   = 115.0f;
 
+    // Shadow ratios
+    static constexpr float SHADOW_RX_RATIO = 0.45f;
+    static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
 
     AttackPhase attack_phase = AttackPhase::Idle;
     float attack_timer = 0.0f;
@@ -138,8 +134,8 @@ struct Player : public Entity {
             Transform{ // Transform
                 x,
                 y,
-                SPRITE_WIDTH, // width
-                SPRITE_HEIGHT, // height
+                mystic_width, // width
+                mystic_height, // height
                 Layer::WorldObj // z-index
             },
             AnimatedSpriteRender::create(
