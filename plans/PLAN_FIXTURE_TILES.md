@@ -63,6 +63,6 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 | --- | --- | --- | --- |
 | `[PH-COLR]` | Fix Multi-Tile Collision & Remove X-Ray Fade | Complete | Player/Enemies blocked by buildings; zero alpha fading |
 | `[PH-PORT]` | Exact Connection Ports & Seep 3x2 Update | Complete | Pipes connect only at middle/top/bottom ports |
-| `[PH-RROUT]`| Round-Robin Fixture Output Dispatcher | Pending | Fixtures rotate output port selection evenly |
+| `[PH-RROUT]`| Round-Robin Fixture Output Dispatcher | Complete | Fixtures rotate output port selection evenly |
 | `[PH-PLAC]` | Player Self-Overlap Placement Guard | Pending | Player cannot build structures on top of self |
 | `[PH-SKYL]` | 2.5D Roof Skylight Frame & Interior Layers | Pending | Roof cutout window shows internal mana & embers |
