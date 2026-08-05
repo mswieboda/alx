@@ -16,8 +16,6 @@ namespace {
 // 6px stream width (1px grey wall margin on each side inside 8px pipe channel)
 constexpr int STREAM_WIDTH = 6;
 
-constexpr uint32_t BUILDING_ALPHA_OPAQUE = 0xFF000000;
-
 static float s_emit_timer = 0.0f;
 static bool s_should_emit_pipe = false;
 
@@ -47,16 +45,16 @@ void primary_out_from_mask(uint8_t mask, int in_dx, int in_dy, int& out_dx, int&
 
 // --- DRAW BUILDING ---
 
-void refiner_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha, float progress) {
+void refiner_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, float progress) {
     int z_idx = Layer::WorldObj;
 
-    uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
-    uint32_t base_color      = alpha | 0x001F1240; // Dark Foundation Base
-    uint32_t back_wall_color = alpha | 0x00120A2A; // Inset Skylight Recess Pit BG
-    uint32_t floor_color     = alpha | 0x000C071C; // Inset Skylight Recess Pit BG
-    uint32_t flange_color    = alpha | 0x003C247B; // Port Flange
-    uint32_t shadow_color    = alpha | 0x000A0518; // Inner Bevel Edge Shadow
-    uint32_t base_mana_color = alpha | 0x004A0088; // Deep Twilight Dark Pipe Purple
+    uint32_t body_color      = 0xFF341C66; // Medium Violet Core Body
+    uint32_t base_color      = 0xFF1F1240; // Dark Foundation Base
+    uint32_t back_wall_color = 0xFF120A2A; // Inset Skylight Recess Pit BG
+    uint32_t floor_color     = 0xFF0C071C; // Inset Skylight Recess Pit BG
+    uint32_t flange_color    = 0xFF3C247B; // Port Flange
+    uint32_t shadow_color    = 0xFF0A0518; // Inner Bevel Edge Shadow
+    uint32_t base_mana_color = 0xFF4A0088; // Deep Twilight Dark Pipe Purple
 
     // Calculate dynamic 3-phase interpolated fill_factor (0.0 <-> 1.0)
     float fill_factor = 1.0f;
@@ -136,28 +134,28 @@ void refiner_building(const Network& network, ParticleSystem& ps, const Fixture&
     }
 }
 
-void spire_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha) {
+void spire_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override) {
     int z_idx = Layer::WorldObj;
 
-    uint32_t peak_tip_color  = alpha | 0x0088FFCC; // Glowing Spire Crystal Tip
-    uint32_t top_color       = alpha | 0x0000FF88; // Bright Emerald Upper Peak
-    uint32_t body_color      = alpha | 0x0000A350; // Purifying Teal Shaft
-    uint32_t base_color      = alpha | 0x00004520; // Dark Foundation Base
-    uint32_t window_bg_color = alpha | 0x00002810; // Inset Skylight Recess Pit BG
-    uint32_t flange_color    = alpha | 0x00006B33; // Port Flange
-    uint32_t shadow_color    = alpha | 0x00001508; // Inner Bevel Edge Shadow
+    uint32_t peak_tip_color  = 0xFF88FFCC; // Glowing Spire Crystal Tip
+    uint32_t top_color       = 0xFF00FF88; // Bright Emerald Upper Peak
+    uint32_t body_color      = 0xFF00A350; // Purifying Teal Shaft
+    uint32_t base_color      = 0xFF004520; // Dark Foundation Base
+    uint32_t window_bg_color = 0xFF002810; // Inset Skylight Recess Pit BG
+    uint32_t flange_color    = 0xFF006B33; // Port Flange
+    uint32_t shadow_color    = 0xFF001508; // Inner Bevel Edge Shadow
 
     // --- STAGE 1: Recess Pit Floor BG (16x16 px cutout at x+8, y+16) ---
     Draw::rect(world_x + 8, world_y + 16, 16, 16, window_bg_color, true, 1, z_idx, y_sort_override);
 
     // --- STAGE 2: Static Flat Mana Pool ---
     if (fix.mana_state == ManaState::Light) {
-        uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
-        uint32_t core_color = alpha | 0x00FFFFFF;  // White core
+        uint32_t aura_color = 0xFF00FFFF;  // Cyan aura
+        uint32_t core_color = 0xFFFFFFFF;  // White core
         Draw::rect(world_x + 8, world_y + 20, 16, 10, aura_color, true, 1, z_idx, y_sort_override);
         Draw::rect(world_x + 11, world_y + 22, 10, 6, core_color, true, 1, z_idx, y_sort_override);
     } else if (fix.mana_state == ManaState::Dark) {
-        uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
+        uint32_t liquid_color = 0xFF9900FF; // Glowing twilight violet liquid
         Draw::rect(world_x + 8, world_y + 20, 16, 10, liquid_color, true, 1, z_idx, y_sort_override);
     }
 
@@ -686,12 +684,11 @@ void building(
 ) {
     int world_bottom_y = world_y - 4;
     int y_sort_override = world_bottom_y + 20;
-    uint32_t alpha = BUILDING_ALPHA_OPAQUE;
 
     if (fix.type == FixtureType::Refiner) {
-        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, alpha, progress);
+        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, progress);
     } else if (fix.type == FixtureType::Spire) {
-        spire_building(network, ps, fix, world_x, world_y, y_sort_override, alpha);
+        spire_building(network, ps, fix, world_x, world_y, y_sort_override);
     }
 }
 
