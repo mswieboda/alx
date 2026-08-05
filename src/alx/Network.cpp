@@ -534,7 +534,7 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
             const Fixture& current = m_fixtures[idx];
 
             if (current.type == FixtureType::Refiner && current.is_root()) {
-                if (current.process_timer == 0) {
+                if (current.process_timer == 0 && current.mana_state == ManaState::None) {
                     int chosen_dir = -1;
                     int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Dark, chosen_dir);
                     if (in_pipe_idx != -1) {
@@ -798,38 +798,40 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                 next_fixtures[idx].flow_out_mask = out_mask;
             }
             else if (current.type == FixtureType::Refiner && current.is_root()) {
-                if (next_fixtures[idx].process_timer > 0) {
+                if (next_fixtures[idx].mana_state == ManaState::Dark) {
                     next_fixtures[idx].is_powered = true;
-                    next_fixtures[idx].mana_state = ManaState::Dark;
+                    if (current.mana_state == ManaState::Dark) {
+                        uint8_t progress = current.process_timer + 1;
+                        if (progress >= Game::REFINER_PROCESSING_TICKS_REQUIRED) {
+                            int chosen_dir = -1;
+                            int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
+                            if (out_pipe_idx != -1) {
+                                next_fixtures[idx].last_out_dir_idx = static_cast<uint8_t>(chosen_dir);
 
-                    uint8_t progress = next_fixtures[idx].process_timer + 1;
-                    if (progress >= Game::REFINER_TICKS_REQUIRED) {
-                        int chosen_dir = -1;
-                        int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
-                        if (out_pipe_idx != -1) {
-                            next_fixtures[idx].last_out_dir_idx = static_cast<uint8_t>(chosen_dir);
+                                next_fixtures[out_pipe_idx].mana_state = ManaState::Light;
+                                next_fixtures[out_pipe_idx].is_powered = true;
+                                next_fixtures[out_pipe_idx].mana_ttl = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
 
+                                PortLocation ports[4];
+                                get_fixture_ports(FixtureType::Refiner, ports);
+                                const auto& chosen_port = ports[chosen_dir];
+                                next_fixtures[out_pipe_idx].move_dx = chosen_port.face_dx;
+                                next_fixtures[out_pipe_idx].move_dy = chosen_port.face_dy;
+                                next_fixtures[out_pipe_idx].is_stepping = true;
 
-                            next_fixtures[out_pipe_idx].mana_state = ManaState::Light;
-                            next_fixtures[out_pipe_idx].is_powered = true;
-                            next_fixtures[out_pipe_idx].mana_ttl = Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
-
-                            PortLocation ports[4];
-                            get_fixture_ports(FixtureType::Refiner, ports);
-                            const auto& chosen_port = ports[chosen_dir];
-                            next_fixtures[out_pipe_idx].move_dx = chosen_port.face_dx;
-                            next_fixtures[out_pipe_idx].move_dy = chosen_port.face_dy;
-                            next_fixtures[out_pipe_idx].is_stepping = true;
-
-
-                            progress = 0;
-                            next_fixtures[idx].is_powered = false;
-                            next_fixtures[idx].mana_state = ManaState::None;
-                        } else {
-                            progress = Game::REFINER_TICKS_REQUIRED;
+                                progress = Game::REFINER_CONSUMING_WAIT_TICKS;
+                                next_fixtures[idx].is_powered = false;
+                                next_fixtures[idx].mana_state = ManaState::None;
+                            } else {
+                                progress = Game::REFINER_PROCESSING_TICKS_REQUIRED;
+                            }
                         }
+                        next_fixtures[idx].process_timer = progress;
                     }
-                    next_fixtures[idx].process_timer = progress;
+                } else if (current.mana_state == ManaState::None && current.process_timer > 0) {
+                    next_fixtures[idx].is_powered = false;
+                    next_fixtures[idx].mana_state = ManaState::None;
+                    next_fixtures[idx].process_timer = current.process_timer - 1;
                 } else if (next_fixtures[idx].mana_state == ManaState::None) {
                     next_fixtures[idx].is_powered = false;
                     next_fixtures[idx].process_timer = 0;

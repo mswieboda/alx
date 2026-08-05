@@ -71,7 +71,7 @@ void refiner_building(const Network& network, ParticleSystem& ps, const Fixture&
 
     // --- STAGE 3: Interior Particle Emitters (Spawn inside cutout centered at x+24, y+18) ---
     if (fix.mana_state == ManaState::Dark) {
-        ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 24), static_cast<float>(world_y + 18), 1, Layer::WorldObj, y_sort_override);
+        ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 24), static_cast<float>(world_y + 18), 2, Layer::WorldObj, y_sort_override);
     }
 
     // --- STAGE 4: Roof Frame Assembly, Aligned Front Face Base, Bevel Shadows & Dual Windows ---

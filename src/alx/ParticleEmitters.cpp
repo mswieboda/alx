@@ -130,8 +130,8 @@ void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count, int z
     for (int i = 0; i < count; ++i) {
         if (Random::chance(0.35f)) {
             if (Particle* p = ps.emit()) {
-                float spawn_x = x + Random::get_float(-4.0f, 4.0f);
-                float spawn_y = y + Random::get_float(-4.0f, 4.0f);
+                float spawn_x = x + Random::get_float(-12.0f, 12.0f);
+                float spawn_y = y + Random::get_float(-8.0f, 8.0f);
 
                 p->x = spawn_x;
                 p->y = spawn_y;

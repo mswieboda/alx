@@ -20,8 +20,10 @@ namespace Game {
     inline constexpr int64_t CUSTOM_SEED = -1; // e.g. 1337
 
     // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
-    inline constexpr uint8_t REFINER_TICKS_REQUIRED = 5;
+    inline constexpr uint8_t REFINER_PROCESSING_TICKS_REQUIRED = 5;
+    inline constexpr uint8_t REFINER_CONSUMING_WAIT_TICKS = 1;
     inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
     inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 25;
     inline constexpr uint8_t SEEP_OVERPRESSURE_THRESHOLD_TICKS = 10; // consider removing this mechanic
 }
+
