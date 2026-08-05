@@ -58,7 +58,9 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 - `[RFGE]`: Cutout & Front Windows - Define an expanded top-reaching interior skylight cutout at `(world_x + 6, world_y + 6, 36, 22)` and dual $6 \times 6\text{ px}$ front face windows at `(world_x + 6, world_y + 37)` and `(world_x + 36, world_y + 37)`.
 - `[RFFR]`: Vaulted Frame & Aligned Base - Extend middle section body rect up to `world_y + 4` with 4px borders on all sides; align bottom base width to 44px (`world_x + 2` to `world_x + 46`) matching middle section.
 - `[RFTM]`: Refiner Timing Constants - Renamed `REFINER_TICKS_REQUIRED` to `REFINER_PROCESSING_TICKS_REQUIRED = 5` and added `REFINER_CONSUMING_WAIT_TICKS = 1` in `Game.h` to enforce a post-production wait delay before consuming the next dark mana input.
-- `[RFAN]`: Future Animated Processing Cycle - (Future Enhancement Concept) Animate dark mana fill level during processing: Tick 1 (mana fills up), Tick 2 (embers emit from full pool), Tick 3 (mana drains down), Tick 4 (empty pool, no embers emitted).
+- `[RFAN]`: Dynamic 3-Phase Fill & Drain Cycle - Animate dark mana pool and front face windows through 3 phases: 1) Intake Fill ($0\% \to 100\%$) during `REFINER_CONSUMING_WAIT_TICKS`, 2) Active Refining ($100\%$ full with embers), and 3) Output Drain ($100\% \to 0\%$) on the final processing tick (`REFINER_PROCESSING_TICKS_REQUIRED`) as Light Mana is produced.
+
+
 
 
 ### [SPSR]: 2. Spire Vertical Crystal Chamber Assembly (2x3 Tiles / 32x48 px)

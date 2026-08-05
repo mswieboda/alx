@@ -47,7 +47,7 @@ void primary_out_from_mask(uint8_t mask, int in_dx, int in_dy, int& out_dx, int&
 
 // --- DRAW BUILDING ---
 
-void refiner_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha) {
+void refiner_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha, float progress) {
     int z_idx = Layer::WorldObj;
 
     uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
@@ -57,20 +57,45 @@ void refiner_building(const Network& network, ParticleSystem& ps, const Fixture&
     uint32_t flange_color    = alpha | 0x003C247B; // Port Flange
     uint32_t shadow_color    = alpha | 0x000A0518; // Inner Bevel Edge Shadow
     uint32_t base_mana_color = alpha | 0x004A0088; // Deep Twilight Dark Pipe Purple
-    // uint32_t top_mana_color  = alpha | 0x005A00A6; // Slightly Ligher Twilight Dark Pipe Purple
+
+    // Calculate dynamic 3-phase interpolated fill_factor (0.0 <-> 1.0)
+    float fill_factor = 1.0f;
+    if (fix.mana_state == ManaState::Dark) {
+        uint8_t fill_duration = Game::REFINER_CONSUMING_WAIT_TICKS;
+        uint8_t total_processing = Game::REFINER_PROCESSING_TICKS_REQUIRED;
+        uint8_t drain_start_tick = (total_processing > fill_duration) ? (total_processing - 1) : total_processing;
+        float sub_progress = std::clamp(progress, 0.0f, 1.0f);
+
+        if (fix.process_timer <= fill_duration) {
+            // Phase 1: Intake Fill (0.0 -> 1.0) over REFINER_CONSUMING_WAIT_TICKS
+            float current_sub_ticks = static_cast<float>(fix.process_timer - 1) + sub_progress;
+            float denom = (fill_duration > 0) ? static_cast<float>(fill_duration) : 1.0f;
+            fill_factor = std::clamp(current_sub_ticks / denom, 0.0f, 1.0f);
+        } else if (fix.process_timer >= drain_start_tick) {
+            // Phase 3: Final Output Drain (1.0 -> 0.0) on the last processing tick as Light Mana is produced
+            fill_factor = std::clamp(1.0f - sub_progress, 0.0f, 1.0f);
+        } else {
+            // Phase 2: Active Refining (100% full)
+            fill_factor = 1.0f;
+        }
+    }
 
     // --- STAGE 1: Recess Pit Floor BG (36x20 px cutout at x+6, y+8) ---
     Draw::rect(world_x + 6, world_y + 8, 36, 16, back_wall_color, true, 1, z_idx, y_sort_override);
     Draw::rect(world_x + 6, world_y + 22, 36, 6, floor_color, true, 1, z_idx, y_sort_override);
 
-    // --- STAGE 2: Static Flat Mana Pool ---
+    // --- STAGE 2: Animated Dark Mana Pool ---
     if (fix.mana_state == ManaState::Dark) {
-        uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
-        Draw::rect(world_x + 8, world_y + 16, 34, 12, liquid_color, true, 1, z_idx, y_sort_override);
+        int max_h = 12;
+        int curr_h = static_cast<int>(std::round(static_cast<float>(max_h) * fill_factor));
+        int curr_y = (world_y + 28) - curr_h;
+        if (curr_h > 0) {
+            Draw::rect(world_x + 6, curr_y, 36, curr_h, base_mana_color, true, 1, z_idx, y_sort_override);
+        }
     }
 
     // --- STAGE 3: Interior Particle Emitters (Spawn inside cutout centered at x+24, y+18) ---
-    if (fix.mana_state == ManaState::Dark) {
+    if (fix.mana_state == ManaState::Dark && fill_factor > 0.3f) {
         ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 24), static_cast<float>(world_y + 18), 2, Layer::WorldObj, y_sort_override);
     }
 
@@ -100,9 +125,14 @@ void refiner_building(const Network& network, ParticleSystem& ps, const Fixture&
     Draw::rect(world_x + 34, world_y + 37, 8, 6, floor_color, true, 1, z_idx, y_sort_override);
 
     if (fix.mana_state == ManaState::Dark) {
-        Draw::rect(world_x + 8, world_y + 37, 6, 6, base_mana_color, true, 1, z_idx, y_sort_override);
-        Draw::rect(world_x + 20, world_y + 37, 8, 6, base_mana_color, true, 1, z_idx, y_sort_override);
-        Draw::rect(world_x + 34, world_y + 37, 8, 6, base_mana_color, true, 1, z_idx, y_sort_override);
+        int max_win_h = 6;
+        int curr_win_h = static_cast<int>(std::round(static_cast<float>(max_win_h) * fill_factor));
+        int curr_win_y = (world_y + 43) - curr_win_h;
+        if (curr_win_h > 0) {
+            Draw::rect(world_x + 6, curr_win_y, 8, curr_win_h, base_mana_color, true, 1, z_idx, y_sort_override);
+            Draw::rect(world_x + 20, curr_win_y, 8, curr_win_h, base_mana_color, true, 1, z_idx, y_sort_override);
+            Draw::rect(world_x + 34, curr_win_y, 8, curr_win_h, base_mana_color, true, 1, z_idx, y_sort_override);
+        }
     }
 }
 
@@ -659,7 +689,7 @@ void building(
     uint32_t alpha = BUILDING_ALPHA_OPAQUE;
 
     if (fix.type == FixtureType::Refiner) {
-        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, alpha);
+        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, alpha, progress);
     } else if (fix.type == FixtureType::Spire) {
         spire_building(network, ps, fix, world_x, world_y, y_sort_override, alpha);
     }
