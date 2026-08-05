@@ -73,6 +73,45 @@ inline constexpr MultiTileFootprint get_fixture_footprint(FixtureType type) noex
     }
 }
 
+struct PortLocation {
+    int8_t off_x;      // Tile offset relative to building root
+    int8_t off_y;
+    int8_t face_dx;    // Connection direction facing outwards (-1, 0, 1)
+    int8_t face_dy;    // Connection direction facing outwards (-1, 0, 1)
+};
+
+inline constexpr int get_fixture_ports(FixtureType type, PortLocation out_ports[4]) noexcept {
+    switch (type) {
+        case FixtureType::Refiner:
+            out_ports[0] = { 0, 1, -1,  0 }; // West
+            out_ports[1] = { 2, 1,  1,  0 }; // East
+            out_ports[2] = { 1, 0,  0, -1 }; // North
+            out_ports[3] = { 1, 2,  0,  1 }; // South
+            return 4;
+        case FixtureType::Spire:
+            out_ports[0] = { 1, 2,  0,  1 }; // South at (root_x+1, root_y+2)
+            return 1;
+        case FixtureType::Seep:
+            out_ports[0] = { 1, 0,  0, -1 }; // North at (root_x+1, root_y)
+            out_ports[1] = { 1, 1,  0,  1 }; // South at (root_x+1, root_y+1)
+            return 2;
+        default:
+            return 0;
+    }
+}
+
+inline constexpr bool is_fixture_port(FixtureType type, int8_t off_x, int8_t off_y, int8_t face_dx, int8_t face_dy) noexcept {
+    PortLocation ports[4];
+    int count = get_fixture_ports(type, ports);
+    for (int i = 0; i < count; ++i) {
+        if (ports[i].off_x == off_x && ports[i].off_y == off_y &&
+            ports[i].face_dx == face_dx && ports[i].face_dy == face_dy) {
+            return true;
+        }
+    }
+    return false;
+}
+
 inline constexpr int max_fixture_footprint_dimension() noexcept {
     int max_dim = 1;
     constexpr FixtureType all_types[] = {

@@ -68,6 +68,7 @@ public:
     [[nodiscard]] bool is_building(FixtureType type) const noexcept;
 
     // --- Auto-Tiling Mask & Downstream Query ---
+    [[nodiscard]] bool is_valid_port_connection(int from_x, int from_y, int to_x, int to_y) const noexcept;
     void update_neighbor_masks(GridPos pos);
     void downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
 

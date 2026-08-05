@@ -23,10 +23,8 @@ static bool s_should_emit_pipe = false;
 
 // --- HELPERS ---
 
-bool is_connectable_fixture(const Network& network, int gx, int gy) {
-    if (!network.in_bounds(gx, gy)) return false;
-    const Fixture& fix = network.fixture(gx, gy);
-    return !fix.is_empty();
+bool is_connectable_fixture(const Network& network, int from_gx, int from_gy, int to_gx, int to_gy) {
+    return network.is_valid_port_connection(from_gx, from_gy, to_gx, to_gy);
 }
 
 bool is_node_fixture(const Network& network, int gx, int gy) {
@@ -57,12 +55,16 @@ void building_bg(FixtureType type, int world_x, int world_y, int world_bottom_y,
         uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
         uint32_t base_color      = alpha | 0x001F1240; // Dark Foundation Base
         uint32_t window_bg_color = alpha | 0x00120A2A; // Inset Skylight Window BG
+        uint32_t flange_color    = alpha | 0x003C247B;
 
         // Bottom Row Base (y+32 to y+48, 48x16 px)
         Draw::rect(world_x, world_y + 32, 48, 16, base_color, true, 1, z_idx);
-        // Intake/Outflow Side Pipe Port Flanges (4x8 px on left/right edges)
-        Draw::rect(world_x - 2, world_y + 36, 4, 8, alpha | 0x003C247B, true, 1, z_idx);
-        Draw::rect(world_x + 46, world_y + 36, 4, 8, alpha | 0x003C247B, true, 1, z_idx);
+
+        // 4 Perimeter Port Flanges (Refiner 3x3 midpoint ports)
+        Draw::rect(world_x - 2, world_y + 20, 4, 8, flange_color, true, 1, z_idx);  // West Port (root_x, root_y+1)
+        Draw::rect(world_x + 46, world_y + 20, 4, 8, flange_color, true, 1, z_idx); // East Port (root_x+2, root_y+1)
+        Draw::rect(world_x + 20, world_y - 2, 8, 4, flange_color, true, 1, z_idx);  // North Port (root_x+1, root_y)
+        Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx); // South Port (root_x+1, root_y+2)
 
         // Middle Row Core (y+16 to y+32, 44x16 px centered at x+2)
         Draw::rect(world_x + 2, world_y + 16, 44, 16, body_color, true, 1, z_idx);
@@ -84,12 +86,13 @@ void building_bg(FixtureType type, int world_x, int world_y, int world_bottom_y,
         uint32_t body_color      = alpha | 0x0000A350; // Purifying Teal Shaft
         uint32_t base_color      = alpha | 0x00004520; // Dark Foundation Base
         uint32_t window_bg_color = alpha | 0x00002810; // Inset Skylight Window BG
+        uint32_t flange_color    = alpha | 0x00006B33;
 
         // Bottom Row Base (y+32 to y+48, 32x16 px)
         Draw::rect(world_x, world_y + 32, 32, 16, base_color, true, 1, z_idx);
-        // Side Output Port Flanges (4x8 px)
-        Draw::rect(world_x - 2, world_y + 36, 4, 8, alpha | 0x00006B33, true, 1, z_idx);
-        Draw::rect(world_x + 30, world_y + 36, 4, 8, alpha | 0x00006B33, true, 1, z_idx);
+
+        // Single Bottom Port Flange on South face (root_x+1, root_y+2 at x+20, y+46)
+        Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx);
 
         // Middle Row Purifying Shaft (y+16 to y+32, 26x16 px centered at x+3)
         Draw::rect(world_x + 3, world_y + 16, 26, 16, body_color, true, 1, z_idx);
@@ -129,23 +132,22 @@ void building_light_mana(int world_x, int world_y, int y_sort_override, uint32_t
 void pipe_bg(const Network& network, int gx, int gy, int world_x, int world_y, int tile_size) {
     uint32_t pipe_color = 0xFF4A4A60;
 
-    // NOTE: sub_len might need to be tweaked if fixtures are taller than 1.5 tiles in future
     int hub_size = 8;
     int offset = (tile_size - hub_size) / 2;
     int stub_len = offset;
 
     Draw::rect(world_x + offset, world_y + offset, hub_size, hub_size, pipe_color, true, 1, Layer::GroundFixture);
 
-    if (is_connectable_fixture(network, gx, gy - 1)) {
+    if (network.is_valid_port_connection(gx, gy, gx, gy - 1)) {
         Draw::rect(world_x + offset, world_y, hub_size, stub_len, pipe_color, true, 1, Layer::GroundFixture);
     }
-    if (is_connectable_fixture(network, gx, gy + 1)) {
+    if (network.is_valid_port_connection(gx, gy, gx, gy + 1)) {
         Draw::rect(world_x + offset, world_y + offset + hub_size, hub_size, stub_len, pipe_color, true, 1, Layer::GroundFixture);
     }
-    if (is_connectable_fixture(network, gx - 1, gy)) {
+    if (network.is_valid_port_connection(gx, gy, gx - 1, gy)) {
         Draw::rect(world_x, world_y + offset, stub_len, hub_size, pipe_color, true, 1, Layer::GroundFixture);
     }
-    if (is_connectable_fixture(network, gx + 1, gy)) {
+    if (network.is_valid_port_connection(gx, gy, gx + 1, gy)) {
         Draw::rect(world_x + offset + hub_size, world_y + offset, stub_len, hub_size, pipe_color, true, 1, Layer::GroundFixture);
     }
 }
@@ -528,63 +530,50 @@ void pipe_dark_mana(
 // --- DRAW SEEP ---
 
 void seep_bg(int world_x, int world_y, int tile_size) {
-    uint32_t color = 0xFF00FF66;
     int z_idx = Layer::GroundFixture;
 
-    Draw::rect(
-        world_x,
-        world_y,
-        tile_size,
-        tile_size,
-        color,
-        true,
-        1,
-        z_idx
-    );
+    // Seep (3x2 tiles = 48x32 px)
+    uint32_t base_color   = 0xFF0A2218; // Dark Twilight Mold Base
+    uint32_t pool_color   = 0xFF00552B; // Deep Twilight Mana Pit Pool
+    uint32_t core_color   = 0xFF00381B; // Inset Core Pit
+    uint32_t flange_color = 0xFF00AA55; // Port Ring Indicator
+
+    // Full 48x32 px base ground rect
+    Draw::rect(world_x, world_y, 48, 32, base_color, true, 1, z_idx);
+    // Inset liquid pool (42x26 px)
+    Draw::rect(world_x + 3, world_y + 3, 42, 26, pool_color, true, 1, z_idx);
+    // Dark core pit (32x16 px centered)
+    Draw::rect(world_x + 8, world_y + 8, 32, 16, core_color, true, 1, z_idx);
+
+    // Top Center Port Indicator (North at root_x+1, root_y)
+    Draw::rect(world_x + 20, world_y - 2, 8, 4, flange_color, true, 1, z_idx);
+    // Bottom Center Port Indicator (South at root_x+1, root_y+1)
+    Draw::rect(world_x + 20, world_y + 30, 8, 4, flange_color, true, 1, z_idx);
 }
 
-void seep_dark_mana_connector(int world_x, int world_y, int tile_size, int out_dx, int out_dy, int stream_w) {
-    if (out_dx == 0 && out_dy == 0) return;
+void seep_dark_mana_connector(int world_x, int world_y, int out_dy, int stream_w) {
+    if (out_dy == 0) return;
 
     uint32_t stream_color = 0xFF4A0088;
-    int offset = (tile_size - stream_w) / 2;
-    int hub_cx = world_x + tile_size / 2;
-    int hub_cy = world_y + tile_size / 2;
-    float cap_r = static_cast<float>(stream_w) * 0.5f;
+    int port_cx = world_x + 24; // Center of tile x+1 (16 to 32 -> center 24)
+    int offset_x = port_cx - stream_w / 2;
 
-    Draw::circle(static_cast<float>(hub_cx), static_cast<float>(hub_cy), cap_r, stream_color, true, 1, Layer::GroundFixtureItem);
-
-    if (out_dx != 0) {
-        float rx = (out_dx > 0) ? static_cast<float>(hub_cx) : static_cast<float>(world_x);
-        Draw::rect(rx, static_cast<float>(world_y + offset), static_cast<float>(tile_size / 2), static_cast<float>(stream_w), stream_color, true, 1, Layer::GroundFixtureItem);
-    } else if (out_dy != 0) {
-        float ry = (out_dy > 0) ? static_cast<float>(hub_cy) : static_cast<float>(world_y);
-        Draw::rect(static_cast<float>(world_x + offset), ry, static_cast<float>(stream_w), static_cast<float>(tile_size / 2), stream_color, true, 1, Layer::GroundFixtureItem);
+    if (out_dy == -1) {
+        // Top Center Port (North): line from center of pit (y+16) up to top edge (y)
+        Draw::rect(static_cast<float>(offset_x), static_cast<float>(world_y), static_cast<float>(stream_w), 16.0f, stream_color, true, 1, Layer::GroundFixtureItem);
+    } else if (out_dy == 1) {
+        // Bottom Center Port (South): line from center of pit (y+16) down to bottom edge (y+32)
+        Draw::rect(static_cast<float>(offset_x), static_cast<float>(world_y + 16), static_cast<float>(stream_w), 16.0f, stream_color, true, 1, Layer::GroundFixtureItem);
     }
 }
 
 void seep_mana(const Fixture& fix, int world_x, int world_y, int tile_size, int stream_w) {
-    // Draw connectors to ALL output directions from flow_out_mask
     uint8_t mask = fix.flow_out_mask;
-    if (mask == 0) {
-        // Fallback: check move_dx/dy
-        int dx = fix.move_dx, dy = fix.move_dy;
-        if (dx != 0 || dy != 0) {
-            seep_dark_mana_connector(world_x, world_y, tile_size, dx, dy, stream_w);
-        }
-    } else {
-        struct Dir { int dx, dy; uint8_t bit; };
-        constexpr Dir dirs[] = {
-            { 0, -1, DirectionMask::North },
-            { 1,  0, DirectionMask::East  },
-            { 0,  1, DirectionMask::South },
-            {-1,  0, DirectionMask::West  }
-        };
-        for (const auto& d : dirs) {
-            if (mask & d.bit) {
-                seep_dark_mana_connector(world_x, world_y, tile_size, d.dx, d.dy, stream_w);
-            }
-        }
+    if (mask & DirectionMask::North) {
+        seep_dark_mana_connector(world_x, world_y, -1, stream_w);
+    }
+    if (mask & DirectionMask::South) {
+        seep_dark_mana_connector(world_x, world_y, 1, stream_w);
     }
 }
 

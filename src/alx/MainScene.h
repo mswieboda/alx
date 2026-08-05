@@ -86,11 +86,11 @@ public:
             spires = { {6, 6} };
 
             pipes = {
-                // seep to refiner
-                {11, 8}, {12, 8}, {13, 8}, {14, 8}, {15, 8}, {15, 9}, {15, 10}, {15, 11},
+                // seep top center port (16,12) to refiner east port (12,9)
+                {16, 11}, {16, 10}, {16, 9}, {15, 9}, {14, 9}, {13, 9},
 
-                // refiner to spire
-                {9, 8}, {9, 9}, {8, 9}, {7, 9}, {6, 9}, {6, 8}, {6, 7}
+                // refiner west port (10,9) to spire south port (7,8)
+                {9, 9}, {8, 9}, {7, 9}
             };
         }
 

@@ -36,7 +36,12 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-PLAC]: Phase 3: Keyboard/Gamepad Placement Safety Rules
+## [PH-RROUT]: Phase 3: Round-Robin Fixture Output Dispatcher
+- `[RROUT]`: Round-Robin Output - Update fixture output dispatching for Seeps, Refiners, and future production buildings to rotate output port selection using `last_dir_idx` round-robin memory, ensuring even distribution across multiple connected output pipes.
+
+---
+
+## [PH-PLAC]: Phase 4: Keyboard/Gamepad Placement Safety Rules
 
 ### [PLSF]: 1. Multi-Tile Self-Placement Protection
 - `[PLSF]`: Player AABB Guard - Update `Player::try_build_tile` to compute `fixture_ground_aabb` for the selected fixture's full multi-tile footprint (`w x h`).
@@ -44,7 +49,7 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-SKYL]: Phase 4: 2.5D Roof Skylight Frame & Layered Interior Rendering
+## [PH-SKYL]: Phase 5: 2.5D Roof Skylight Frame & Layered Interior Rendering
 
 ### [RFFR]: 1. Roof Skylight Frame Assembly
 - `[RFFR]`: Framed Roof Structure - Render top/left/right/bottom rects forming a hollow roof frame over the middle row, creating a natural open skylight window.
@@ -57,6 +62,7 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 | Phase | Description | Status | Verification Method |
 | --- | --- | --- | --- |
 | `[PH-COLR]` | Fix Multi-Tile Collision & Remove X-Ray Fade | Complete | Player/Enemies blocked by buildings; zero alpha fading |
-| `[PH-PORT]` | Exact Connection Ports & Seep 3x2 Update | In Progress | Pipes connect only at middle/top/bottom ports |
+| `[PH-PORT]` | Exact Connection Ports & Seep 3x2 Update | Complete | Pipes connect only at middle/top/bottom ports |
+| `[PH-RROUT]`| Round-Robin Fixture Output Dispatcher | Pending | Fixtures rotate output port selection evenly |
 | `[PH-PLAC]` | Player Self-Overlap Placement Guard | Pending | Player cannot build structures on top of self |
 | `[PH-SKYL]` | 2.5D Roof Skylight Frame & Interior Layers | Pending | Roof cutout window shows internal mana & embers |
