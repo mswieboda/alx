@@ -45,86 +45,114 @@ void primary_out_from_mask(uint8_t mask, int in_dx, int in_dy, int& out_dx, int&
 
 // --- DRAW BUILDING ---
 
-void building_bg(FixtureType type, int world_x, int world_y, int world_bottom_y, int y_sort_override, uint32_t alpha) {
+// --- DRAW BUILDING ---
+
+void refiner_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha) {
     int z_idx = Layer::WorldObj;
 
-    if (type == FixtureType::Refiner) {
-        // Refiner (3x3 tiles = 48x48 px)
-        uint32_t top_color       = alpha | 0x005C38AA; // Bright Beveled Roof Cap
-        uint32_t top_highlight   = alpha | 0x007B4CE3; // Roof Bevel Highlight
-        uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
-        uint32_t base_color      = alpha | 0x001F1240; // Dark Foundation Base
-        uint32_t window_bg_color = alpha | 0x00120A2A; // Inset Skylight Window BG
-        uint32_t flange_color    = alpha | 0x003C247B;
+    uint32_t top_color       = alpha | 0x005C38AA; // Bright Beveled Roof Cap
+    uint32_t top_highlight   = alpha | 0x007B4CE3; // Roof Bevel Highlight
+    uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
+    uint32_t base_color      = alpha | 0x001F1240; // Dark Foundation Base
+    uint32_t window_bg_color = alpha | 0x00120A2A; // Inset Skylight Recess Pit BG
+    uint32_t flange_color    = alpha | 0x003C247B; // Port Flange
+    uint32_t shadow_color    = alpha | 0x000A0518; // Inner Bevel Edge Shadow
 
-        // Bottom Row Base (y+32 to y+48, 48x16 px)
-        Draw::rect(world_x, world_y + 32, 48, 16, base_color, true, 1, z_idx);
+    // --- STAGE 1: Recess Pit Floor BG (28x14 px cutout at x+10, y+17) ---
+    Draw::rect(world_x + 10, world_y + 17, 28, 14, window_bg_color, true, 1, z_idx, y_sort_override);
 
-        // 4 Perimeter Port Flanges (Refiner 3x3 midpoint ports)
-        Draw::rect(world_x - 2, world_y + 20, 4, 8, flange_color, true, 1, z_idx);  // West Port (root_x, root_y+1)
-        Draw::rect(world_x + 46, world_y + 20, 4, 8, flange_color, true, 1, z_idx); // East Port (root_x+2, root_y+1)
-        Draw::rect(world_x + 20, world_y - 2, 8, 4, flange_color, true, 1, z_idx);  // North Port (root_x+1, root_y)
-        Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx); // South Port (root_x+1, root_y+2)
-
-        // Middle Row Core (y+16 to y+32, 44x16 px centered at x+2)
-        Draw::rect(world_x + 2, world_y + 16, 44, 16, body_color, true, 1, z_idx);
-
-        // Inset Skylight Cutout Window (24x10 px at world_x+12, world_y+19)
-        Draw::rect(world_x + 12, world_y + 19, 24, 10, window_bg_color, true, 1, z_idx, y_sort_override);
-
-        // Top Row Roof Cap (y+2 to y+16, 40x14 px centered at x+4)
-        Draw::rect(world_x + 4, world_y + 2, 40, 14, top_color, true, 1, z_idx);
-        Draw::rect(world_x + 4, world_y + 2, 40, 2, top_highlight, true, 1, z_idx);
-
-        // Roof Vent Vanes (two 6x4 px dark purple vent rects)
-        Draw::rect(world_x + 10, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
-        Draw::rect(world_x + 32, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
-    } else {
-        // Twilight Spire (2x3 tiles = 32x48 px)
-        uint32_t peak_tip_color  = alpha | 0x0088FFCC; // Glowing Spire Crystal Tip
-        uint32_t top_color       = alpha | 0x0000FF88; // Bright Emerald Upper Peak
-        uint32_t body_color      = alpha | 0x0000A350; // Purifying Teal Shaft
-        uint32_t base_color      = alpha | 0x00004520; // Dark Foundation Base
-        uint32_t window_bg_color = alpha | 0x00002810; // Inset Skylight Window BG
-        uint32_t flange_color    = alpha | 0x00006B33;
-
-        // Bottom Row Base (y+32 to y+48, 32x16 px)
-        Draw::rect(world_x, world_y + 32, 32, 16, base_color, true, 1, z_idx);
-
-        // Single Bottom Port Flange on South face (root_x+1, root_y+2 at x+20, y+46)
-        Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx);
-
-        // Middle Row Purifying Shaft (y+16 to y+32, 26x16 px centered at x+3)
-        Draw::rect(world_x + 3, world_y + 16, 26, 16, body_color, true, 1, z_idx);
-
-        // Inset Skylight Window (16x10 px at world_x+8, world_y+19)
-        Draw::rect(world_x + 8, world_y + 19, 16, 10, window_bg_color, true, 1, z_idx, y_sort_override);
-
-        // Top Row Tapered Spire Crystal Peak (y to y+16)
-        Draw::rect(world_x + 6, world_y + 12, 20, 4, top_color, true, 1, z_idx);
-        Draw::rect(world_x + 9, world_y + 6, 14, 6, top_color, true, 1, z_idx);
-        Draw::rect(world_x + 12, world_y, 8, 6, peak_tip_color, true, 1, z_idx);
+    // --- STAGE 2: Static Flat Mana Pool ---
+    if (fix.mana_state == ManaState::Dark) {
+        uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
+        Draw::rect(world_x + 10, world_y + 23, 28, 8, liquid_color, true, 1, z_idx, y_sort_override);
+    } else if (fix.mana_state == ManaState::Light) {
+        uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
+        uint32_t core_color = alpha | 0x00FFFFFF;  // White core
+        Draw::rect(world_x + 10, world_y + 21, 28, 10, aura_color, true, 1, z_idx, y_sort_override);
+        Draw::rect(world_x + 16, world_y + 23, 16, 5, core_color, true, 1, z_idx, y_sort_override);
     }
+
+    // --- STAGE 3: Interior Particle Emitters (Spawn inside cutout centered at x+24, y+24) ---
+    if (fix.mana_state == ManaState::Dark) {
+        ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 24), static_cast<float>(world_y + 24), 1, Layer::WorldObj, y_sort_override);
+    }
+
+    // --- STAGE 4: Roof Frame Assembly & Bevel Edge Shadows ---
+    // Bottom Row Base (y+32 to y+48, 48x16 px)
+    Draw::rect(world_x, world_y + 32, 48, 16, base_color, true, 1, z_idx);
+
+    // 4 Perimeter Port Flanges (Refiner 3x3 midpoint ports)
+    Draw::rect(world_x - 2, world_y + 20, 4, 8, flange_color, true, 1, z_idx);  // West Port (root_x, root_y+1)
+    Draw::rect(world_x + 46, world_y + 20, 4, 8, flange_color, true, 1, z_idx); // East Port (root_x+2, root_y+1)
+    Draw::rect(world_x + 20, world_y - 2, 8, 4, flange_color, true, 1, z_idx);  // North Port (root_x+1, root_y)
+    Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx); // South Port (root_x+1, root_y+2)
+
+    // Middle Row Vaulted Side Pillars (left: x+2 to x+10 (8px), right: x+38 to x+46 (8px))
+    Draw::rect(world_x + 2, world_y + 16, 8, 16, body_color, true, 1, z_idx);
+    Draw::rect(world_x + 38, world_y + 16, 8, 16, body_color, true, 1, z_idx);
+    Draw::rect(world_x + 10, world_y + 16, 28, 1, body_color, true, 1, z_idx); // Top Frame Border
+    Draw::rect(world_x + 10, world_y + 31, 28, 1, body_color, true, 1, z_idx); // Bottom Frame Border
+
+    // Inner Bevel Edge Shadow (Top & Left inner edges of cutout window)
+    Draw::rect(world_x + 10, world_y + 17, 28, 1, shadow_color, true, 1, z_idx, y_sort_override);
+    Draw::rect(world_x + 10, world_y + 17, 1, 14, shadow_color, true, 1, z_idx, y_sort_override);
+
+    // --- STAGE 5: Top Cap Highlights & Roof Vent Vanes ---
+    Draw::rect(world_x + 4, world_y + 2, 40, 14, top_color, true, 1, z_idx);
+    Draw::rect(world_x + 4, world_y + 2, 40, 2, top_highlight, true, 1, z_idx);
+    Draw::rect(world_x + 10, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
+    Draw::rect(world_x + 32, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
 }
 
-// --- DRAW BUILDING MANA ---
-
-void building_dark_mana(int world_x, int world_y, int y_sort_override, uint32_t alpha) {
-    uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
+void spire_building(const Network& network, ParticleSystem& ps, const Fixture& fix, int world_x, int world_y, int y_sort_override, uint32_t alpha) {
     int z_idx = Layer::WorldObj;
 
-    // Fills lower 6px of the 24x10 skylight opening for Refiner (at world_x+12, world_y+23)
-    Draw::rect(world_x + 12, world_y + 23, 24, 6, liquid_color, true, 1, z_idx, y_sort_override);
-}
+    uint32_t peak_tip_color  = alpha | 0x0088FFCC; // Glowing Spire Crystal Tip
+    uint32_t top_color       = alpha | 0x0000FF88; // Bright Emerald Upper Peak
+    uint32_t body_color      = alpha | 0x0000A350; // Purifying Teal Shaft
+    uint32_t base_color      = alpha | 0x00004520; // Dark Foundation Base
+    uint32_t window_bg_color = alpha | 0x00002810; // Inset Skylight Recess Pit BG
+    uint32_t flange_color    = alpha | 0x00006B33; // Port Flange
+    uint32_t shadow_color    = alpha | 0x00001508; // Inner Bevel Edge Shadow
 
-void building_light_mana(int world_x, int world_y, int y_sort_override, uint32_t alpha) {
-    uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
-    uint32_t core_color = alpha | 0x00FFFFFF;  // White core
-    int z_idx = Layer::WorldObj;
+    // --- STAGE 1: Recess Pit Floor BG (16x16 px cutout at x+8, y+16) ---
+    Draw::rect(world_x + 8, world_y + 16, 16, 16, window_bg_color, true, 1, z_idx, y_sort_override);
 
-    // Fills skylight window (Refiner: 24x10 at x+12, y+19; Spire: 16x10 at x+8, y+19)
-    Draw::rect(world_x + 8, world_y + 21, 16, 6, aura_color, true, 1, z_idx, y_sort_override);
-    Draw::rect(world_x + 12, world_y + 23, 8, 3, core_color, true, 1, z_idx, y_sort_override);
+    // --- STAGE 2: Static Flat Mana Pool ---
+    if (fix.mana_state == ManaState::Light) {
+        uint32_t aura_color = alpha | 0x0000FFFF;  // Cyan aura
+        uint32_t core_color = alpha | 0x00FFFFFF;  // White core
+        Draw::rect(world_x + 8, world_y + 20, 16, 10, aura_color, true, 1, z_idx, y_sort_override);
+        Draw::rect(world_x + 11, world_y + 22, 10, 6, core_color, true, 1, z_idx, y_sort_override);
+    } else if (fix.mana_state == ManaState::Dark) {
+        uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
+        Draw::rect(world_x + 8, world_y + 20, 16, 10, liquid_color, true, 1, z_idx, y_sort_override);
+    }
+
+    // --- STAGE 3: Interior Particle Emitters (Spawn inside cutout centered at x+16, y+24) ---
+    if (fix.mana_state == ManaState::Light) {
+        ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 16), static_cast<float>(world_y + 24), 1, Layer::WorldObj, y_sort_override);
+    }
+
+    // --- STAGE 4: Shaft Frame Pillars & Bevel Edge Shadows ---
+    // Bottom Row Base (y+32 to y+48, 32x16 px)
+    Draw::rect(world_x, world_y + 32, 32, 16, base_color, true, 1, z_idx);
+
+    // Single Bottom Port Flange on South face (root_x+1, root_y+2 at x+20, y+46)
+    Draw::rect(world_x + 20, world_y + 46, 8, 4, flange_color, true, 1, z_idx);
+
+    // Middle Row Shaft Side Pillars (left: x+3 to x+8 (5px), right: x+24 to x+29 (5px))
+    Draw::rect(world_x + 3, world_y + 16, 5, 16, body_color, true, 1, z_idx);
+    Draw::rect(world_x + 24, world_y + 16, 5, 16, body_color, true, 1, z_idx);
+
+    // Inner Bevel Edge Shadow (Top & Left inner edges of cutout window)
+    Draw::rect(world_x + 8, world_y + 16, 16, 1, shadow_color, true, 1, z_idx, y_sort_override);
+    Draw::rect(world_x + 8, world_y + 16, 1, 16, shadow_color, true, 1, z_idx, y_sort_override);
+
+    // --- STAGE 5: Top Peak Highlights & Crystal Tip ---
+    Draw::rect(world_x + 6, world_y + 12, 20, 4, top_color, true, 1, z_idx);
+    Draw::rect(world_x + 9, world_y + 6, 14, 6, top_color, true, 1, z_idx);
+    Draw::rect(world_x + 12, world_y, 8, 6, peak_tip_color, true, 1, z_idx);
 }
 
 // --- DRAW PIPE ---
@@ -628,20 +656,10 @@ void building(
     int y_sort_override = world_bottom_y + 20;
     uint32_t alpha = BUILDING_ALPHA_OPAQUE;
 
-    building_bg(fix.type, world_x, world_y, world_bottom_y, y_sort_override, alpha);
-
-    // mana
-    if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
-        building_dark_mana(world_x, world_y, y_sort_override, alpha);
-    } else if (fix.mana_state == ManaState::Light) {
-        building_light_mana(world_x, world_y, y_sort_override, alpha);
-    }
-
-    // particles
-    if (fix.type == FixtureType::Refiner && fix.mana_state == ManaState::Dark) {
-        ParticleEmitters::spawn_refiner_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8), 1, Layer::WorldObj, y_sort_override);
-    } else if (fix.type == FixtureType::Spire && fix.mana_state == ManaState::Light) {
-        ParticleEmitters::spawn_spire_embers(ps, static_cast<float>(world_x + 6), static_cast<float>(world_y + 8), 1, Layer::WorldObj, y_sort_override);
+    if (fix.type == FixtureType::Refiner) {
+        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, alpha);
+    } else if (fix.type == FixtureType::Spire) {
+        spire_building(network, ps, fix, world_x, world_y, y_sort_override, alpha);
     }
 }
 
