@@ -55,8 +55,9 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 ## [PH-SKYL]: Phase 5: 2.5D Roof Skylight Frame & Layered Interior Rendering (COMPLETE)
 
 ### [RFSR]: 1. Refiner 2.5D Vaulted Skylight Assembly (3x3 Tiles / 48x48 px)
-- `[RFGE]`: Cutout Geometry - Define a centered 28x14 px interior skylight cutout at `(world_x + 10, world_y + 17)`.
-- `[RFFR]`: Vaulted Roof Frame & Bevels - Render top roof cap (14px tall at `world_y + 2`), 4px left/right pillar walls (`world_x + 6` and `world_x + 38`), and 3px bottom edge bevel, forming an open 2.5D skylight window over the middle section.
+- `[RFGE]`: Cutout & Front Windows - Define an expanded top-reaching interior skylight cutout at `(world_x + 6, world_y + 6, 36, 22)` and dual $6 \times 6\text{ px}$ front face windows at `(world_x + 6, world_y + 37)` and `(world_x + 36, world_y + 37)`.
+- `[RFFR]`: Vaulted Frame & Aligned Base - Extend middle section body rect up to `world_y + 4` with 4px borders on all sides; align bottom base width to 44px (`world_x + 2` to `world_x + 46`) matching middle section.
+- `[RFAN]`: Future Animated Processing Cycle - (Future Enhancement Concept) Animate dark mana fill level during processing: Tick 1 (mana fills up), Tick 2 (embers emit from full pool), Tick 3 (mana drains down), Tick 4 (empty pool, no embers emitted).
 
 ### [SPSR]: 2. Spire Vertical Crystal Chamber Assembly (2x3 Tiles / 32x48 px)
 - `[SPGE]`: Chamber Cutout Geometry - Define a centered 16x16 px interior skylight cutout at `(world_x + 8, world_y + 16)`.
@@ -64,13 +65,13 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ### [LAYR]: 3. Strict 5-Stage Inset Interior Layering Order
 - `[L1BG]`: Stage 1: Recess Pit Floor BG - Render deep dark floor background rect (`0xFF120A2A` Refiner, `0xFF002810` Spire) inside cutout window bounds.
-- `[L2MN]`: Stage 2: Static Flat Mana Pool - Render solid dark mana pool (`0xFF9900FF`) or light mana cyan aura (`0xFF00FFFF`) + white core (`0xFFFFFFFF`) with static flat fluid rects matching current mana state.
+- `[L2MN]`: Stage 2: Static Flat Mana Pool - Render solid dark mana pool (`0xFF4A0088` pipe dark mana base) or light mana cyan aura (`0xFF00FFFF`) + white core (`0xFFFFFFFF`) with static flat fluid rects matching current mana state.
 - `[L3EM]`: Stage 3: Interior Emitter Embers - Spawn embers (`spawn_refiner_embers` / `spawn_spire_embers`) inside interior window bounds before roof frame draw.
-- `[L4BV]`: Stage 4: Roof Frame & Bevel Edge Shadows - Render outer frame walls, side pillars, and 1px inner bevel edge shadow rects over liquid pool edges for inset depth.
+- `[L4BV]`: Stage 4: Roof Frame & Bevel Edge Shadows - Render outer frame walls, side pillars, front face dual $6 \times 6\text{ px}$ windows showing dark mana, and 1px inner bevel edge shadow rects over liquid pool edges for inset depth.
 - `[L5HL]`: Stage 5: Top Cap Highlights & Roof Vent Vanes - Draw top roof cap highlights (`0xFF7B4CE3` Refiner, `0xFF88FFCC` Spire tip) and roof vent vanes (`0xFF241454`).
 
 ### [CLPAL]: 4. High-Contrast Twilight Color Tokens & Shading Specs
-- `[RFCLR]`: Refiner Palette Specs - Cap: `0xFF5C38AA`, Bevel Highlight: `0xFF7B4CE3`, Body: `0xFF341C66`, Foundation Base: `0xFF1F1240`, Pit Floor: `0xFF120A2A`, Dark Mana Pool: `0xFF9900FF`.
+- `[RFCLR]`: Refiner Palette Specs - Body: `0xFF341C66`, Foundation Base: `0xFF1F1240`, Pit Floor: `0xFF120A2A`, Pipe Dark Mana Base: `0xFF4A0088`.
 - `[SPCLR]`: Spire Palette Specs - Spire Tip: `0xFF88FFCC`, Crystal Peak: `0xFF00FF88`, Shaft: `0xFF00A350`, Foundation Base: `0xFF004520`, Pit Floor: `0xFF002810`.
 
 ---
