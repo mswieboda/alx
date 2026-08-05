@@ -325,19 +325,7 @@ struct Player : public Entity {
         );
 
         // Player body
-        if (auto* sprite = std::get_if<SpriteRender>(&visual)) {
-            Draw::sprite(
-                world_draw_x,
-                world_draw_y,
-                sprite->pixels,
-                sprite->pixels_size,
-                sprite->width,
-                sprite->height,
-                transform.z_index,
-                static_cast<int>(world_bottom_y), // sort Y override
-                is_facing_left
-            );
-        } else if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
+        if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
             if (!anim->current_anim.frame_indices.empty()) {
                 int frame_pool_index = anim->current_anim.frame_indices[anim->current_sequence_index];
                 const SpriteFrame& current_frame = anim->master_frames[frame_pool_index];
@@ -477,19 +465,32 @@ private:
             is_facing_left = false;
         }
 
+        // --- update movement animations ---
         if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
-            if (f == Facing::East) {
+            if (f == Facing::North) {
+                anim->set_frame(0);
+                anim->is_flip_h = false;
+            } else if (f == Facing::NorthEast) {
                 anim->set_frame(1);
                 anim->is_flip_h = false;
+            } else if (f == Facing::East) {
+                anim->set_frame(2);
+                anim->is_flip_h = false;
+            } else if (f == Facing::SouthEast) {
+                anim->set_frame(3);
+                anim->is_flip_h = false;
+            } else if (f == Facing::South) {
+                anim->set_frame(4);
+                anim->is_flip_h = true;
+            } else if (f == Facing::SouthWest) {
+                anim->set_frame(3);
+                anim->is_flip_h = true;
             } else if (f == Facing::West) {
+                anim->set_frame(2);
+                anim->is_flip_h = true;
+            } else if (f == Facing::NorthWest) {
                 anim->set_frame(1);
                 anim->is_flip_h = true;
-            } else if (f == Facing::NorthWest || f == Facing::SouthWest) {
-                anim->set_frame(0);
-                anim->is_flip_h = true;
-            } else {
-                anim->set_frame(0);
-                anim->is_flip_h = false;
             }
         }
 

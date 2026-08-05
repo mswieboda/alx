@@ -7,6 +7,8 @@ struct FacingVector {
 };
 
 struct Facing {
+    // TODO: maybe switch order to N, NE, E, SE, S, SW, W, NW
+    //   UNLESS it breaks something, then DO NOT change
     enum Type : uint8_t {
         East,
         NorthEast,
