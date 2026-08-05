@@ -11,6 +11,7 @@ vars:
 
   assets_dir: assets
   assets_headers_dir: src/assets
+  toolchain_src_dir: toolchain/src
   pack_assets_script_src: toolchain/src/pack_assets.cr
   pack_assets_bin: 'build/pack_assets{{.exe}}'
 
@@ -41,7 +42,7 @@ tasks:
     run: once
     sources:
       - '{{.pack_assets_script_src}}'
-      - 'toolchain/src/**/*.cr'
+      - '{{.toolchain_src_dir}}/**/*.cr'
     generates:
       - '{{.pack_assets_bin}}'
     cmds:
@@ -156,14 +157,17 @@ tasks:
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
     sources:
       - 'src/**/*'
+      - '{{.assets_dir}}/**/*'
+      - '{{.toolchain_src_dir}}/**/*'
       - 'CMakeLists.txt'
     generates:
       - '{{.binary}}'
+    deps:
+      - submodules
+      - assets
     cmds:
-      - task: submodules
       - task: cmake-build-config
         vars: { build: '{{.build}}' }
-      - task: assets
       - echo "=> Building ({{.build}}) game executable..."
       - cmake --build {{.build_dir}} -j
 
