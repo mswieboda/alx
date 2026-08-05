@@ -363,7 +363,7 @@ int Network::find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& 
     PortLocation ports[4];
     int port_count = get_fixture_ports(root_fix.type, ports);
     if (port_count <= 0) return -1;
-    uint8_t start_dir = root_fix.last_dir_idx;
+    uint8_t start_dir = root_fix.last_out_dir_idx;
 
     for (int step = 1; step <= port_count; ++step) {
         int i = (start_dir + step) % port_count;
@@ -392,7 +392,7 @@ int Network::find_active_input_pipe(int x, int y, ManaState target_state, int& o
     PortLocation ports[4];
     int port_count = get_fixture_ports(root_fix.type, ports);
     if (port_count <= 0) return -1;
-    uint8_t start_dir = root_fix.last_dir_idx;
+    uint8_t start_dir = root_fix.last_in_dir_idx;
 
     for (int step = 1; step <= port_count; ++step) {
         int i = (start_dir + step) % port_count;
@@ -422,7 +422,8 @@ int Network::find_downstream_pipe_neighbor(
     out_chosen_dir_idx = -1;
     int idx = y * m_width + x;
     const Fixture& current = m_fixtures[idx];
-    uint8_t start_dir = current.last_dir_idx;
+    uint8_t start_dir = current.last_out_dir_idx;
+
 
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
@@ -537,7 +538,7 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     int chosen_dir = -1;
                     int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Dark, chosen_dir);
                     if (in_pipe_idx != -1) {
-                        next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                        next_fixtures[idx].last_in_dir_idx = static_cast<uint8_t>(chosen_dir);
 
                         // If input pipe was draining, consumption advances its draining state
                         if (m_fixtures[in_pipe_idx].is_draining) {
@@ -556,7 +557,7 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     int chosen_dir = -1;
                     int in_pipe_idx = find_active_input_pipe(x, y, ManaState::Light, chosen_dir);
                     if (in_pipe_idx != -1) {
-                        next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                        next_fixtures[idx].last_in_dir_idx = static_cast<uint8_t>(chosen_dir);
 
                         next_fixtures[in_pipe_idx].mana_state = ManaState::None;
                         next_fixtures[in_pipe_idx].is_powered = false;
@@ -570,6 +571,7 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
                     }
                 }
             }
+
         }
     }
 }
@@ -724,7 +726,7 @@ void Network::sim_pipe_flow(
         int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Light, seep_dist, light_dist, next_fixtures, chosen_dir);
 
         if (downstream_idx != -1) {
-            next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+            next_fixtures[idx].last_out_dir_idx = static_cast<uint8_t>(chosen_dir);
 
             int downstream_x = downstream_idx % m_width;
             int downstream_y = downstream_idx / m_width;
@@ -769,7 +771,7 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                 PortLocation ports[4];
                 int port_count = get_fixture_ports(FixtureType::Seep, ports);
                 uint8_t out_mask = 0;
-                uint8_t start_dir = current.last_dir_idx;
+                uint8_t start_dir = current.last_out_dir_idx;
 
                 for (int step = 1; step <= port_count; ++step) {
                     int i = (start_dir + step) % port_count;
@@ -785,7 +787,7 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                                 next_fixtures[n_idx].is_powered = true;
                                 next_fixtures[n_idx].move_dx = p.face_dx;
                                 next_fixtures[n_idx].move_dy = p.face_dy;
-                                next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(i);
+                                next_fixtures[idx].last_out_dir_idx = static_cast<uint8_t>(i);
                             }
                             if (next_fixtures[n_idx].mana_state == ManaState::Dark) {
                                 out_mask |= DirectionMask::from_delta(p.face_dx, p.face_dy);
@@ -805,7 +807,8 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                         int chosen_dir = -1;
                         int out_pipe_idx = find_empty_adjacent_pipe(x, y, next_fixtures, chosen_dir);
                         if (out_pipe_idx != -1) {
-                            next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
+                            next_fixtures[idx].last_out_dir_idx = static_cast<uint8_t>(chosen_dir);
+
 
                             next_fixtures[out_pipe_idx].mana_state = ManaState::Light;
                             next_fixtures[out_pipe_idx].is_powered = true;

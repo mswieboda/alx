@@ -140,8 +140,10 @@ struct Fixture {
     int8_t move_dy          = 0;           // Directional flow delta Y (-1, 0, 1)
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
     uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
-    uint8_t last_dir_idx    = 3;     // Round-robin direction memory (0=N, 1=S, 2=W, 3=E)
+    uint8_t last_in_dir_idx = 3;     // Intake round-robin direction memory (0=N, 1=S, 2=W, 3=E)
+    uint8_t last_out_dir_idx= 3;     // Output round-robin direction memory (0=N, 1=S, 2=W, 3=E)
     int8_t root_offset_x    = 0;     // Multi-tile footprint X offset from root origin
+
     int8_t root_offset_y    = 0;     // Multi-tile footprint Y offset from root origin
     int hp                  = 0;     // Current HP pool
     int max_hp              = 0;     // Max HP pool
