@@ -11,6 +11,7 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
     int min_ty = static_cast<int>(std::floor((ground.cy - ground.radius) / tile_size));
     int max_ty = static_cast<int>(std::floor((ground.cy + ground.radius) / tile_size));
 
+    // Wall tile checks (1x1 precision)
     for (int ty = min_ty; ty <= max_ty; ++ty) {
         for (int tx = min_tx; tx <= max_tx; ++tx) {
             if (tiles.in_bounds(tx, ty) && tiles.is_wall(tx, ty)) {
@@ -18,6 +19,19 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
                     return true;
                 }
             }
+        }
+    }
+
+    // Network solid fixture checks (multi-tile AABB expanded query range computed dynamically)
+    int max_dim = max_fixture_footprint_dimension();
+    int search_expand = (max_dim > 1) ? (max_dim - 1) : 0;
+    int net_min_tx = min_tx - search_expand;
+    int net_max_tx = max_tx + search_expand;
+    int net_min_ty = min_ty - search_expand;
+    int net_max_ty = max_ty + search_expand;
+
+    for (int ty = net_min_ty; ty <= net_max_ty; ++ty) {
+        for (int tx = net_min_tx; tx <= net_max_tx; ++tx) {
             if (network.in_bounds(tx, ty) && network.is_solid(tx, ty)) {
                 const Fixture& fix = network.fixture(tx, ty);
                 int root_tx = tx - fix.root_offset_x;

@@ -68,9 +68,25 @@ inline constexpr MultiTileFootprint get_fixture_footprint(FixtureType type) noex
     switch (type) {
         case FixtureType::Refiner: return { 3, 3 };
         case FixtureType::Spire:   return { 2, 3 };
-        case FixtureType::Seep:    return { 2, 2 };
+        case FixtureType::Seep:    return { 3, 2 };
         default:                   return { 1, 1 };
     }
+}
+
+inline constexpr int max_fixture_footprint_dimension() noexcept {
+    int max_dim = 1;
+    constexpr FixtureType all_types[] = {
+        FixtureType::Pipe,
+        FixtureType::Refiner,
+        FixtureType::Spire,
+        FixtureType::Seep
+    };
+    for (FixtureType t : all_types) {
+        MultiTileFootprint fp = get_fixture_footprint(t);
+        if (fp.width > max_dim) max_dim = fp.width;
+        if (fp.height > max_dim) max_dim = fp.height;
+    }
+    return max_dim;
 }
 
 struct Fixture {

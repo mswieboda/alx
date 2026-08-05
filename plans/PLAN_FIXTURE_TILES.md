@@ -5,7 +5,7 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-COLR]: Phase 1: World Collision & X-Ray Removal
+## [PH-COLR]: Phase 1: World Collision & X-Ray Removal (COMPLETE)
 
 ### [ROOTC]: 1. Multi-Tile Root AABB Resolution in World Collision
 - `[ROOTC]`: Root Position Resolution - Update `WorldCollision::is_solid_ground` and `Network::is_solid` so querying any child tile `(tx, ty)` of a multi-tile building resolves to its root tile `(root_tx, root_ty)` before computing `fixture_ground_aabb`.
