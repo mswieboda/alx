@@ -50,11 +50,13 @@ endif()
 
 file(GLOB_RECURSE CPP_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE C_SOURCES CONFIGURE_DEPENDS "src/*.c")
+file(GLOB_RECURSE HEADER_SOURCES CONFIGURE_DEPENDS "src/*.h" "src/*.hpp")
 
 add_executable(
     ${GAME_BIN}
     ${CPP_SOURCES}
     ${C_SOURCES}
+    ${HEADER_SOURCES}
 )
 
 # ----------------------------------------------------
@@ -168,11 +170,22 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
             COMMAND ${CMAKE_STRIP} -u -r $<TARGET_FILE:${GAME_BIN}>
             COMMENT "Stripping symbols from macOS binary (-u -r)..."
         )
-    elseif(NOT MSVC)
-        # Linux / MinGW GNU strip-all
-        add_custom_command(TARGET ${GAME_BIN} POST_BUILD
-            COMMAND ${CMAKE_STRIP} -s $<TARGET_FILE:${GAME_BIN}>
-            COMMENT "Stripping all symbols from binary (-s)..."
-        )
+    else()
+        if(NOT MSVC)
+            # Linux / MinGW GNU strip-all
+            add_custom_command(TARGET ${GAME_BIN} POST_BUILD
+                COMMAND ${CMAKE_STRIP} -s $<TARGET_FILE:${GAME_BIN}>
+                COMMENT "Stripping all symbols from binary (-s)..."
+            )
+        endif()
+
+        find_program(UPX_EXECUTABLE upx)
+        if(UPX_EXECUTABLE)
+            add_custom_command(TARGET ${GAME_BIN} POST_BUILD
+                COMMAND ${UPX_EXECUTABLE} --ultra-brute $<TARGET_FILE:${GAME_BIN}>
+                COMMENT "Compressing Release binary with UPX (--ultra-brute)..."
+            )
+        endif()
     endif()
 endif()
+

@@ -276,8 +276,6 @@ tasks:
     cmds:
       - task: build
         vars: { build: Release }
-      - task: pack-bin
-        vars: { build: Release }
 
   run-release:
     desc: Run Release game executable
@@ -306,13 +304,13 @@ tasks:
     desc: Reconfigure Release CMake from scratch (--fresh)
     cmds:
       - task: reconfig
-        vars: { build: '{{.build}}' }
+        vars: { build: Release }
 
   reset-release:
     desc: Clean Release build and reconfigure CMake
     cmds:
       - task: reset
-        vars: { build: '{{.build}}' }
+        vars: { build: Release }
 
   size-release:
     desc: Calcs size of Release executable
@@ -321,12 +319,13 @@ tasks:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
     cmds:
-      - task: build-release
       - cmd: |
-          echo '{{.binary}}'
+          echo '=> Executable size: {{.binary}}'
           ls -lah '{{.binary}}'
         platforms: [windows]
-      - cmd: du -h '{{.binary}}'
+      - cmd: |
+          echo "=> Executable size: {{.binary}}"
+          du -h '{{.binary}}'
         platforms: [linux, darwin]
 
   release:
@@ -335,45 +334,3 @@ tasks:
       - task: build-release
       - task: size-release
       - task: run-release
-
-  # ==========================================
-  # BINARY PACKING (UPX)
-  # ==========================================
-  pack-bin:
-    desc: Compress release binary with UPX
-    internal: true
-    vars:
-      build_dir: 'build/{{.build}}'
-      binary: '{{.build_dir}}/{{.name}}{{.exe}}'
-    # If 'upx -t' succeeds (returns 0), the binary is ALREADY compressed, so skip task!
-    status:
-      - '{{if eq .OS "windows"}}powershell -NoProfile -Command "if (Get-Command upx -ErrorAction SilentlyContinue) { & upx -t \"{{.binary}}\" *> $null; if ($LASTEXITCODE -eq 0) { exit 0 } }; exit 1"{{else}}sh -c "command -v upx >/dev/null 2>&1 && upx -t \"{{.binary}}\" >/dev/null 2>&1"{{end}}'
-    cmds:
-      # Windows execution
-      - cmd: |
-          powershell -Command "
-            if (Get-Command upx -ErrorAction SilentlyContinue) {
-              Write-Host '=> Compressing binary with UPX (--ultra-brute)...' -ForegroundColor Cyan;
-              upx --ultra-brute '{{.binary}}';
-            } else {
-              Write-Host '[NOTE] UPX not found. Skipping binary compression.' -ForegroundColor Yellow;
-              Write-Host '       For significantly smaller executable size, see README to install UPX.' -ForegroundColor Yellow;
-            }
-          "
-        platforms: [windows]
-      # NOTE: cannot use `upx` for macOS arm64, so not doing at all, or we could check for !arm64
-      #       and we already `strip -u -r {{.binary}}` in CMakeLists.txt
-      #       which is the best we can do
-      #       if we did do `upx` we have to: `codesign --force --deep -s - "{{.binary}}"`
-      #       after, however if we do it after just only `strip` it actually adds on 16KB
-      #       so we won't redo codesign for now, but putting this note here just in case!
-      # Linux
-      - cmd: |
-          if command -v upx >/dev/null 2>&1; then
-            echo "\033[0;36m=> Compressing binary with UPX (--ultra-brute)...\033[0m"
-            upx --ultra-brute "{{.binary}}"
-          else
-            echo "\033[0;33m[NOTE] UPX not found. Skipping binary compression.\033[0m"
-            echo "\033[0;33m       For significantly smaller executable size, see README to install UPX.\033[0m"
-          fi
-        platforms: [linux]
