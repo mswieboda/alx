@@ -11,3 +11,7 @@ src/assets/
 
 # Ignore the Taskfile checksums / other stuff
 /.task/
+
+# temp "_assets" directly to edit, without needing git
+# BUT MAKE SURE to copy over to "assets" to save it in git!
+_assets/

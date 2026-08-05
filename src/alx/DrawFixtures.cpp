@@ -163,8 +163,13 @@ void pipe_light_mana(const Network& network, const Fixture& fix, int gx, int gy,
         travel_dist = tile_size / 2;
     }
 
-    int anim_offset_x = static_cast<int>(-fix.move_dx * (1.0f - progress) * travel_dist);
-    int anim_offset_y = static_cast<int>(-fix.move_dy * (1.0f - progress) * travel_dist);
+    int anim_offset_x = 0;
+    int anim_offset_y = 0;
+    if (fix.is_stepping) {
+        anim_offset_x = static_cast<int>(-fix.move_dx * (1.0f - progress) * travel_dist);
+        anim_offset_y = static_cast<int>(-fix.move_dy * (1.0f - progress) * travel_dist);
+    }
+
     uint32_t alpha = (fix.mana_ttl * 255) / Game::LIGHT_MANA_TIME_TO_LIFE_TICKS;
 
     if (alpha > 255) alpha = 255;

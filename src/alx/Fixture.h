@@ -133,6 +133,7 @@ struct Fixture {
     ManaState mana_state    = ManaState::None;
     bool is_powered         = false;
     bool is_draining        = false;    // True when pipe is receding/draining downstream
+    bool is_stepping        = false;    // True when mana orb is stepping into a new tile on this tick
     uint8_t flow_in_mask    = 0;     // Incoming connection bitfield
     uint8_t flow_out_mask   = 0;    // Outgoing flow direction bitfield
     int8_t move_dx          = 0;           // Directional flow delta X (-1, 0, 1)

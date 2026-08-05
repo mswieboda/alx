@@ -414,30 +414,39 @@ int Network::find_active_input_pipe(int x, int y, ManaState target_state, int& o
 
 int Network::find_downstream_pipe_neighbor(
     int x, int y, ManaState state,
-    const std::vector<int>& dark_dist,
+    const std::vector<int>& seep_dist,
     const std::vector<int>& light_dist,
     const std::vector<Fixture>& next_fixtures,
     int& out_chosen_dir_idx
 ) const {
     out_chosen_dir_idx = -1;
     int idx = y * m_width + x;
-    uint8_t start_dir = m_fixtures[idx].last_dir_idx;
+    const Fixture& current = m_fixtures[idx];
+    uint8_t start_dir = current.last_dir_idx;
 
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
 
-    const auto& dist = (state == ManaState::Dark) ? dark_dist : light_dist;
+    const auto& dist = (state == ManaState::Dark) ? seep_dist : light_dist;
     int my_d = dist[idx];
+    FixtureType target_building = (state == ManaState::Dark) ? FixtureType::Refiner : FixtureType::Spire;
 
-    if (my_d < 9000) {
+    // NRR: No-Reverse Rule - forbid candidate directions that are the exact 180° opposite of incoming velocity
+    int back_dx = -current.move_dx;
+    int back_dy = -current.move_dy;
+
+    // Pass 1: SDF Sink Preference (if valid path towards sink exists)
+    if (state == ManaState::Light && my_d < 9000) {
         for (int step = 1; step <= 4; ++step) {
             int i = (start_dir + step) % 4;
+            if (current.move_dx != 0 || current.move_dy != 0) {
+                if (dx[i] == back_dx && dy[i] == back_dy) continue; // Skip 180° reverse
+            }
             int nx = x + dx[i];
             int ny = y + dy[i];
             if (in_bounds(nx, ny)) {
                 int n_idx = ny * m_width + nx;
                 const Fixture& n = m_fixtures[n_idx];
-                FixtureType target_building = (state == ManaState::Dark) ? FixtureType::Refiner : FixtureType::Spire;
                 if ((n.type == FixtureType::Pipe || n.type == target_building) && dist[n_idx] < my_d) {
                     if (is_valid_port_connection(x, y, nx, ny)) {
                         if (next_fixtures[n_idx].mana_state == ManaState::None) {
@@ -449,38 +458,64 @@ int Network::find_downstream_pipe_neighbor(
             }
         }
     }
+
+    // Pass 2: Round-robin into ANY connected empty pipe (dead ends / un-sunk pipes)
+    for (int step = 1; step <= 4; ++step) {
+        int i = (start_dir + step) % 4;
+        if (current.move_dx != 0 || current.move_dy != 0) {
+            if (dx[i] == back_dx && dy[i] == back_dy) continue; // Skip 180° reverse
+        }
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+        if (in_bounds(nx, ny)) {
+            int n_idx = ny * m_width + nx;
+            const Fixture& n = m_fixtures[n_idx];
+            if (n.type == FixtureType::Pipe || n.type == target_building) {
+                if (is_valid_port_connection(x, y, nx, ny)) {
+                    if (next_fixtures[n_idx].mana_state == ManaState::None) {
+                        out_chosen_dir_idx = i;
+                        return n_idx;
+                    }
+                }
+            }
+        }
+    }
+
     return -1;
 }
 
 int Network::find_all_downstream_neighbors(
     int x, int y, ManaState state,
-    const std::vector<int>& dark_dist,
+    const std::vector<int>& seep_dist,
     const std::vector<int>& light_dist,
     const std::vector<Fixture>& next_fixtures,
     DownstreamNeighbor out_neighbors[4]
 ) const {
     int idx = y * m_width + x;
+    const Fixture& current = m_fixtures[idx];
+
     int dx[] = { 0, 0, -1, 1 };
     int dy[] = { -1, 1, 0, 0 };
 
-    const auto& dist = (state == ManaState::Dark) ? dark_dist : light_dist;
-    int my_d = dist[idx];
-    int count = 0;
+    int back_dx = -current.move_dx;
+    int back_dy = -current.move_dy;
 
-    if (my_d < 9000) {
-        for (int i = 0; i < 4; ++i) {
-            int nx = x + dx[i];
-            int ny = y + dy[i];
-            if (in_bounds(nx, ny)) {
-                int n_idx = ny * m_width + nx;
-                const Fixture& n = m_fixtures[n_idx];
-                FixtureType target_building = (state == ManaState::Dark) ? FixtureType::Refiner : FixtureType::Spire;
-                if ((n.type == FixtureType::Pipe || n.type == target_building)
-                    && dist[n_idx] < my_d) {
-                    if (is_valid_port_connection(x, y, nx, ny)) {
-                        if (next_fixtures[n_idx].mana_state == ManaState::None) {
-                            out_neighbors[count++] = { n_idx, i };
-                        }
+    int count = 0;
+    FixtureType target_building = (state == ManaState::Dark) ? FixtureType::Refiner : FixtureType::Spire;
+
+    for (int i = 0; i < 4; ++i) {
+        if (current.move_dx != 0 || current.move_dy != 0) {
+            if (dx[i] == back_dx && dy[i] == back_dy) continue; // Skip 180° reverse
+        }
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+        if (in_bounds(nx, ny)) {
+            int n_idx = ny * m_width + nx;
+            const Fixture& n = m_fixtures[n_idx];
+            if (n.type == FixtureType::Pipe || n.type == target_building) {
+                if (is_valid_port_connection(x, y, nx, ny)) {
+                    if (next_fixtures[n_idx].mana_state == ManaState::None) {
+                        out_neighbors[count++] = { n_idx, i };
                     }
                 }
             }
@@ -488,6 +523,8 @@ int Network::find_all_downstream_neighbors(
     }
     return count;
 }
+
+
 
 void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
     for (int y = 0; y < m_height; ++y) {
@@ -538,7 +575,7 @@ void Network::sim_consume(std::vector<Fixture>& next_fixtures) {
 }
 
 void Network::sim_pipe_flow(
-    const std::vector<int>& dark_dist,
+    const std::vector<int>& seep_dist,
     const std::vector<int>& light_dist,
     std::vector<Fixture>& next_fixtures
 ) {
@@ -552,7 +589,7 @@ void Network::sim_pipe_flow(
             int idx = y * m_width + x;
             const Fixture& current = m_fixtures[idx];
             if (current.type == FixtureType::Pipe && current.mana_state == ManaState::Dark) {
-                dark_pipes.push_back({ x, y, idx, dark_dist[idx] });
+                dark_pipes.push_back({ x, y, idx, seep_dist[idx] });
             }
         }
     }
@@ -568,7 +605,7 @@ void Network::sim_pipe_flow(
         int y = pipe_node.y;
         Fixture& next = next_fixtures[idx];
 
-        bool is_connected = (dark_dist[idx] < 9000);
+        bool is_connected = (seep_dist[idx] < 9000);
         if (!is_connected) {
             next.is_draining = true;
         } else {
@@ -577,7 +614,7 @@ void Network::sim_pipe_flow(
 
         // Advance Dark Mana to ALL downstream empty neighbors simultaneously
         DownstreamNeighbor neighbors[4];
-        int neighbor_count = find_all_downstream_neighbors(x, y, ManaState::Dark, dark_dist, light_dist, next_fixtures, neighbors);
+        int neighbor_count = find_all_downstream_neighbors(x, y, ManaState::Dark, seep_dist, light_dist, next_fixtures, neighbors);
 
         if (neighbor_count > 0) {
             int dx[] = { 0, 0, -1, 1 };
@@ -684,7 +721,7 @@ void Network::sim_pipe_flow(
         }
 
         int chosen_dir = -1;
-        int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Light, dark_dist, light_dist, next_fixtures, chosen_dir);
+        int downstream_idx = find_downstream_pipe_neighbor(x, y, ManaState::Light, seep_dist, light_dist, next_fixtures, chosen_dir);
 
         if (downstream_idx != -1) {
             next_fixtures[idx].last_dir_idx = static_cast<uint8_t>(chosen_dir);
@@ -699,19 +736,23 @@ void Network::sim_pipe_flow(
             next_fixtures[downstream_idx].mana_ttl = curr_ttl - 1;
             next_fixtures[downstream_idx].move_dx = static_cast<int8_t>(downstream_x - x);
             next_fixtures[downstream_idx].move_dy = static_cast<int8_t>(downstream_y - y);
+            next_fixtures[downstream_idx].is_stepping = true;
 
             next_fixtures[idx].mana_state = ManaState::None;
             next_fixtures[idx].is_powered = false;
             next_fixtures[idx].move_dx = 0;
             next_fixtures[idx].move_dy = 0;
+            next_fixtures[idx].is_stepping = false;
         } else {
             next_fixtures[idx].mana_state = ManaState::Light;
             next_fixtures[idx].is_powered = true;
             next_fixtures[idx].mana_ttl = curr_ttl - 1;
-            next_fixtures[idx].move_dx = 0;
-            next_fixtures[idx].move_dy = 0;
+            next_fixtures[idx].move_dx = m_fixtures[idx].move_dx;
+            next_fixtures[idx].move_dy = m_fixtures[idx].move_dy;
+            next_fixtures[idx].is_stepping = false;
             next_fixtures[idx].flow_out_mask = 0;
         }
+
     }
 }
 
@@ -775,6 +816,8 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                             const auto& chosen_port = ports[chosen_dir];
                             next_fixtures[out_pipe_idx].move_dx = chosen_port.face_dx;
                             next_fixtures[out_pipe_idx].move_dy = chosen_port.face_dy;
+                            next_fixtures[out_pipe_idx].is_stepping = true;
+
 
                             progress = 0;
                             next_fixtures[idx].is_powered = false;
@@ -816,11 +859,11 @@ NetworkSimResults Network::sim_tick() {
     NetworkSimResults results{};
     std::vector<Fixture> next_fixtures = m_fixtures;
 
-    std::vector<int> dark_dist = compute_distance_field(FixtureType::Refiner);
+    std::vector<int> seep_dist = compute_distance_field(FixtureType::Seep);
     std::vector<int> light_dist = compute_distance_field(FixtureType::Spire);
 
     sim_consume(next_fixtures);
-    sim_pipe_flow(dark_dist, light_dist, next_fixtures);
+    sim_pipe_flow(seep_dist, light_dist, next_fixtures);
     sim_produce(results, next_fixtures);
 
     m_fixtures = std::move(next_fixtures);
