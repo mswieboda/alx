@@ -20,7 +20,8 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
 // Shared Axis-Separated Movement Helper
 MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network);
 
-// Shared Ejection Safety Net (Nudges 2.0px away from obstacles IF overlapping)
+// DEPRECATED: Do not use. Kept for extreme fallback cases only.
+[[deprecated("Use WorldCollision::try_move instead")]]
 bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& ground, const Tiles& tiles, const Network& network, float nudge_dist = 2.0f, std::string tag = "?");
 
 } // namespace alx::WorldCollision

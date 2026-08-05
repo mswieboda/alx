@@ -20,7 +20,7 @@ namespace DrawFixtures {
 
     void building(
         const Network& network, ParticleSystem& ps, const Fixture& fix,
-        int world_x, int world_y, bool is_player_behind,
+        int world_x, int world_y,
         float progress, float last_dt, float sim_tick_rate
     );
 

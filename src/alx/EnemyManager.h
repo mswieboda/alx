@@ -241,9 +241,9 @@ public:
         return WorldCollision::is_solid_ground(ground, tiles, network);
     }
 
-    static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network) {
-        WorldCollision::enforce_solid_ground_ejection(enemy.transform.x, enemy.transform.y, enemy.ground_circle(), tiles, network, 2.0f, enemy.tag);
-    }
+    // static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network) {
+    //     WorldCollision::enforce_solid_ground_ejection(enemy.transform.x, enemy.transform.y, enemy.ground_circle(), tiles, network, 2.0f, enemy.tag);
+    // }
 
     GridPos find_priority_target(const Enemy& enemy, const Network& network) const {
         float tile_size = static_cast<float>(network.tile_size());

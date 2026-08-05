@@ -19,7 +19,11 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
                 }
             }
             if (network.in_bounds(tx, ty) && network.is_solid(tx, ty)) {
-                Collision::AABB fixture_aabb = fixture_ground_aabb(tx, ty, tile_size, network.fixture(tx, ty).type);
+                const Fixture& fix = network.fixture(tx, ty);
+                int root_tx = tx - fix.root_offset_x;
+                int root_ty = ty - fix.root_offset_y;
+                const Fixture& root_fix = network.in_bounds(root_tx, root_ty) ? network.fixture(root_tx, root_ty) : fix;
+                Collision::AABB fixture_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, root_fix.type);
                 if (Collision::circle_vs_aabb(ground, fixture_aabb)) {
                     return true;
                 }
@@ -79,7 +83,11 @@ bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& 
                 obs_aabb = Collision::AABB{ tx * tile_size, ty * tile_size, tile_size, tile_size };
             } else if (network.in_bounds(tx, ty) && network.is_solid(tx, ty)) {
                 solid = true;
-                obs_aabb = fixture_ground_aabb(tx, ty, tile_size, network.fixture(tx, ty).type);
+                const Fixture& fix = network.fixture(tx, ty);
+                int root_tx = tx - fix.root_offset_x;
+                int root_ty = ty - fix.root_offset_y;
+                const Fixture& root_fix = network.in_bounds(root_tx, root_ty) ? network.fixture(root_tx, root_ty) : fix;
+                obs_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, root_fix.type);
             }
 
             if (solid && Collision::circle_vs_aabb(ground, obs_aabb)) {

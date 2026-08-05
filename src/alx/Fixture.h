@@ -56,6 +56,23 @@ namespace DirectionMask {
     }
 }
 
+struct MultiTileFootprint {
+    int width  = 1;
+    int height = 1;
+
+    [[nodiscard]] constexpr int pixel_width(int tile_size) const noexcept { return width * tile_size; }
+    [[nodiscard]] constexpr int pixel_height(int tile_size) const noexcept { return height * tile_size; }
+};
+
+inline constexpr MultiTileFootprint get_fixture_footprint(FixtureType type) noexcept {
+    switch (type) {
+        case FixtureType::Refiner: return { 3, 3 };
+        case FixtureType::Spire:   return { 2, 3 };
+        case FixtureType::Seep:    return { 2, 2 };
+        default:                   return { 1, 1 };
+    }
+}
+
 struct Fixture {
     FixtureType type        = FixtureType::None;
     ManaState mana_state    = ManaState::None;
@@ -68,22 +85,33 @@ struct Fixture {
     uint8_t process_timer   = 0;     // Processing / Stagnant tick timer
     uint8_t mana_ttl        = 0;     // Light Mana time-to-life TTL counter
     uint8_t last_dir_idx    = 3;     // Round-robin direction memory (0=N, 1=S, 2=W, 3=E)
+    int8_t root_offset_x    = 0;     // Multi-tile footprint X offset from root origin
+    int8_t root_offset_y    = 0;     // Multi-tile footprint Y offset from root origin
     int hp                  = 0;     // Current HP pool
     int max_hp              = 0;     // Max HP pool
 
     [[nodiscard]] constexpr bool is_empty() const noexcept { return type == FixtureType::None; }
+    [[nodiscard]] constexpr bool is_root() const noexcept { return root_offset_x == 0 && root_offset_y == 0; }
 };
 
 inline Collision::AABB fixture_ground_aabb(int tx, int ty, float tile_size, FixtureType type = FixtureType::None) {
-    // if (type == FixtureType::Refiner || type == FixtureType::Spire) {
-    //     return Collision::AABB{ static_cast<float>(tx) * tile_size, static_cast<float>(ty) * tile_size, tile_size, tile_size };
-    // }
-    float w = tile_size * FixtureConstants::GROUND_WIDTH_RATIO;
-    float h = tile_size * FixtureConstants::GROUND_HEIGHT_RATIO;
-    float x = static_cast<float>(tx) * tile_size + (tile_size - w) / 2.0f;
-    float y = static_cast<float>(ty) * tile_size + (tile_size * FixtureConstants::GROUND_OFFSET_Y_RATIO);
-    return Collision::AABB{ x, y, w, h };
+    MultiTileFootprint fp = get_fixture_footprint(type);
+    float total_w = static_cast<float>(fp.width) * tile_size;
+    float total_h = static_cast<float>(fp.height) * tile_size;
+
+    if (type == FixtureType::Pipe || type == FixtureType::None) {
+        float w = tile_size * FixtureConstants::GROUND_WIDTH_RATIO;
+        float h = tile_size * FixtureConstants::GROUND_HEIGHT_RATIO;
+        float x = static_cast<float>(tx) * tile_size + (tile_size - w) / 2.0f;
+        float y = static_cast<float>(ty) * tile_size + (tile_size * FixtureConstants::GROUND_OFFSET_Y_RATIO);
+        return Collision::AABB{ x, y, w, h };
+    }
+
+    // Multi-tile solid building (Refiner, Spire): full 100% grid footprint ground AABB
+    float x = static_cast<float>(tx) * tile_size;
+    float y = static_cast<float>(ty) * tile_size;
+    return Collision::AABB{ x, y, total_w, total_h };
 }
 
-
 } // namespace alx
+

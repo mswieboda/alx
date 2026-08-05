@@ -1,6 +1,9 @@
 #include "Network.h"
 #include <queue>
 #include <algorithm>
+#include "Debug.h"
+#include "Layer.h"
+#include "core/Draw.h"
 #include "core/Log.h"
 #include "core/Transform.h"
 #include "DrawFixtures.h"
@@ -50,73 +53,122 @@ const Fixture& Network::fixture(int x, int y) const noexcept {
 }
 
 bool Network::can_place_fixture(GridPos pos, FixtureType type, const Tiles& tiles) const noexcept {
-    if (!in_bounds(pos)) return false;
-    if (!tiles.is_floor(pos)) return false;
-    return fixture(pos).is_empty();
+    MultiTileFootprint fp = get_fixture_footprint(type);
+    for (int dy = 0; dy < fp.height; ++dy) {
+        for (int dx = 0; dx < fp.width; ++dx) {
+            GridPos target{ static_cast<int16_t>(pos.x + dx), static_cast<int16_t>(pos.y + dy) };
+            if (!in_bounds(target)) return false;
+            if (!tiles.is_floor(target)) return false;
+            if (!fixture(target).is_empty()) return false;
+        }
+    }
+    return true;
 }
 
 bool Network::place_fixture(GridPos pos, FixtureType type) {
     if (!in_bounds(pos)) return false;
-    int32_t idx = pos.to_index(m_width);
-
-    Fixture& fix = m_fixtures[idx];
-    fix.type = type;
-    fix.mana_state = ManaState::None;
-    fix.process_timer = 0;
-    fix.mana_ttl = 0;
-    fix.is_powered = false;
+    MultiTileFootprint fp = get_fixture_footprint(type);
 
     int max_hp = 0;
     if (type == FixtureType::Pipe) max_hp = FixtureHPConstants::PIPE_MAX_HP;
     else if (type == FixtureType::Refiner) max_hp = FixtureHPConstants::REFINER_MAX_HP;
     else if (type == FixtureType::Spire) max_hp = FixtureHPConstants::SPIRE_MAX_HP;
 
-    fix.max_hp = max_hp;
-    fix.hp = max_hp;
+    int32_t root_idx = pos.to_index(m_width);
 
-    if (type == FixtureType::Seep) {
-        fix.is_powered = true;
-        fix.mana_state = ManaState::Dark;
+    for (int dy = 0; dy < fp.height; ++dy) {
+        for (int dx = 0; dx < fp.width; ++dx) {
+            GridPos target{ static_cast<int16_t>(pos.x + dx), static_cast<int16_t>(pos.y + dy) };
+            if (!in_bounds(target)) continue;
+            int32_t idx = target.to_index(m_width);
+
+            Fixture& fix = m_fixtures[idx];
+            fix.type = type;
+            fix.mana_state = ManaState::None;
+            fix.process_timer = 0;
+            fix.mana_ttl = 0;
+            fix.is_powered = false;
+            fix.root_offset_x = static_cast<int8_t>(dx);
+            fix.root_offset_y = static_cast<int8_t>(dy);
+
+            if (dx == 0 && dy == 0) {
+                fix.max_hp = max_hp;
+                fix.hp = max_hp;
+                if (type == FixtureType::Seep) {
+                    fix.is_powered = true;
+                    fix.mana_state = ManaState::Dark;
+                }
+                if (std::find(m_active_indices.begin(), m_active_indices.end(), root_idx) == m_active_indices.end()) {
+                    m_active_indices.push_back(root_idx);
+                }
+            }
+        }
     }
 
-    if (std::find(m_active_indices.begin(), m_active_indices.end(), idx) == m_active_indices.end()) {
-        m_active_indices.push_back(idx);
+    for (int dy = -1; dy <= fp.height; ++dy) {
+        for (int dx = -1; dx <= fp.width; ++dx) {
+            GridPos p{ static_cast<int16_t>(pos.x + dx), static_cast<int16_t>(pos.y + dy) };
+            if (in_bounds(p)) update_neighbor_masks(p);
+        }
     }
-
-    update_neighbor_masks(pos);
     return true;
 }
 
 bool Network::remove_fixture(GridPos pos) {
     if (!in_bounds(pos)) return false;
-    int32_t idx = pos.to_index(m_width);
+    const Fixture& target_fix = fixture(pos);
+    if (target_fix.is_empty()) return false;
 
-    auto it = std::find(m_active_indices.begin(), m_active_indices.end(), idx);
+    GridPos root_pos{ static_cast<int16_t>(pos.x - target_fix.root_offset_x), static_cast<int16_t>(pos.y - target_fix.root_offset_y) };
+    if (!in_bounds(root_pos)) return false;
+
+    FixtureType root_type = fixture(root_pos).type;
+    MultiTileFootprint fp = get_fixture_footprint(root_type);
+    int32_t root_idx = root_pos.to_index(m_width);
+
+    auto it = std::find(m_active_indices.begin(), m_active_indices.end(), root_idx);
     if (it != m_active_indices.end()) {
         *it = m_active_indices.back();
         m_active_indices.pop_back();
     }
 
-    m_fixtures[idx] = Fixture{};
-    update_neighbor_masks(pos);
+    for (int dy = 0; dy < fp.height; ++dy) {
+        for (int dx = 0; dx < fp.width; ++dx) {
+            GridPos p{ static_cast<int16_t>(root_pos.x + dx), static_cast<int16_t>(root_pos.y + dy) };
+            if (in_bounds(p)) {
+                m_fixtures[p.to_index(m_width)] = Fixture{};
+            }
+        }
+    }
+
+    for (int dy = -1; dy <= fp.height; ++dy) {
+        for (int dx = -1; dx <= fp.width; ++dx) {
+            GridPos p{ static_cast<int16_t>(root_pos.x + dx), static_cast<int16_t>(root_pos.y + dy) };
+            if (in_bounds(p)) update_neighbor_masks(p);
+        }
+    }
     return true;
 }
 
 bool Network::damage_fixture(GridPos pos, int amount, float& out_twilight_increase) {
     out_twilight_increase = 0.0f;
     if (!in_bounds(pos)) return false;
-    Fixture& fix = fixture(pos);
-    if (fix.is_empty()) return false;
+    const Fixture& target_fix = fixture(pos);
+    if (target_fix.is_empty()) return false;
 
-    fix.hp -= amount;
-    if (fix.hp <= 0) {
-        FixtureType t = fix.type;
+    GridPos root_pos{ static_cast<int16_t>(pos.x - target_fix.root_offset_x), static_cast<int16_t>(pos.y - target_fix.root_offset_y) };
+    if (!in_bounds(root_pos)) return false;
+    Fixture& root_fix = fixture(root_pos);
+
+    root_fix.hp -= amount;
+    if (root_fix.hp <= 0) {
+        FixtureType t = root_fix.type;
         if (t == FixtureType::Pipe) {
             out_twilight_increase = 0.05f;
         } else if (t == FixtureType::Refiner || t == FixtureType::Spire) {
             out_twilight_increase = 0.15f;
         }
-        remove_fixture(pos);
+        remove_fixture(root_pos);
         return true;
     }
     return false;
@@ -696,16 +748,6 @@ NetworkSimResults Network::sim_tick() {
     return results;
 }
 
-bool Network::is_behind_tile(Transform xform, int world_x, int world_y) const noexcept {
-    float bottom_y = xform.y + xform.height;
-
-    int h_tile_size = m_tile_size / 2;
-    bool overlap_x = (xform.x + xform.width > world_x) && (xform.x < world_x + m_tile_size);
-    bool overlap_y = (xform.y + xform.height > world_y - h_tile_size) && (xform.y < world_y + m_tile_size);
-
-    return overlap_x && overlap_y && bottom_y <= world_y + m_tile_size;
-}
-
 void Network::draw(
     int min_tx, int max_tx, int min_ty, int max_ty,
     Transform p_xform, float progress,
@@ -716,23 +758,29 @@ void Network::draw(
     for (int gy = min_ty; gy <= max_ty; ++gy) {
         for (int gx = min_tx; gx <= max_tx; ++gx) {
             const Fixture& fix = fixture(gx, gy);
-            if (fix.is_empty()) continue;
+            if (fix.is_empty() || !fix.is_root()) continue;
 
             FixtureType type = fix.type;
             int world_x = gx * m_tile_size;
             int world_y = gy * m_tile_size;
-            bool is_player_behind = is_behind_tile(p_xform, world_x, world_y);
 
             if (type == FixtureType::Pipe) {
                 DrawFixtures::pipe(*this, ps, fix, gx, gy, world_x, world_y, m_tile_size, progress, last_dt, sim_tick_rate);
             } else if (is_building(type)) {
                 DrawFixtures::building(
                     *this, ps, fix,
-                    world_x, world_y, is_player_behind,
+                    world_x, world_y,
                     progress, last_dt, sim_tick_rate
                 );
             } else if (type == FixtureType::Seep) {
                 DrawFixtures::seep(fix, world_x, world_y, m_tile_size);
+            }
+
+            if constexpr (Debug::DRAW_FIXTURE_COLLISION_AREAS) {
+                if (is_solid(gx, gy)) {
+                    Collision::AABB c_aabb = fixture_ground_aabb(gx, gy, static_cast<float>(m_tile_size), type);
+                    Draw::rect(c_aabb.x, c_aabb.y, c_aabb.w, c_aabb.h, 0xFFFF00FF, false, 1, Layer::HUD_Text);
+                }
             }
         }
     }

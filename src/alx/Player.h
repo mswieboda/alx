@@ -134,8 +134,8 @@ struct Player : public Entity {
             Transform{ // Transform
                 x,
                 y,
-                mystic_width, // width
-                mystic_height, // height
+                static_cast<float>(Assets::Images::mystic_width), // width
+                static_cast<float>(Assets::Images::mystic_height), // height
                 Layer::WorldObj // z-index
             },
             AnimatedSpriteRender::create(
@@ -415,11 +415,12 @@ struct Player : public Entity {
             float tile_sz = 16.0f;
             float tile_x = std::floor(pt.cx / tile_sz) * tile_sz;
             float tile_y = std::floor(pt.cy / tile_sz) * tile_sz;
+            MultiTileFootprint fp = get_fixture_footprint(m_selected_fixture_type);
             Draw::rect(
                 tile_x,
                 tile_y,
-                tile_sz,
-                tile_sz,
+                static_cast<float>(fp.width) * tile_sz,
+                static_cast<float>(fp.height) * tile_sz,
                 0xFF00FFFF, // 1px Cyan border outline
                 false,      // fill = false
                 1,          // thickness = 1

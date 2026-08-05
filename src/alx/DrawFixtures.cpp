@@ -17,7 +17,6 @@ namespace {
 constexpr int STREAM_WIDTH = 6;
 
 constexpr uint32_t BUILDING_ALPHA_OPAQUE = 0xFF000000;
-constexpr uint32_t BUILDING_ALPHA_FADED  = 0x66000000;
 
 static float s_emit_timer = 0.0f;
 static bool s_should_emit_pipe = false;
@@ -49,42 +48,60 @@ void primary_out_from_mask(uint8_t mask, int in_dx, int in_dy, int& out_dx, int&
 // --- DRAW BUILDING ---
 
 void building_bg(FixtureType type, int world_x, int world_y, int world_bottom_y, int y_sort_override, uint32_t alpha) {
-    uint32_t top_color, front_color, right_color, outline_color;
-    uint32_t window_bg_color, window_border_color;
-
-    if (type == FixtureType::Refiner) {
-        top_color = alpha | 0x004A2C8A;
-        front_color = alpha | 0x00241454;
-        right_color = alpha | 0x00301C66;
-        outline_color = alpha | 0x0010052C;
-        window_bg_color = alpha | 0x00120A2A;
-        window_border_color = alpha | 0x00090415;
-    } else {
-        top_color = alpha | 0x0000FF88;
-        front_color = alpha | 0x0000A340;
-        right_color = alpha | 0x0000D15C;
-        outline_color = alpha | 0x00003D18;
-        window_bg_color = alpha | 0x00005220;
-        window_border_color = alpha | 0x00002810;
-    }
-
     int z_idx = Layer::WorldObj;
 
-    // Front Face (12x20 at x, y-4)
-    Draw::rect(world_x, world_bottom_y, 12, 20, front_color, true, 1, z_idx);
+    if (type == FixtureType::Refiner) {
+        // Refiner (3x3 tiles = 48x48 px)
+        uint32_t top_color       = alpha | 0x005C38AA; // Bright Beveled Roof Cap
+        uint32_t top_highlight   = alpha | 0x007B4CE3; // Roof Bevel Highlight
+        uint32_t body_color      = alpha | 0x00341C66; // Medium Violet Core Body
+        uint32_t base_color      = alpha | 0x001F1240; // Dark Foundation Base
+        uint32_t window_bg_color = alpha | 0x00120A2A; // Inset Skylight Window BG
 
-    // Right Face (slanted vertical columns from x+12 to x+16)
-    for (int dx = 0; dx < 4; ++dx) {
-        Draw::rect(world_x + 12 + dx, world_bottom_y - dx, 1, 20, right_color, true, 1, z_idx);
+        // Bottom Row Base (y+32 to y+48, 48x16 px)
+        Draw::rect(world_x, world_y + 32, 48, 16, base_color, true, 1, z_idx);
+        // Intake/Outflow Side Pipe Port Flanges (4x8 px on left/right edges)
+        Draw::rect(world_x - 2, world_y + 36, 4, 8, alpha | 0x003C247B, true, 1, z_idx);
+        Draw::rect(world_x + 46, world_y + 36, 4, 8, alpha | 0x003C247B, true, 1, z_idx);
+
+        // Middle Row Core (y+16 to y+32, 44x16 px centered at x+2)
+        Draw::rect(world_x + 2, world_y + 16, 44, 16, body_color, true, 1, z_idx);
+
+        // Inset Skylight Cutout Window (24x10 px at world_x+12, world_y+19)
+        Draw::rect(world_x + 12, world_y + 19, 24, 10, window_bg_color, true, 1, z_idx, y_sort_override);
+
+        // Top Row Roof Cap (y+2 to y+16, 40x14 px centered at x+4)
+        Draw::rect(world_x + 4, world_y + 2, 40, 14, top_color, true, 1, z_idx);
+        Draw::rect(world_x + 4, world_y + 2, 40, 2, top_highlight, true, 1, z_idx);
+
+        // Roof Vent Vanes (two 6x4 px dark purple vent rects)
+        Draw::rect(world_x + 10, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
+        Draw::rect(world_x + 32, world_y + 6, 6, 4, alpha | 0x00241454, true, 1, z_idx);
+    } else {
+        // Twilight Spire (2x3 tiles = 32x48 px)
+        uint32_t peak_tip_color  = alpha | 0x0088FFCC; // Glowing Spire Crystal Tip
+        uint32_t top_color       = alpha | 0x0000FF88; // Bright Emerald Upper Peak
+        uint32_t body_color      = alpha | 0x0000A350; // Purifying Teal Shaft
+        uint32_t base_color      = alpha | 0x00004520; // Dark Foundation Base
+        uint32_t window_bg_color = alpha | 0x00002810; // Inset Skylight Window BG
+
+        // Bottom Row Base (y+32 to y+48, 32x16 px)
+        Draw::rect(world_x, world_y + 32, 32, 16, base_color, true, 1, z_idx);
+        // Side Output Port Flanges (4x8 px)
+        Draw::rect(world_x - 2, world_y + 36, 4, 8, alpha | 0x00006B33, true, 1, z_idx);
+        Draw::rect(world_x + 30, world_y + 36, 4, 8, alpha | 0x00006B33, true, 1, z_idx);
+
+        // Middle Row Purifying Shaft (y+16 to y+32, 26x16 px centered at x+3)
+        Draw::rect(world_x + 3, world_y + 16, 26, 16, body_color, true, 1, z_idx);
+
+        // Inset Skylight Window (16x10 px at world_x+8, world_y+19)
+        Draw::rect(world_x + 8, world_y + 19, 16, 10, window_bg_color, true, 1, z_idx, y_sort_override);
+
+        // Top Row Tapered Spire Crystal Peak (y to y+16)
+        Draw::rect(world_x + 6, world_y + 12, 20, 4, top_color, true, 1, z_idx);
+        Draw::rect(world_x + 9, world_y + 6, 14, 6, top_color, true, 1, z_idx);
+        Draw::rect(world_x + 12, world_y, 8, 6, peak_tip_color, true, 1, z_idx);
     }
-
-    // Top Face (slanted horizontal rows from y-4 to y-8)
-    for (int dy = 0; dy <= 4; ++dy) {
-        Draw::rect(world_x + dy, world_bottom_y - dy, 12, 1, top_color, true, 1, z_idx);
-    }
-
-    // Frameless Front Window Cutout Interior Background (10x10 at x+1, y+4) (y_sort_override needed)
-    Draw::rect(world_x + 1, world_y + 4, 10, 10, window_bg_color, true, 1, z_idx, y_sort_override);
 }
 
 // --- DRAW BUILDING MANA ---
@@ -93,8 +110,8 @@ void building_dark_mana(int world_x, int world_y, int y_sort_override, uint32_t 
     uint32_t liquid_color = alpha | 0x009900FF; // Glowing twilight violet liquid
     int z_idx = Layer::WorldObj;
 
-    // Fills lower 4px of the 10x10 opening (y from y+10 to y+14, width 10) (y_sort_override needed)
-    Draw::rect(world_x + 1, world_y + 10, 10, 4, liquid_color, true, 1, z_idx, y_sort_override);
+    // Fills lower 6px of the 24x10 skylight opening for Refiner (at world_x+12, world_y+23)
+    Draw::rect(world_x + 12, world_y + 23, 24, 6, liquid_color, true, 1, z_idx, y_sort_override);
 }
 
 void building_light_mana(int world_x, int world_y, int y_sort_override, uint32_t alpha) {
@@ -102,9 +119,9 @@ void building_light_mana(int world_x, int world_y, int y_sort_override, uint32_t
     uint32_t core_color = alpha | 0x00FFFFFF;  // White core
     int z_idx = Layer::WorldObj;
 
-    // Fills lower 4px of the 10x10 opening (y from y+10 to y+14, width 10)
-    Draw::rect(world_x + 4, world_y + 10, 7, 4, aura_color, true, 1, z_idx, y_sort_override);
-    Draw::rect(world_x + 6, world_y + 11, 5, 2, core_color, true, 1, z_idx, y_sort_override);
+    // Fills skylight window (Refiner: 24x10 at x+12, y+19; Spire: 16x10 at x+8, y+19)
+    Draw::rect(world_x + 8, world_y + 21, 16, 6, aura_color, true, 1, z_idx, y_sort_override);
+    Draw::rect(world_x + 12, world_y + 23, 8, 3, core_color, true, 1, z_idx, y_sort_override);
 }
 
 // --- DRAW PIPE ---
@@ -610,12 +627,12 @@ void pipe(
 
 void building(
     const Network& network, ParticleSystem& ps, const Fixture& fix,
-    int world_x, int world_y, bool is_player_behind,
+    int world_x, int world_y,
     float progress, float last_dt, float sim_tick_rate
 ) {
     int world_bottom_y = world_y - 4;
     int y_sort_override = world_bottom_y + 20;
-    uint32_t alpha = is_player_behind ? BUILDING_ALPHA_FADED : BUILDING_ALPHA_OPAQUE;
+    uint32_t alpha = BUILDING_ALPHA_OPAQUE;
 
     building_bg(fix.type, world_x, world_y, world_bottom_y, y_sort_override, alpha);
 

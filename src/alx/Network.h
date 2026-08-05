@@ -79,8 +79,6 @@ public:
     [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
     [[nodiscard]] const std::vector<int32_t>& active_indices() const noexcept { return m_active_indices; }
 
-    [[nodiscard]] bool is_behind_tile(Transform xform, int world_x, int world_y) const noexcept;
-
     // --- Draw ---
     void draw(
         int min_tx, int max_tx, int min_ty, int max_ty,
