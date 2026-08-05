@@ -16,7 +16,7 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-PORT]: Phase 2: Exact Connection Ports & Seep 3x2 Update
+## [PH-PORT]: Phase 2: Exact Connection Ports & Seep 3x2 Update (COMPLETE)
 
 ### [RFPT]: 1. Refiner Connection Ports (3x3 Tiles / 48x48 px)
 - `[RFPT]`: 4 Junction Ports - Restrict Refiner pipe connection interfaces to 4 exact perimeter positions:
@@ -36,16 +36,19 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-RROUT]: Phase 3: Round-Robin Fixture Output Dispatcher
-- `[RROUT]`: Round-Robin Output - Update fixture output dispatching for Seeps, Refiners, and future production buildings to rotate output port selection using `last_dir_idx` round-robin memory, ensuring even distribution across multiple connected output pipes.
+## [PH-RROUT]: Phase 3: Round-Robin Fixture Output Dispatcher (COMPLETE)
+- `[RROUT]`: Round-Robin Output - Update fixture output dispatching for Seeps, Refiners, and future production buildings to rotate output port selection using `last_dir_output_idx` round-robin memory, ensuring even distribution across multiple connected output pipes.
 
 ---
 
-## [PH-PLAC]: Phase 4: Keyboard/Gamepad Placement Safety Rules
+## [PH-PLAC]: Phase 4: Keyboard/Gamepad Placement Safety Rules (COMPLETE)
 
 ### [PLSF]: 1. Multi-Tile Self-Placement Protection
 - `[PLSF]`: Player AABB Guard - Update `Player::try_build_tile` to compute `fixture_ground_aabb` for the selected fixture's full multi-tile footprint (`w x h`).
 - `[REJT]`: Self-Overlap Rejection - Reject building placement if any part of the proposed multi-tile ground AABB intersects the player's ground circle.
+
+### [SPMP]: 2. Stop Player Movement Direction While Placing
+- `[SPMP]`: Strafe While Building - Lock `facing_dx`/`facing_dy` while holding `Action::Build` so player can strafe around without shifting placement cursor facing direction.
 
 ---
 
@@ -64,5 +67,5 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 | `[PH-COLR]` | Fix Multi-Tile Collision & Remove X-Ray Fade | Complete | Player/Enemies blocked by buildings; zero alpha fading |
 | `[PH-PORT]` | Exact Connection Ports & Seep 3x2 Update | Complete | Pipes connect only at middle/top/bottom ports |
 | `[PH-RROUT]`| Round-Robin Fixture Output Dispatcher | Complete | Fixtures rotate output port selection evenly |
-| `[PH-PLAC]` | Player Self-Overlap Placement Guard | Pending | Player cannot build structures on top of self |
+| `[PH-PLAC]` | Player Self-Overlap Placement Guard | Complete | Player cannot build structures on top of self; strafing while placing supported |
 | `[PH-SKYL]` | 2.5D Roof Skylight Frame & Interior Layers | Pending | Roof cutout window shows internal mana & embers |

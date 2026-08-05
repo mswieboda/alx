@@ -177,18 +177,49 @@ struct Player : public Entity {
 
     PlacementPoint placement_fixture_center(float px, float py, float tile_size = 16.0f) const {
         Collision::Circle g = ground_circle(px, py);
+        MultiTileFootprint fp = get_fixture_footprint(m_selected_fixture_type);
+        float max_dim = static_cast<float>(std::max(fp.width, fp.height));
+        float max_dist = (max_dim + 1.5f) * tile_size;
+
+        int player_tx = static_cast<int>(std::floor(g.cx / tile_size));
+        int player_ty = static_cast<int>(std::floor(g.cy / tile_size));
+
         float fallback_cx = g.cx + facing_dx * tile_size;
         float fallback_cy = g.cy + facing_dy * tile_size;
 
-        for (float d = tile_size * 0.5f; d <= tile_size * 2.5f; d += tile_size * 0.25f) {
-            float test_cx = g.cx + facing_dx * d;
-            float test_cy = g.cy + facing_dy * d;
-            int tx = static_cast<int>(std::floor(test_cx / tile_size));
-            int ty = static_cast<int>(std::floor(test_cy / tile_size));
+        bool is_vertical = std::abs(facing_dy) >= std::abs(facing_dx);
+
+        for (float d = tile_size * 0.5f; d <= max_dist; d += tile_size * 0.25f) {
+            int tx = 0;
+            int ty = 0;
+
+            if (is_vertical) {
+                // Perpendicular axis (X) centered on player tile X
+                tx = player_tx - (fp.width / 2);
+                if (facing_dy >= 0.0f) {
+                    // South (+Y)
+                    ty = static_cast<int>(std::floor((g.cy + d) / tile_size));
+                } else {
+                    // North (-Y)
+                    int ty_front = static_cast<int>(std::floor((g.cy - d) / tile_size));
+                    ty = ty_front - (fp.height - 1);
+                }
+            } else {
+                // Perpendicular axis (Y) centered on player tile Y
+                ty = player_ty - (fp.height / 2);
+                if (facing_dx >= 0.0f) {
+                    // East (+X)
+                    tx = static_cast<int>(std::floor((g.cx + d) / tile_size));
+                } else {
+                    // West (-X)
+                    int tx_front = static_cast<int>(std::floor((g.cx - d) / tile_size));
+                    tx = tx_front - (fp.width - 1);
+                }
+            }
 
             Collision::AABB proposed_aabb = fixture_ground_aabb(tx, ty, tile_size, m_selected_fixture_type);
             if (!Collision::circle_vs_aabb(g, proposed_aabb)) {
-                return PlacementPoint{ test_cx, test_cy };
+                return PlacementPoint{ static_cast<float>(tx) * tile_size + tile_size * 0.5f, static_cast<float>(ty) * tile_size + tile_size * 0.5f };
             }
         }
 
@@ -303,7 +334,7 @@ struct Player : public Entity {
         update_actions(dt, tiles, network);
     }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha) {
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles* tiles = nullptr, const Network* network = nullptr) {
         if (!active) return;
 
         float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
@@ -401,15 +432,29 @@ struct Player : public Entity {
             PlacementPoint pt = placement_fixture_center(world_draw_x, world_draw_y, 16.0f);
 
             float tile_sz = 16.0f;
-            float tile_x = std::floor(pt.cx / tile_sz) * tile_sz;
-            float tile_y = std::floor(pt.cy / tile_sz) * tile_sz;
+            int target_tx = static_cast<int>(std::floor(pt.cx / tile_sz));
+            int target_ty = static_cast<int>(std::floor(pt.cy / tile_sz));
+            GridPos target_pos{ static_cast<int16_t>(target_tx), static_cast<int16_t>(target_ty) };
+
             MultiTileFootprint fp = get_fixture_footprint(m_selected_fixture_type);
+            Collision::AABB proposed_aabb = fixture_ground_aabb(target_tx, target_ty, tile_sz, m_selected_fixture_type);
+
+            bool self_overlap = Collision::circle_vs_aabb(ground_circle(world_draw_x, world_draw_y), proposed_aabb);
+            bool has_alloy = (m_cursed_alloy >= fixture_cost(m_selected_fixture_type));
+            bool can_place = true;
+            if (network && tiles) {
+                can_place = network->can_place_fixture(target_pos, m_selected_fixture_type, *tiles);
+            }
+
+            bool is_valid = (!self_overlap) && has_alloy && can_place;
+            uint32_t border_color = is_valid ? 0xFF00FF00 : 0xFF0000FF; // Green/Cyan (valid) vs Red (invalid)
+
             Draw::rect(
-                tile_x,
-                tile_y,
+                static_cast<float>(target_tx) * tile_sz,
+                static_cast<float>(target_ty) * tile_sz,
                 static_cast<float>(fp.width) * tile_sz,
                 static_cast<float>(fp.height) * tile_sz,
-                0xFF00FFFF, // 1px Cyan border outline
+                border_color,
                 false,      // fill = false
                 1,          // thickness = 1
                 transform.z_index + 1,
@@ -454,9 +499,11 @@ private:
         if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
         if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
-        FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
-        facing_dx = facing_vec.dx;
-        facing_dy = facing_vec.dy;
+        if (!Action::is_pressed(Action::Build)) {
+            FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
+            facing_dx = facing_vec.dx;
+            facing_dy = facing_vec.dy;
+        }
 
         auto f = facing();
         if (facing_dx < -0.01f) {

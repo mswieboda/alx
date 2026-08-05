@@ -241,7 +241,7 @@ public:
 
         draw_tiles_and_network(pixel_buffer, sub_tick_progress);
         m_enemy_manager.draw_enemies(pixel_buffer, alpha);
-        m_player.draw(pixel_buffer, alpha);
+        m_player.draw(pixel_buffer, alpha, &m_tiles, &m_network);
         m_particle_system.draw(&m_camera);
     }
 
