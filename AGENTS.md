@@ -69,7 +69,9 @@ AI agents operating in this codebase MUST follow these strict engineering standa
   - **Highly Unstable & Out-of-Date**: Plan files quickly become obsolete as implementation evolves and MUST NOT be treated as authoritative sources of truth for codebase state, architectural contracts, or current tasks.
 - **Strict Rules for AI Agents**:
   - **Do NOT auto-consult or rely on `.plans/`**: Do not read, query, or check files in `.plans/` during routine coding, refactoring, or debugging tasks. Only inspect plan files if the user explicitly instructs you to reference or evaluate a specific plan.
-  - **Updating Plan Files**: Do NOT attempt to update, rewrite, or sync `.plans/` files during routine work. However, if you are actively working off a specific plan file requested by the user, updating task status (e.g., marking items `(COMPLETED)`) within that plan document is allowed and encouraged.
+  - **Updating Plan Files**: Do NOT attempt to update, rewrite, or sync plan (`./plans/**/*`) files during routine work. However, if you are actively working off a specific plan file requested by the user, updating task status within that plan document is allowed and required as work progresses:
+    - **Subtasks & Action Items**: Format all actionable subtasks using GitHub-flavored Markdown checkboxes (`- [ ]` for pending, `- [x]` or `- [X]` for completed). Mark subtasks completed as implementation progresses.
+    - **Phase Header Status**: Append `(COMPLETED)` to the Phase title header (e.g., `### [PH-DTSM]: Phase 1 - Corrupted Ley-Nodes (COMPLETED)`) once all subtasks under that phase are done.
   - **Codebase as Single Source of Truth**: Always inspect actual C++ source files (`src/`), headers, and current project code to determine implementation state.
 
 ## Brainstorming & Task Formatting

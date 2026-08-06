@@ -5,7 +5,7 @@ This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Sp
 
 ---
 
-## [PH-SKYL]: Phase 5: 2.5D Roof Skylight Frame & Layered Interior Rendering (COMPLETE)
+## [PH-SKYL]: Phase 5: 2.5D Roof Skylight Frame & Layered Interior Rendering (COMPLETED)
 
 ### [SPSR]: 1. Spire Vertical Crystal Chamber Assembly (2x3 Tiles / 32x48 px)
 - `[SPGE]`: Chamber Cutout Geometry - Define a centered 16x16 px interior skylight cutout at `(world_x + 8, world_y + 16)`.
