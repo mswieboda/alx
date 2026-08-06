@@ -1,0 +1,48 @@
+#!/bin/zsh
+
+# Git post-checkout hook for alx worktree symlink management
+# Called after git checkout or git worktree creation
+# Arguments: $1 = ref of prev HEAD, $2 = ref of new HEAD, $3 = 1 (branch/worktree checkout) or 0 (file checkout)
+
+if [[ "$3" != "1" ]]; then
+  exit 0
+fi
+
+# Check if we are in a linked worktree vs the main repo
+git_dir="$(git rev-parse --git-dir 2>/dev/null)"
+git_common_dir="$(git rev-parse --git-common-dir 2>/dev/null)"
+
+# If git-dir equals git-common-dir, we are in the main repo (NOT a worktree). Exit silently!
+if [[ -z "$git_dir" || -z "$git_common_dir" || "$git_dir" == "$git_common_dir" ]]; then
+  exit 0
+fi
+
+# Determine current worktree top-level directory
+topdir="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$topdir" ]]; then
+  exit 0
+fi
+
+# Get active branch name
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+if [[ -z "$branch" || "$branch" == "HEAD" ]]; then
+  exit 0
+fi
+
+# Sanitize branch name for filesystem paths (convert / to -)
+clean_branch="${branch//\//-}"
+target_symlink="$HOME/code/cpp/alx-wt-${clean_branch}"
+
+# Clean up any existing symlinks in $HOME/code/cpp/alx-wt-* pointing to this worktree directory
+# (prevents old branch symlinks from lingering when switching branches inside a worktree)
+for link in $HOME/code/cpp/alx-wt-*(N); do
+  if [[ -L "$link" ]]; then
+    link_target="$(readlink "$link")"
+    if [[ "$link_target" == "$topdir" && "$link" != "$target_symlink" ]]; then
+      rm -f "$link"
+    fi
+  fi
+done
+
+# Create/update symlink alx-wt-<branch> -> topdir
+ln -sfn "$topdir" "$target_symlink" 2>/dev/null
