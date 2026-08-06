@@ -4,8 +4,8 @@
 
 ### [PH-CDS]: Phase Core Data Structures & Entity Definition
 
-* `[DTS]`: Dark Tower Struct - data for the initial dark tower entity - `DarkTower struct: float x, y; int hp = 8; float shield_hp = 5.0f; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`
-* `[EGS]`: Egg/Pest Spawner State Struct - data for tracking incubating shadow spawn pods on adjacent grid tiles - `ShadowEgg struct: float x, y; float incubation_timer; bool hatched;`
+* `[DTS]`: Dark Tower Struct (COMPLETED) - data for the initial dark tower entity, visuals (3x4 obsidian monolith, spired peak, violet core pulse, hit flash), AABB ground collision, and scene placement - `DarkTower struct: float x, y; int hp = 8; float shield_hp = 5.0f; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`
+* `[EGS]`: Egg/Pest Spawner State Struct (PENDING SPECIFICATION) - data for tracking incubating shadow spawn pods on adjacent grid tiles - `ShadowEgg struct: float x, y; float incubation_timer; bool hatched;`. Note: Visual appearance, game design behavior, collision detection (likely similar to `Enemy.h`), and juice (e.g. egg shaking / wobble micro-animations) are to be determined with the user via a `/grill-me` session.
 * `[FHS]`: Fixture Health Visualization Extension - data/logic addition to render a tiny health bar or dynamic color tint shift toward red directly over damaged network fixtures and structures
 
 ---

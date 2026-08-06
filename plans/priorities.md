@@ -31,10 +31,10 @@ The roadmap is divided into 5 sequential execution batches designed to transform
 
 ### Batch 2: Dark Tower Infrastructure & Spawners
 
-* `[EP-DT]`: Dark Tower Implementation Epic - Spawning shadow towers that incubate pests, pulse dark energy, and drop alloy on destruction.
+* `[EP-DT]`: Dark Tower Implementation Epic (WIP) - Spawning shadow towers that incubate pests, pulse dark energy, and drop alloy on destruction.
   * `[PH-CDS]`: Core Data Structures & Entity Definition - `WorldStructure.h` architecture (`StructureType::DarkTower`, 3x4 tile / 48x64px looming dark obsidian column visual with spired peak and pulsing violet core) and `ShadowEgg.h` incubator definition.
-    * `[DTS]`: Dark Tower Data Struct - State tracking for active dark towers (`WorldStructure struct: float x, y; int hp = 8, max_hp = 8; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`).
-    * `[EGS]`: Shadow Egg State Struct - Data tracking for incubating pest pods (`ShadowEgg struct: float x, y; float incubation_timer = 5.0f; int hp = 1; bool hatched; bool destroyed;`).
+    * `[DTS]`: Dark Tower Data Struct (COMPLETED) - State tracking, 3x4 obsidian column visuals, spired peak, violet core pulse, hit flash, AABB ground collision, and scene initialization (`WorldStructure struct: float x, y; int hp = 8, max_hp = 8; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`).
+    * `[EGS]`: Shadow Egg State Struct (PENDING SPECIFICATION) - Data tracking for incubating pest pods (`ShadowEgg struct: float x, y; float incubation_timer = 5.0f; int hp = 1; bool hatched; bool destroyed;`). Note: Visual appearance, game design behavior, collision detection (likely similar to `Enemy.h`), and juice (e.g. egg shaking / wobble micro-animations) are to be determined with the user via a `/grill-me` session.
   * `[PH-SLR]`: Spawner Logic & Lifecycle Replacement - Shifting enemy spawns from map edges to active towers.
     * `[SRS]`: Dark Tower Enemy Spawner Routing - Re-route world enemy spawn queries directly to active `DarkTower` coordinates.
     * `[ECH]`: Egg-to-Chrysalis Hatching Logic - Incubate and drop local `ShadowEgg` nodes (3D layered twilight ovals with top highlight) on adjacent tiles that hatch directly into `Enemy.cpp` after 5.0s.
