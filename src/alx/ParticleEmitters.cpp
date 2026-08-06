@@ -60,7 +60,7 @@ void spawn_sword_slash_trail(ParticleSystem& ps, float prev_tip_x, float prev_ti
     }
 }
 
-void spawn_hit_sparks(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override, float momentum_scale) {
+void spawn_hit_blood(ParticleSystem& ps, float x, float y, float kb_vx, float kb_vy, int count, int z_index, int y_sort_override, float momentum_scale) {
     // Viscous Twilight Blood Ooze & Droop Spray ([KTA], [BDD], [TDO], [VTR], [DBC])
     for (int i = 0; i < count; ++i) {
         if (Particle* p = ps.emit()) {

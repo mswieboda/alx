@@ -32,12 +32,12 @@ float WorldStructure::center_y(float alpha) const {
 }
 
 Collision::AABB WorldStructure::ground_aabb() const {
-    // Solid ground footprint at base of structure (bottom 2 tiles / 32px height)
+    // Full 3x4 tile solid ground footprint (48px width x 64px height)
     return Collision::AABB{
         transform.x,
-        transform.y + (transform.height - 32.0f),
-        transform.width,
-        32.0f
+        transform.y,
+        DARK_TOWER_WIDTH,
+        DARK_TOWER_HEIGHT
     };
 }
 
@@ -85,7 +85,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         0.45f
     );
 
-    // 2. Main obsidian monolith body column
+    // 2. Main obsidian monolith body column (3x4 tile rect)
     uint32_t body_color = 0xFF120B1C; // Deep Dusky Obsidian
     if (hit_flash_timer > 0.0f) {
         body_color = 0xFF661188; // Vibrant Purple hit flash
@@ -93,36 +93,37 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
 
     Draw::rect(
         world_draw_x,
-        world_draw_y + 8.0f,
+        world_draw_y,
         world_draw_w,
-        world_draw_h - 8.0f,
+        world_draw_h,
         body_color,
         true, 1,
         transform.z_index,
         static_cast<int>(world_bottom_y)
     );
 
-    // 3. Dark trim accent border
+    // 3. Dark trim accent border (uses transform.z_index to match building layering)
     Draw::rect(
         world_draw_x,
-        world_draw_y + 8.0f,
+        world_draw_y,
         world_draw_w,
-        world_draw_h - 8.0f,
+        world_draw_h,
         0xFF2A153D,
         false, 2,
-        transform.z_index + 1,
+        transform.z_index,
         static_cast<int>(world_bottom_y)
     );
 
-    // 4. Sharp spired peak rising above top edge
+    // 4. Sharp spired peak extending -12px above top edge into upper tile row
+    // Top triangle spire lines use Layer::WorldObjSpireTop (19) so player and attack FX pass behind top spire peak when in upper row
     float top_cx = world_draw_x + world_draw_w * 0.5f;
-    float top_y = world_draw_y - 8.0f; // Peak extends 8px above top edge
+    float top_y = world_draw_y - 12.0f; // Peak extends 12px above top tile edge
     float shoulder_left_x = world_draw_x;
     float shoulder_right_x = world_draw_x + world_draw_w;
-    float shoulder_y = world_draw_y + 8.0f;
+    float shoulder_y = world_draw_y;
 
-    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, 0xFF2A153D, 2, transform.z_index + 1, static_cast<int>(world_bottom_y));
-    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, 0xFF2A153D, 2, transform.z_index + 1, static_cast<int>(world_bottom_y));
+    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, static_cast<int>(world_bottom_y));
+    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, static_cast<int>(world_bottom_y));
 
     // 5. Pulsing violet core diamond in upper section of tower
     float core_cx = top_cx;
@@ -137,7 +138,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         core_r,
         core_color,
         true, 1,
-        transform.z_index + 2,
+        transform.z_index,
         static_cast<int>(world_bottom_y)
     );
 
@@ -147,7 +148,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         core_r + 2.0f,
         0xFFCC44FF, // Bright pulse aura outline
         false, 1,
-        transform.z_index + 2,
+        transform.z_index,
         static_cast<int>(world_bottom_y)
     );
 

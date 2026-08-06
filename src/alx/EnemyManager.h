@@ -588,15 +588,15 @@ public:
                             float kb_vy = enemy.knockback_dy * enemy.knockback_speed;
                             int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
 
-                            int blood_z = Layer::WorldObj + 5; // z = 15: Renders on top of player and enemy sprites (z = 10)
+                            int blood_z = Layer::WorldObjFX; // z = 16: Renders on top of player and enemy sprites
                             int blood_sort_y = enemy_sort_y + 20;
 
                             if (wave_index == 1) {
                                 // Wave 2: 17 droplets mid-slide, 50% momentum
-                                ParticleEmitters::spawn_hit_sparks(*particles, emit_x, emit_y, kb_vx, kb_vy, 17, blood_z, blood_sort_y, 0.50f);
+                                ParticleEmitters::spawn_hit_blood(*particles, emit_x, emit_y, kb_vx, kb_vy, 17, blood_z, blood_sort_y, 0.50f);
                             } else {
                                 // Wave 3: 13 droplets final deceleration drip, 20% momentum
-                                ParticleEmitters::spawn_hit_sparks(*particles, emit_x, emit_y, kb_vx, kb_vy, 13, blood_z, blood_sort_y, 0.20f);
+                                ParticleEmitters::spawn_hit_blood(*particles, emit_x, emit_y, kb_vx, kb_vy, 13, blood_z, blood_sort_y, 0.20f);
                             }
                         }
                     }
@@ -798,11 +798,11 @@ public:
                             float kb_vx = push_dx * Player::ATTACK_KNOCKBACK_SPEED;
                             float kb_vy = push_dy * Player::ATTACK_KNOCKBACK_SPEED;
                             int enemy_sort_y = static_cast<int>(enemy.transform.y + enemy.transform.height);
-                            int blood_z = Layer::WorldObj + 5; // z = 15: Renders on top of player and enemy sprites (z = 10)
+                            int blood_z = Layer::WorldObjFX; // z = 16: Renders on top of player and enemy sprites
                             int blood_sort_y = enemy_sort_y + 20;
 
                             // Wave 1: 20 droplets on hit contact, 85% momentum
-                            ParticleEmitters::spawn_hit_sparks(*particles, contact_x, contact_y, kb_vx, kb_vy, 20, blood_z, blood_sort_y, 0.85f);
+                            ParticleEmitters::spawn_hit_blood(*particles, contact_x, contact_y, kb_vx, kb_vy, 20, blood_z, blood_sort_y, 0.85f);
                         }
                     }
                 }

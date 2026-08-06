@@ -205,7 +205,7 @@ public:
             int player_sort_y = static_cast<int>(m_player.transform.y + m_player.transform.height);
             ParticleEmitters::spawn_sword_slash_trail(
                 m_particle_system, m_slash_prev_tip_x, m_slash_prev_tip_y, curr_tip_x, curr_tip_y,
-                m_player.swing_progress_curr, 16, Layer::WorldObj, player_sort_y
+                m_player.swing_progress_curr, Layer::WorldObjFX, Layer::WorldObj, player_sort_y
             );
 
             m_slash_prev_tip_x = curr_tip_x;
