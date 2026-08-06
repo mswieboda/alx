@@ -45,10 +45,10 @@ The roadmap is divided into 5 sequential execution batches designed to transform
 
 ---
 
-### Batch 2.5: Architecture Refactoring (EnemyManager Header/Source Separation)
+### Batch 2.5: Architecture Refactoring (EnemyManager Header/Source Separation) (COMPLETED)
 
-* `[EP-REFC]`: Architecture Refactoring Epic - Decoupling inline class implementation into dedicated `.cpp` source files for build speed and C++ best practices.
-  * `[PH-REFC-EM]`: `EnemyManager` Source Separation Phase - Extract inline implementation logic from `EnemyManager.h` into a dedicated `EnemyManager.cpp` file, preserving raw headers for declaration types.
+* `[EP-REFC]`: Architecture Refactoring Epic (COMPLETED) - Decoupling inline class implementation into dedicated `.cpp` source files for build speed and C++ best practices.
+  * `[PH-REFC-EM]`: `EnemyManager` Source Separation Phase (COMPLETED) - Extract inline implementation logic from `EnemyManager.h` into a dedicated `EnemyManager.cpp` file, preserving raw headers for declaration types.
 
 ---
 
