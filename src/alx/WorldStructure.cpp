@@ -74,8 +74,12 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     float world_draw_h = transform.height;
     float world_bottom_y = world_draw_y + world_draw_h;
 
+    // Roof baseline Y-sort line (bottom edge of top tile row at world_draw_y + 16px)
+    // Allows characters standing alongside middle/lower tiles to render in front of body walls
+    int roof_sort_y = static_cast<int>(world_draw_y + 16.0f);
+
     if (Debug::DRAW_WORLD_STRUCTURE_TEST) {
-        // world_bottom_y
+        // world_bottom_y debug indicator line
         Draw::rect(
             world_draw_x - 8,
             world_bottom_y - 1,
@@ -87,13 +91,14 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         );
     }
 
-    // 1. Base foreshortened shadow oval at bottom Y edge
+    // 1. Base foreshortened shadow oval at bottom Y edge (Layer::WorldObjBG = 9, roof_sort_y)
     DrawFX::shadow(
         world_draw_x,
         world_draw_y,
         world_draw_w,
         world_draw_h,
-        transform.z_index,
+        Layer::WorldObjBG,
+        roof_sort_y,
         0.6f,
         0.3f
     );
@@ -112,10 +117,10 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         body_color,
         true, 1,
         transform.z_index,
-        static_cast<int>(world_bottom_y)
+        roof_sort_y
     );
 
-    // 3. Dark trim accent border (uses transform.z_index to match building layering)
+    // 3. Dark trim accent border (uses transform.z_index and roof_sort_y to match building layering)
     Draw::rect(
         world_draw_x,
         world_draw_y,
@@ -124,7 +129,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         0xFF2A153D,
         false, 2,
         transform.z_index,
-        static_cast<int>(world_bottom_y)
+        roof_sort_y
     );
 
     // 4. Sharp spired peak extending -12px above top edge into upper tile row
@@ -135,8 +140,8 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     float shoulder_right_x = world_draw_x + world_draw_w;
     float shoulder_y = world_draw_y;
 
-    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, static_cast<int>(world_bottom_y));
-    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, static_cast<int>(world_bottom_y));
+    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, roof_sort_y);
+    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, roof_sort_y);
 
     // 5. Pulsing violet core diamond in upper section of tower
     float core_cx = top_cx;
@@ -152,7 +157,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         core_color,
         true, 1,
         transform.z_index,
-        static_cast<int>(world_bottom_y)
+        roof_sort_y
     );
 
     Draw::circle(
@@ -162,7 +167,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         0xFFCC44FF, // Bright pulse aura outline
         false, 1,
         transform.z_index,
-        static_cast<int>(world_bottom_y)
+        roof_sort_y
     );
 
     // Ground footprint debug outline if DRAW_WORLD_STRUCTURE_COLLISION_AREAS enabled
@@ -171,7 +176,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         Draw::rect(
             g_aabb.x, g_aabb.y, g_aabb.w, g_aabb.h,
             0xFFFF00FF, false, 1,
-            transform.z_index + 3, static_cast<int>(world_bottom_y)
+            transform.z_index + 3, roof_sort_y
         );
     }
 }

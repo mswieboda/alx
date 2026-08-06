@@ -214,7 +214,8 @@ struct Enemy : public Entity {
             world_draw_y,
             world_draw_w,
             world_draw_h,
-            transform.z_index
+            Layer::WorldObjBG,
+            static_cast<int>(world_bottom_y)
         );
 
         // Enemy body ([EFO]: Combine 0x66880018 hit flash overlay with base body color during initial HitStun)

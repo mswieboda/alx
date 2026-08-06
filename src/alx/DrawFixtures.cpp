@@ -682,13 +682,13 @@ void building(
     int world_x, int world_y,
     float progress, float last_dt, float sim_tick_rate
 ) {
-    int world_bottom_y = world_y - 4;
-    int y_sort_override = world_bottom_y + 20;
+    // Dynamic roof baseline Y-sort line (world_y + current 16px tile_size) for 2.5D depth sorting
+    int roof_sort_y = world_y + network.tile_size();
 
     if (fix.type == FixtureType::Refiner) {
-        refiner_building(network, ps, fix, world_x, world_y, y_sort_override, progress);
+        refiner_building(network, ps, fix, world_x, world_y, roof_sort_y, progress);
     } else if (fix.type == FixtureType::Spire) {
-        spire_building(network, ps, fix, world_x, world_y, y_sort_override);
+        spire_building(network, ps, fix, world_x, world_y, roof_sort_y);
     }
 }
 
