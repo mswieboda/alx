@@ -74,15 +74,28 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     float world_draw_h = transform.height;
     float world_bottom_y = world_draw_y + world_draw_h;
 
+    if (Debug::DRAW_WORLD_STRUCTURE_TEST) {
+        // world_bottom_y
+        Draw::rect(
+            world_draw_x - 8,
+            world_bottom_y - 1,
+            world_draw_w + 16,
+            1, // h
+            0xFF00FF00,
+            true, 1, // fill, thick (ignored)
+            2 // z
+        );
+    }
+
     // 1. Base foreshortened shadow oval at bottom Y edge
     DrawFX::shadow(
         world_draw_x,
-        world_draw_y + world_draw_h - 16.0f,
+        world_draw_y,
         world_draw_w,
-        24.0f,
+        world_draw_h,
         transform.z_index,
-        0.50f,
-        0.45f
+        0.6f,
+        0.3f
     );
 
     // 2. Main obsidian monolith body column (3x4 tile rect)
@@ -152,8 +165,8 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         static_cast<int>(world_bottom_y)
     );
 
-    // Ground footprint debug outline if DRAW_FIXTURE_COLLISION_AREAS enabled
-    if (Debug::DRAW_FIXTURE_COLLISION_AREAS) {
+    // Ground footprint debug outline if DRAW_WORLD_STRUCTURE_COLLISION_AREAS enabled
+    if (Debug::DRAW_WORLD_STRUCTURE_COLLISION_AREAS) {
         Collision::AABB g_aabb = ground_aabb();
         Draw::rect(
             g_aabb.x, g_aabb.y, g_aabb.w, g_aabb.h,
