@@ -305,26 +305,29 @@ public:
                 enemy.state_timer -= dt;
             }
 
-            // --- Player Aggro Interception (TEMPORARILY DISABLED for fixture combat testing) ---
-            /*
-            if (player != nullptr && enemy.state != EnemyState::HitStun) {
+            // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [ERET] ---
+            if (player != nullptr && enemy.state != EnemyState::HitStun && enemy.state != EnemyState::AttackWindup && enemy.state != EnemyState::AttackRecoilRest) {
                 float px = player->center_x();
                 float py = player->center_y();
                 float edx = px - enemy.center_x();
                 float edy = py - enemy.center_y();
                 float dist_sq = edx * edx + edy * edy;
 
-                if (dist_sq <= Enemy::AGGRO_DETECTION_RADIUS * Enemy::AGGRO_DETECTION_RADIUS) {
+                constexpr float aggro_r_sq = Enemy::AGGRO_DETECTION_RADIUS * Enemy::AGGRO_DETECTION_RADIUS;
+                constexpr float leash_r = Enemy::AGGRO_DETECTION_RADIUS * 1.5f;
+                constexpr float leash_r_sq = leash_r * leash_r;
+
+                if (dist_sq <= aggro_r_sq) {
                     enemy.state = EnemyState::ChasePlayer;
                     enemy.set_steering_vector_8way(px, py);
-                } else if (enemy.state == EnemyState::ChasePlayer) {
+                } else if (enemy.state == EnemyState::ChasePlayer && dist_sq > leash_r_sq) {
                     enemy.state = EnemyState::RestlessWander;
                     enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                    enemy.pick_random_wander_state(&tiles, &network);
+                    EnemyMovement::reset_wander_state(enemy.move_state);
                     enemy.has_target = false;
                 }
             }
-            */
+
 
             switch (enemy.state) {
                 case EnemyState::Wander:

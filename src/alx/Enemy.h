@@ -270,6 +270,54 @@ struct Enemy : public Entity {
                 static_cast<int>(world_bottom_y)
             );
         }
+
+        // Enemy player aggro detection area (dark red debug circle)
+        if (Debug::DRAW_ENEMY_AGGRO_AREAS) {
+            float cx = world_draw_x + world_draw_w * 0.5f;
+            float cy = world_draw_y + world_draw_h * 0.5f;
+            Draw::circle(
+                cx,
+                cy,
+                AGGRO_DETECTION_RADIUS,
+                0xCCAA0000, // Dark Red debug outline
+                false,      // fill = false (outline only)
+                1,          // thickness = 1
+                transform.z_index + 1,
+                static_cast<int>(world_bottom_y)
+            );
+        }
+
+        // Enemy facing direction arrow (lime green 2px thick line + arrowhead)
+        if (Debug::DRAW_ENEMY_FACING && (move_dx != 0.0f || move_dy != 0.0f)) {
+            float cx = world_draw_x + world_draw_w * 0.5f;
+            float cy = world_draw_y + world_draw_h * 0.5f;
+            float arrow_len = 12.0f;
+            float end_x = cx + move_dx * arrow_len;
+            float end_y = cy + move_dy * arrow_len;
+            constexpr uint32_t arrow_color = 0xFF00FF00; // Lime green
+
+            // Shaft
+            Draw::line(cx, cy, end_x, end_y, arrow_color, 2, transform.z_index + 2, static_cast<int>(world_bottom_y));
+
+            // Arrowhead tips
+            float norm_len = std::sqrt(move_dx * move_dx + move_dy * move_dy);
+            if (norm_len > 0.001f) {
+                float ndx = move_dx / norm_len;
+                float ndy = move_dy / norm_len;
+
+                float px = -ndy;
+                float py = ndx;
+                float head_len = 4.0f;
+
+                float left_x = end_x - ndx * head_len + px * head_len;
+                float left_y = end_y - ndy * head_len + py * head_len;
+                float right_x = end_x - ndx * head_len - px * head_len;
+                float right_y = end_y - ndy * head_len - py * head_len;
+
+                Draw::line(end_x, end_y, left_x, left_y, arrow_color, 2, transform.z_index + 2, static_cast<int>(world_bottom_y));
+                Draw::line(end_x, end_y, right_x, right_y, arrow_color, 2, transform.z_index + 2, static_cast<int>(world_bottom_y));
+            }
+        }
     }
 };
 
