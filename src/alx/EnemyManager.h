@@ -16,6 +16,7 @@
 #include "alx/WorldStructure.h"
 #include "alx/ShadowEgg.h"
 #include "alx/ManaSpark.h"
+#include "alx/DarkTowerLeyNode.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -37,6 +38,15 @@ namespace DarkTowerConstants {
     static constexpr float TELEGRAPH_DURATION = 1.0f;
     static constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
     static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
+
+    // Inverse Twilight Cooldown Scaling (Seconds)
+    // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
+    static constexpr float TWILIGHT_CORRUPTED_MIN_COOLDOWN = 15.0f;
+    static constexpr float TWILIGHT_CORRUPTED_MAX_COOLDOWN = 25.0f;
+
+    // Low Twilight (0.0 = Purified room): Faster tower spawn cooldown range (escalation)
+    static constexpr float TWILIGHT_PURIFIED_MIN_COOLDOWN = 5.0f;
+    static constexpr float TWILIGHT_PURIFIED_MAX_COOLDOWN = 10.0f;
 }
 
 struct CachedThreatPos {
@@ -78,6 +88,7 @@ private:
     std::vector<WorldStructure> m_world_structures;
     std::vector<ShadowEgg> m_shadow_eggs;
     std::vector<ManaSpark> m_mana_sparks;
+    std::vector<DarkTowerLeyNode> m_ley_nodes;
     float m_scan_timer = 0.0f;
     float m_next_scan_interval = 2.0f;
     float m_scan_age = 999.0f; // Prevent initial rendering until scan/spawn
@@ -87,12 +98,15 @@ private:
 
 
 public:
-    void clear() ;
+    void clear();
 
+    void register_ley_nodes(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles);
+    [[nodiscard]] int find_unoccupied_ley_node_index() const;
+    void spawn_dark_tower_at_ley_node(size_t node_index, const Tiles& tiles);
+    void spawn_dark_tower(float x, float y);
+    [[nodiscard]] float calculate_inverse_twilight_cooldown(float twilight_level) const;
 
-    void spawn_dark_tower(float x, float y) ;
-
-
+    const std::vector<DarkTowerLeyNode>& ley_nodes() const noexcept { return m_ley_nodes; }
     std::vector<WorldStructure>& structures() { return m_world_structures; }
     const std::vector<WorldStructure>& structures() const { return m_world_structures; }
 

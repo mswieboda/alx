@@ -36,6 +36,8 @@ void MainScene::load_level(int level_id) {
     std::vector<std::pair<int, int>> spires;
     std::vector<std::pair<int, int>> pipes;
 
+    std::vector<std::pair<int, int>> ley_node_coords;
+
     if (level_id == 1) {
         m_tiles = Tiles(60, 30);
         m_network = Network(60, 30);
@@ -53,13 +55,18 @@ void MainScene::load_level(int level_id) {
             // refiner west port (10,9) to spire south port (7,8)
             {9, 9}, {8, 9}, {7, 9}
         };
+
+        ley_node_coords = { {25, 10}, {40, 12}, {15, 20}, {45, 8} };
     }
 
     update_camera_map_boundary();
     load_tiles_and_network(seeps, refiners, spires, pipes);
     m_enemy_manager.clear();
-    if (level_id == 1) {
-        m_enemy_manager.spawn_dark_tower(25.0f * m_tiles.tile_size(), 10.0f * m_tiles.tile_size());
+    m_enemy_manager.register_ley_nodes(ley_node_coords, m_tiles);
+
+    int start_node_idx = m_enemy_manager.find_unoccupied_ley_node_index();
+    if (start_node_idx >= 0) {
+        m_enemy_manager.spawn_dark_tower_at_ley_node(static_cast<size_t>(start_node_idx), m_tiles);
     }
 }
 

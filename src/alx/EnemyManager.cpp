@@ -3,6 +3,27 @@
 #include "alx/ParticleEmitters.h"
 #include <algorithm>
 
+namespace {
+
+[[nodiscard]] bool is_valid_ley_node_footprint(int tile_x, int tile_y, const alx::Tiles& tiles) noexcept {
+    const int tile_sz = tiles.tile_size();
+    const int foot_w_tiles = (tile_sz > 0) ? static_cast<int>(std::ceil(alx::WorldStructure::DARK_TOWER_WIDTH / static_cast<float>(tile_sz))) : 3;
+    const int foot_h_tiles = (tile_sz > 0) ? static_cast<int>(std::ceil(alx::WorldStructure::DARK_TOWER_HEIGHT / static_cast<float>(tile_sz))) : 4;
+
+    for (int dy = 0; dy < foot_h_tiles; ++dy) {
+        for (int dx = 0; dx < foot_w_tiles; ++dx) {
+            int tx = tile_x + dx;
+            int ty = tile_y + dy;
+            if (!tiles.in_bounds(tx, ty) || !tiles.is_floor(tx, ty)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+} // anonymous namespace
+
 namespace alx {
 
     void EnemyManager::clear() {
@@ -11,6 +32,9 @@ namespace alx {
         m_world_structures.clear();
         m_shadow_eggs.clear();
         m_cached_threat_positions.clear();
+        for (auto& node : m_ley_nodes) {
+            node.is_occupied = false;
+        }
         m_scan_timer = 0.0f;
         m_scan_age = 999.0f;
         m_next_scan_interval = 2.0f;
@@ -18,9 +42,61 @@ namespace alx {
         m_pending_twilight_increase = 0.0f;
     }
 
+    void EnemyManager::register_ley_nodes(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles) {
+        m_ley_nodes.clear();
+        m_ley_nodes.reserve(coords.size());
+
+        for (const auto& [tx, ty] : coords) {
+            if (is_valid_ley_node_footprint(tx, ty, tiles)) {
+                m_ley_nodes.push_back(DarkTowerLeyNode{ tx, ty, false, 0.0f });
+            }
+        }
+    }
+
+    int EnemyManager::find_unoccupied_ley_node_index() const {
+        std::vector<int> candidates;
+        candidates.reserve(m_ley_nodes.size());
+
+        for (size_t i = 0; i < m_ley_nodes.size(); ++i) {
+            if (!m_ley_nodes[i].is_occupied) {
+                candidates.push_back(static_cast<int>(i));
+            }
+        }
+
+        if (candidates.empty()) {
+            return -1;
+        }
+
+        int rand_idx = Random::get_int(0, static_cast<int>(candidates.size()) - 1);
+        return candidates[rand_idx];
+    }
+
+    void EnemyManager::spawn_dark_tower_at_ley_node(size_t node_index, const Tiles& tiles) {
+        if (node_index >= m_ley_nodes.size() || m_ley_nodes[node_index].is_occupied) {
+            return;
+        }
+
+        m_ley_nodes[node_index].is_occupied = true;
+        float px = static_cast<float>(m_ley_nodes[node_index].tile_x * tiles.tile_size());
+        float py = static_cast<float>(m_ley_nodes[node_index].tile_y * tiles.tile_size());
+
+        WorldStructure& dt = m_world_structures.emplace_back(px, py, StructureType::DarkTower);
+        dt.ley_node_index = static_cast<int>(node_index);
+        dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
+    }
+
     void EnemyManager::spawn_dark_tower(float x, float y) {
         WorldStructure& dt = m_world_structures.emplace_back(x, y, StructureType::DarkTower);
         dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
+    }
+
+    float EnemyManager::calculate_inverse_twilight_cooldown(float twilight_level) const {
+        float clamped_t = std::clamp(twilight_level, 0.0f, 1.0f);
+        float min_cd = DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN + 
+            (DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN - DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN) * clamped_t;
+        float max_cd = DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN + 
+            (DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN - DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN) * clamped_t;
+        return Random::get_float(min_cd, max_cd);
     }
 
     float EnemyManager::consume_pending_twilight_increase() {
@@ -194,7 +270,7 @@ namespace alx {
 
                 if (struct_obj.spawn_timer >= struct_obj.next_spawn_cooldown) {
                     struct_obj.spawn_timer = 0.0f;
-                    struct_obj.next_spawn_cooldown = Random::get_float(DarkTowerConstants::SPAWN_INTERVAL_MIN, DarkTowerConstants::SPAWN_INTERVAL_MAX);
+                    struct_obj.next_spawn_cooldown = calculate_inverse_twilight_cooldown(twilight_level);
                     spawn_dark_tower_wave(struct_obj, tiles, network);
                 }
             }
@@ -927,6 +1003,10 @@ namespace alx {
             if (it->type == StructureType::DarkTower && it->hp <= 0) {
                 if (particles) {
                     ParticleEmitters::spawn_tower_shatter(*particles, it->center_x(), it->center_y());
+                }
+                // Free associated Ley-Node slot
+                if (it->ley_node_index >= 0 && static_cast<size_t>(it->ley_node_index) < m_ley_nodes.size()) {
+                    m_ley_nodes[it->ley_node_index].is_occupied = false;
                 }
                 // Scatter loot (5 Alloy pieces)
                 for (int i = 0; i < 5; ++i) {

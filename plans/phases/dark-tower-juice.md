@@ -41,16 +41,16 @@ struct DarkTowerEmergenceAnim {
 
 ## Phased Implementation Plan
 
-### `[PH-DTSM]`: Phase 1 - Corrupted Ley-Nodes & Inverse Twilight Spawning
+### `[PH-DTSM]`: Phase 1 - Corrupted Ley-Nodes & Inverse Twilight Spawning (COMPLETED)
 *Focus: Level-based fixed placement nodes (`CLN`) combined with inverse-twilight spawn scaling.*
 
-- [ ] `[CLN]`: **Pre-determined Ley-Node Grid Integration**
+- [x] `[CLN]`: **Pre-determined Ley-Node Grid Integration**
   - Define static array/list of `DarkTowerLeyNode` coordinate pairs per level layout.
   - Query grid metadata to ensure chosen Ley-Nodes are on valid tile positions.
-- [ ] `[ITS]`: **Inverse-Twilight Spawn Interval Scaling**
+- [x] `[ITS]`: **Inverse-Twilight Spawn Interval Scaling**
   - Calculate dynamic spawn interval based on room twilight level: as twilight drops closer to 0%, the spawn cooldown range decreases (e.g., from `15s-25s` down to `5s-10s`).
   - Creates escalation tension as the player successfully purifies the room.
-- [ ] `[LNSEL]`: **Unoccupied Ley-Node Selection**
+- [x] `[LNSEL]`: **Unoccupied Ley-Node Selection**
   - Select spawn locations strictly from unoccupied `DarkTowerLeyNode` slots on the current level.
 
 ---

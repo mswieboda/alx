@@ -19,6 +19,7 @@ struct WorldStructure : public Entity {
     StructureType type = StructureType::DarkTower;
     int hp = DEFAULT_DARK_TOWER_MAX_HP;
     int max_hp = DEFAULT_DARK_TOWER_MAX_HP;
+    int ley_node_index = -1;
     float spawn_timer = 0.0f;
     float next_spawn_cooldown = 4.0f; // Initial spawn warm-up delay
     float pulse_timer = 0.0f;
