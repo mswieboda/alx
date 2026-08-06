@@ -441,5 +441,29 @@ void spawn_egg_shatter(ParticleSystem& ps, float x, float y, int z_index, int y_
     }
 }
 
+void spawn_dark_mana_spill(ParticleSystem& ps, float x, float y, int z_index, int y_sort_override) {
+    int count = Random::get_int(3, 6);
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-6.0f, 6.0f);
+            p->y = y + Random::get_float(-6.0f, 6.0f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+            
+            p->vx = Random::get_float(-5.0f, 5.0f);
+            p->vy = Random::get_float(-10.0f, 2.0f);
+            
+            p->life = Random::get_float(0.5f, 1.2f);
+            p->max_life = p->life;
+            
+            p->color = Random::chance(0.5f) ? 0xFF8800AA : 0xFF440066;
+            p->size = Random::get_int(1, 3);
+            p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
 } // namespace ParticleEmitters
 } // namespace alx

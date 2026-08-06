@@ -24,10 +24,27 @@ struct AlloyItem {
     float width = AlloyItemConstants::DEFAULT_WIDTH;
     float height = AlloyItemConstants::DEFAULT_HEIGHT;
     uint32_t color = AlloyItemConstants::FRONT_COLOR;
+    float lifetime = 30.0f;
+    bool flashing = false;
+    float flash_timer = 0.0f;
     bool active = true;
 
     AlloyItem(float px = 0.0f, float py = 0.0f, float w = AlloyItemConstants::DEFAULT_WIDTH, float h = AlloyItemConstants::DEFAULT_HEIGHT, uint32_t col = AlloyItemConstants::FRONT_COLOR)
         : x(px), y(py), width(w), height(h), color(col), active(true) {}
+        
+    void update(float dt) {
+        lifetime -= dt;
+        if (lifetime <= 10.0f) {
+            flash_timer += dt;
+            if (flash_timer >= 0.1f) {
+                flash_timer = 0.0f;
+                flashing = !flashing;
+            }
+        }
+        if (lifetime <= 0.0f) {
+            active = false;
+        }
+    }
 
     float center_x() const {
         return x + (width / 2.0f);
@@ -38,7 +55,7 @@ struct AlloyItem {
     }
 
     void draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
-        if (!active) return;
+        if (!active || flashing) return;
 
         int z_idx = AlloyItemConstants::Z_INDEX;
         int sort_y = static_cast<int>(y + height);

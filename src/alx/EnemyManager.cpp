@@ -233,6 +233,29 @@ namespace alx {
             }
         }
         
+        // Process Alloy Items (Magnet and Lifetime)
+        for (auto it = m_alloy_items.begin(); it != m_alloy_items.end(); ) {
+            it->update(dt);
+            if (!it->active) {
+                it = m_alloy_items.erase(it);
+                continue;
+            }
+            
+            if (player) {
+                float dx = player->center_x() - it->center_x();
+                float dy = player->center_y() - it->center_y();
+                float dist_sq = dx * dx + dy * dy;
+                // Magnet radius: 1 tile (16px) -> 256
+                if (dist_sq < 256.0f && dist_sq > 0.001f) {
+                    float dist = std::sqrt(dist_sq);
+                    float magnet_speed = 60.0f; // px/s
+                    it->x += (dx / dist) * magnet_speed * dt;
+                    it->y += (dy / dist) * magnet_speed * dt;
+                }
+            }
+            ++it;
+        }
+        
         // Process ManaSparks
         for (auto it = m_mana_sparks.begin(); it != m_mana_sparks.end(); ) {
             it->update(dt);

@@ -18,6 +18,7 @@ void spawn_tower_pulse(ParticleSystem& ps, float x, float y, float radius, int z
 void spawn_tower_shatter(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
 void spawn_egg_hatch(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
 void spawn_egg_shatter(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
+void spawn_dark_mana_spill(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
 
 } // namespace ParticleEmitters
 } // namespace alx

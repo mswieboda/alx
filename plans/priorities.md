@@ -61,12 +61,12 @@ The roadmap is divided into 5 sequential execution batches designed to transform
     * `[STFH]`: Tall Solid Fixture Helper (COMPLETED) - Helper to query tall structures (`Refiner`, `Spire`) that block projectiles.
     * `[PMCL]`: Projectile Motion & Collision Loop (COMPLETED) - Step projectile motion and handle impact against enemies (damage) vs walls/tall fixtures (absorption).
 
-* `[EP-JUIC]`: Visual Polish & Game Juice Epic - Combat feedback and resource cleanup polish.
-  * `[PH-JUIC]`: Game Feel Polish Phase - Micro-animations, hit flashes, and pickup mechanics.
-    * `[HITF]`: Hit Flash Effects - 0.1s flash visual state on hit for enemies and player i-frames.
-    * `[AMAG]`: Alloy Magnet Attraction - 1-tile magnetic pull pulling nearby Alloy toward the player.
-    * `[ADSP]`: Alloy Despawn Warning - 30s lifetime for uncollected Alloy with 10s flashing warning (`AlloyDrop struct: float x, y; float lifetime = 30.0f; bool flashing;`).
-    * `[DMPC]`: Dark Mana Spill Cloud - Fading purple smoke/cloud particle FX over broken pipe spills.
+* `[EP-JUIC]`: Visual Polish & Game Juice Epic (COMPLETED) - Combat feedback and resource cleanup polish.
+  * `[PH-JUIC]`: Game Feel Polish Phase (COMPLETED) - Micro-animations, hit flashes, and pickup mechanics.
+    * `[HITF]`: Hit Flash Effects (COMPLETED) - 0.1s flash visual state on hit for enemies and player i-frames.
+    * `[AMAG]`: Alloy Magnet Attraction (COMPLETED) - 1-tile (16px) magnetic pull pulling nearby Alloy toward the player.
+    * `[ADSP]`: Alloy Despawn Warning (COMPLETED) - 30s lifetime for uncollected Alloy with 10s flashing warning (`AlloyDrop struct: float x, y; float lifetime = 30.0f; bool flashing;`).
+    * `[DMPC]`: Dark Mana Spill Cloud (COMPLETED) - Fading purple smoke/cloud particle FX over broken pipe spills.
 
 ---
 

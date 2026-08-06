@@ -7,6 +7,8 @@
 #include "core/Log.h"
 #include "core/Transform.h"
 #include "DrawFixtures.h"
+#include "Random.h"
+#include "alx/ParticleEmitters.h"
 
 namespace alx {
 
@@ -901,6 +903,9 @@ void Network::draw(
                 );
             } else if (type == FixtureType::Seep) {
                 DrawFixtures::seep(fix, world_x, world_y, m_tile_size);
+                if (Random::chance(0.1f)) {
+                    ParticleEmitters::spawn_dark_mana_spill(ps, world_x + 8.0f, world_y + 8.0f, Layer::WorldObjFX);
+                }
             }
 
             if constexpr (Debug::DRAW_FIXTURE_COLLISION_AREAS) {
