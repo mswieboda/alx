@@ -55,6 +55,9 @@ struct Player : public Entity {
 
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
+    float charge_timer = 0.0f;
+    bool is_charging_attack = false;
+
     // Collision areas ratios
     static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of transform.width
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)
@@ -138,6 +141,15 @@ struct Player : public Entity {
     FixtureType selected_fixture_type() const { return m_selected_fixture_type; }
 
     static int fixture_cost(FixtureType type);
+
+    bool m_pending_spark = false;
+    bool consume_mana_spark_fire() {
+        if (m_pending_spark) {
+            m_pending_spark = false;
+            return true;
+        }
+        return false;
+    }
 
 private:
     int m_cursed_alloy = 5;

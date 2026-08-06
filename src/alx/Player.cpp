@@ -517,13 +517,29 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
         }
     }
 
-    if (Action::is_attack() && attack_phase == AttackPhase::Idle) {
+    bool btn_pressed = Action::is_attack();
+    
+    if (btn_pressed && attack_phase == AttackPhase::Idle && !is_charging_attack) {
         sync_prev_transforms();
         attack_phase = AttackPhase::ActiveSweep;
         attack_timer = 0.0f;
         swing_progress_prev = 0.0f;
         swing_progress_curr = 0.0f;
         current_swing_id++;
+        is_charging_attack = true;
+        charge_timer = 0.0f;
+    }
+    
+    if (is_charging_attack) {
+        if (btn_pressed) {
+            charge_timer += dt;
+        } else {
+            if (charge_timer >= 0.5f) {
+                m_pending_spark = true;
+            }
+            is_charging_attack = false;
+            charge_timer = 0.0f;
+        }
     }
 
     if (!is_attacking()) {

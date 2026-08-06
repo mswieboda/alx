@@ -224,6 +224,84 @@ namespace alx {
 
         if (player) {
             update_combat_and_loot(*player, particles);
+            
+            if (player->consume_mana_spark_fire()) {
+                m_mana_sparks.emplace_back(
+                    player->center_x(), player->center_y(),
+                    player->facing_dx * 200.0f, player->facing_dy * 200.0f
+                );
+            }
+        }
+        
+        // Process ManaSparks
+        for (auto it = m_mana_sparks.begin(); it != m_mana_sparks.end(); ) {
+            it->update(dt);
+            if (it->lifetime <= 0.0f) {
+                it = m_mana_sparks.erase(it);
+                continue;
+            }
+            
+            // Check collision with enemies
+            bool hit = false;
+            for (auto& enemy : m_enemies) {
+                if (enemy.is_dead()) continue;
+                float contact_x, contact_y;
+                Collision::Circle spark_c{it->x, it->y, 2.0f};
+                if (Collision::circle_contact_point(spark_c, enemy.hurt_circle(), contact_x, contact_y)) {
+                    enemy.take_damage(it->damage, it->vx, it->vy, 50.0f, contact_x - enemy.transform.x, contact_y - enemy.transform.y);
+                    if (particles) {
+                        ParticleEmitters::spawn_hit_blood(*particles, contact_x, contact_y, it->vx, it->vy, 15, Layer::WorldObjFX, enemy.transform.y + enemy.transform.height, 0.5f);
+                    }
+                    hit = true;
+                    break; // Spark destroyed
+                }
+            }
+            
+            if (hit) {
+                it = m_mana_sparks.erase(it);
+                continue;
+            }
+            
+            // Check DarkTowers
+            for (auto& struct_obj : m_world_structures) {
+                if (struct_obj.type != StructureType::DarkTower) continue;
+                Collision::Circle spark_c{it->x, it->y, 2.0f};
+                if (Collision::circle_vs_aabb(spark_c, struct_obj.ground_aabb())) { 
+                    struct_obj.take_damage(it->damage);
+                    if (particles) {
+                        int tower_sort_y = static_cast<int>(struct_obj.transform.y + struct_obj.transform.height);
+                        ParticleEmitters::spawn_hit_blood(*particles, it->x, it->y, it->vx, it->vy, 10, Layer::WorldObjFX, tower_sort_y, 0.5f);
+                    }
+                    hit = true;
+                    break;
+                }
+            }
+
+            if (hit) {
+                it = m_mana_sparks.erase(it);
+                continue;
+            }
+
+            // Check walls and tall fixtures (STFH)
+            int tx = static_cast<int>(it->x) / tiles.tile_size();
+            int ty = static_cast<int>(it->y) / tiles.tile_size();
+            bool wall_hit = false;
+            
+            if (tiles.is_wall(tx, ty)) {
+                wall_hit = true;
+            } else if (network.is_tall_fixture(tx, ty)) {
+                wall_hit = true;
+            }
+            
+            if (wall_hit) {
+                if (particles) {
+                    ParticleEmitters::spawn_hit_blood(*particles, it->x, it->y, -it->vx * 0.5f, -it->vy * 0.5f, 5, Layer::WorldObjFX, static_cast<int>(it->y) + 8, 0.5f);
+                }
+                it = m_mana_sparks.erase(it);
+                continue;
+            }
+            
+            ++it;
         }
     }
 
@@ -886,6 +964,10 @@ namespace alx {
 
         for (const auto& enemy : m_enemies) {
             enemy.draw(pixel_buffer, alpha);
+        }
+
+        for (const auto& spark : m_mana_sparks) {
+            spark.draw(pixel_buffer, alpha);
         }
     }
 

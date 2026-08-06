@@ -15,6 +15,7 @@
 #include "alx/Layer.h"
 #include "alx/WorldStructure.h"
 #include "alx/ShadowEgg.h"
+#include "alx/ManaSpark.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -61,6 +62,7 @@ private:
     std::vector<AlloyItem> m_alloy_items;
     std::vector<WorldStructure> m_world_structures;
     std::vector<ShadowEgg> m_shadow_eggs;
+    std::vector<ManaSpark> m_mana_sparks;
     float m_scan_timer = 0.0f;
     float m_next_scan_interval = 2.0f;
     float m_scan_age = 999.0f; // Prevent initial rendering until scan/spawn

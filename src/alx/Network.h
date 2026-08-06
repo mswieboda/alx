@@ -71,6 +71,11 @@ public:
     [[nodiscard]] bool is_valid_port_connection(int from_x, int from_y, int to_x, int to_y) const noexcept;
     void update_neighbor_masks(GridPos pos);
     void downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
+    [[nodiscard]] bool is_tall_fixture(int tx, int ty) const noexcept {
+        if (!in_bounds(tx, ty)) return false;
+        FixtureType t = fixture(tx, ty).type;
+        return t == FixtureType::Spire || t == FixtureType::Refiner;
+    }
 
     // --- Clean Top-Level Simulation Master Tick ---
     NetworkSimResults sim_tick();
