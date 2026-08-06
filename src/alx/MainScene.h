@@ -158,6 +158,19 @@ public:
         m_camera.update(dt);
 
         m_player.update(dt, m_tiles, m_network, m_camera);
+
+        if (m_player.state.defeated && m_player.state.defeat_timer <= 0.0f) {
+            m_player.state.hp = m_player.state.max_hp;
+            m_player.state.defeated = false;
+            m_player.state.iframe_timer = Player::State::IFRAME_DURATION;
+
+            float spawn_x = 9.0f * m_tiles.tile_size();
+            float spawn_y = 9.0f * m_tiles.tile_size();
+            m_player.transform.x = spawn_x;
+            m_player.transform.y = spawn_y;
+            m_player.sync_prev_transforms();
+        }
+
         m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system);
         m_particle_system.update(dt);
 
@@ -321,7 +334,7 @@ public:
 
         Draw::text(
             6, ly,
-            Draw::fmt("alloy: %d", m_player.cursed_alloy()),
+            Draw::fmt("hp: %d/%d  alloy: %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
             0xFF00CCCC, 1, Layer::HUD_Text, &font
         );
 

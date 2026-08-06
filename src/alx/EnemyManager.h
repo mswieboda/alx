@@ -403,6 +403,7 @@ public:
                             enemy.move_dx = 0.0f;
                             enemy.move_dy = 0.0f;
                             enemy.stuck_timer = 0.0f;
+                            enemy.target_is_player = false;
                             break;
                         }
 
@@ -415,6 +416,47 @@ public:
                     enemy.is_moving = false;
                     enemy.stuck_timer = 0.0f; // Fix 1: Reset stuck_timer during attack windup
                     if (enemy.state_timer <= 0.0f) {
+                        if (enemy.target_is_player) {
+                            float target_cx = enemy.center_x();
+                            float target_cy = enemy.center_y();
+
+                            if (player != nullptr) {
+                                target_cx = player->center_x();
+                                target_cy = player->center_y();
+
+                                Collision::Circle player_hurt = player->hurt_circle();
+                                Collision::Circle enemy_ground = enemy.ground_circle();
+                                float edx = player_hurt.cx - enemy_ground.cx;
+                                float edy = player_hurt.cy - enemy_ground.cy;
+                                float dist = std::sqrt(edx * edx + edy * edy);
+                                float attack_hit_reach = enemy_ground.radius + player_hurt.radius + 8.0f;
+
+                                if (dist <= attack_hit_reach) {
+                                    player->take_damage(1);
+                                }
+                            }
+
+                            float rdx = enemy.center_x() - target_cx;
+                            float rdy = enemy.center_y() - target_cy;
+                            float rlen = std::sqrt(rdx * rdx + rdy * rdy);
+                            if (rlen > 0.001f) {
+                                rdx /= rlen;
+                                rdy /= rlen;
+                            } else {
+                                rdx = 0.0f;
+                                rdy = -1.0f;
+                            }
+
+                            enemy.recoil_dx = rdx;
+                            enemy.recoil_dy = rdy;
+                            enemy.recoil_dist_remaining = Enemy::RECOIL_DIST;
+                            enemy.target_is_player = false;
+
+                            enemy.state = EnemyState::AttackRecoilRest;
+                            enemy.state_timer = Random::get_float(Enemy::RECOVERY_REST_MIN_TIME, Enemy::RECOVERY_REST_MAX_TIME);
+                            break;
+                        }
+
                         float twilight_inc = 0.0f;
                         bool destroyed = network.damage_fixture(enemy.target_fixture_pos, 1, twilight_inc);
                         if (twilight_inc > 0.0f) {
@@ -485,8 +527,34 @@ public:
                 }
 
                 case EnemyState::ChasePlayer: {
-                    if (player != nullptr) {
-                        enemy.set_steering_vector_8way(player->center_x(), player->center_y());
+                    if (player != nullptr && !player->state.defeated) {
+                        float pcx = player->center_x();
+                        float pcy = player->center_y();
+
+                        Collision::Circle player_hurt = player->hurt_circle();
+                        Collision::Circle enemy_ground = enemy.ground_circle();
+                        float edx = player_hurt.cx - enemy_ground.cx;
+                        float edy = player_hurt.cy - enemy_ground.cy;
+                        float dist = std::sqrt(edx * edx + edy * edy);
+                        float attack_reach = enemy_ground.radius + player_hurt.radius + 4.0f;
+
+                        if (dist <= attack_reach) {
+                            enemy.state = EnemyState::AttackWindup;
+                            enemy.state_timer = Enemy::ATTACK_WINDUP_TIME;
+                            enemy.is_moving = false;
+                            enemy.move_dx = 0.0f;
+                            enemy.move_dy = 0.0f;
+                            enemy.stuck_timer = 0.0f;
+                            enemy.target_is_player = true;
+                            break;
+                        }
+
+                        enemy.set_steering_vector_8way(pcx, pcy);
+                    } else {
+                        enemy.state = EnemyState::RestlessWander;
+                        enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
+                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        enemy.has_target = false;
                     }
                     break;
                 }

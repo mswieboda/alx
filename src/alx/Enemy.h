@@ -75,6 +75,8 @@ struct Enemy : public Entity {
     float speed = SPEED;
     float move_dx = 0.0f;
     float move_dy = 0.0f;
+    float facing_dx = 0.0f;
+    float facing_dy = 1.0f;
     float recoil_dx = 0.0f;
     float recoil_dy = 0.0f;
     float recoil_dist_remaining = 0.0f;
@@ -97,6 +99,7 @@ struct Enemy : public Entity {
     EnemyMovement::MovementState move_state;
     GridPos target_fixture_pos{-1, -1};
     bool has_target = false;
+    bool target_is_player = false;
     uint32_t last_hit_swing_id = 0;
 
     Enemy(float px = 0.0f, float py = 0.0f, float w = DEFAULT_WIDTH, float h = DEFAULT_HEIGHT, uint32_t col = COLOR, int max_hp = DEFAULT_MAX_HP)
@@ -170,6 +173,8 @@ struct Enemy : public Entity {
         int index = static_cast<int>(std::round(8.0f * (normalized_angle / (2.0f * pi)))) % 8;
         move_dx = dirs8[index].first;
         move_dy = dirs8[index].second;
+        facing_dx = move_dx;
+        facing_dy = move_dy;
         is_moving = true;
     }
 
@@ -287,23 +292,33 @@ struct Enemy : public Entity {
             );
         }
 
-        // Enemy facing direction arrow (lime green 2px thick line + arrowhead)
-        if (Debug::DRAW_ENEMY_FACING && (move_dx != 0.0f || move_dy != 0.0f)) {
+        // Update persistent facing direction when moving
+        if (move_dx != 0.0f || move_dy != 0.0f) {
+            const_cast<Enemy*>(this)->facing_dx = move_dx;
+            const_cast<Enemy*>(this)->facing_dy = move_dy;
+        }
+
+        // Enemy facing direction arrow (lime green 2px thick line + arrowhead - always drawn when debug enabled)
+        if (Debug::DRAW_ENEMY_FACING) {
             float cx = world_draw_x + world_draw_w * 0.5f;
             float cy = world_draw_y + world_draw_h * 0.5f;
             float arrow_len = 12.0f;
-            float end_x = cx + move_dx * arrow_len;
-            float end_y = cy + move_dy * arrow_len;
+            float fdx = facing_dx;
+            float fdy = facing_dy;
+            if (fdx == 0.0f && fdy == 0.0f) { fdy = 1.0f; }
+
+            float end_x = cx + fdx * arrow_len;
+            float end_y = cy + fdy * arrow_len;
             constexpr uint32_t arrow_color = 0xFF00FF00; // Lime green
 
             // Shaft
             Draw::line(cx, cy, end_x, end_y, arrow_color, 2, transform.z_index + 2, static_cast<int>(world_bottom_y));
 
             // Arrowhead tips
-            float norm_len = std::sqrt(move_dx * move_dx + move_dy * move_dy);
+            float norm_len = std::sqrt(fdx * fdx + fdy * fdy);
             if (norm_len > 0.001f) {
-                float ndx = move_dx / norm_len;
-                float ndy = move_dy / norm_len;
+                float ndx = fdx / norm_len;
+                float ndy = fdy / norm_len;
 
                 float px = -ndy;
                 float py = ndx;

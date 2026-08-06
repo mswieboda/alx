@@ -366,8 +366,32 @@ bool Player::try_remove_tile(const Tiles& tiles, Network& network) {
     return false;
 }
 
+bool Player::take_damage(int amount) {
+    if (is_invulnerable()) {
+        return false;
+    }
+    state.hp = std::max(0, state.hp - amount);
+    state.iframe_timer = State::IFRAME_DURATION;
+    if (state.hp <= 0) {
+        state.defeated = true;
+        state.defeat_timer = State::DEFEAT_DURATION;
+    }
+    return true;
+}
+
 void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
     sync_prev_transforms();
+
+    if (state.iframe_timer > 0.0f) {
+        state.iframe_timer = std::max(0.0f, state.iframe_timer - dt);
+    }
+
+    if (state.defeated) {
+        if (state.defeat_timer > 0.0f) {
+            state.defeat_timer -= dt;
+        }
+        return;
+    }
 
     update_movement(dt, tiles, network, camera);
     update_actions(dt, tiles, network);
@@ -393,9 +417,18 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
         SHADOW_RY_RATIO_OF_RX
     );
 
-    // Player body
+    // Player body (with i-frame flashing and defeat concealment)
     if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
-        draw_player_sprite(*anim, world_draw_x, world_draw_y, transform.z_index, world_bottom_y);
+        bool skip_sprite = false;
+        if (state.iframe_timer > 0.0f) {
+            int blink = static_cast<int>(state.iframe_timer * 20.0f) % 2;
+            if (blink == 0) {
+                skip_sprite = true;
+            }
+        }
+        if (!skip_sprite && !state.defeated) {
+            draw_player_sprite(*anim, world_draw_x, world_draw_y, transform.z_index, world_bottom_y);
+        }
     }
 
     // Ground & hurt collision areas + attack hit arc debug outlines

@@ -73,6 +73,20 @@ struct Player : public Entity {
     static constexpr float SHADOW_RX_RATIO = 0.45f;
     static constexpr float SHADOW_RY_RATIO_OF_RX = 0.45f;
 
+    struct State {
+        static constexpr int DEFAULT_MAX_HP = 5;
+        static constexpr float IFRAME_DURATION = 0.5f;
+        static constexpr float DEFEAT_DURATION = 2.0f;
+
+        int hp = DEFAULT_MAX_HP;
+        int max_hp = DEFAULT_MAX_HP;
+        float iframe_timer = 0.0f;
+        bool defeated = false;
+        float defeat_timer = 0.0f;
+    };
+
+    State state;
+
     AttackPhase attack_phase = AttackPhase::Idle;
     float attack_timer = 0.0f;
     uint32_t current_swing_id = 0;
@@ -80,6 +94,10 @@ struct Player : public Entity {
     float swing_progress_curr = 0.0f;
 
     Player(float x = 128.0f, float y = 128.0f);
+
+    bool take_damage(int amount);
+    bool is_invulnerable() const { return state.iframe_timer > 0.0f || state.defeated; }
+
 
     float center_x(float alpha = 1.0f) const;
     float center_y(float alpha = 1.0f) const;
