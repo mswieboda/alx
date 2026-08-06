@@ -406,6 +406,11 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
     float world_draw_h = transform.height;
     float world_bottom_y = world_draw_y + world_draw_h;
 
+    const alx::Camera* cam = static_cast<const alx::Camera*>(Draw::active_camera());
+    if (cam && !cam->is_aabb_visible(world_draw_x, world_draw_y, world_draw_w, world_draw_h)) {
+        return;
+    }
+
     // Player shadow underneath player at bottom Y edge (foreshortened oval)
     DrawFX::shadow(
         world_draw_x,

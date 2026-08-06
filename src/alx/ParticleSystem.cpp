@@ -129,26 +129,11 @@ void ParticleSystem::update(float dt) {
 }
 
 void ParticleSystem::draw(const Camera* camera) const {
-    float cam_min_x = -99999.0f, cam_max_x = 99999.0f;
-    float cam_min_y = -99999.0f, cam_max_y = 99999.0f;
-
-    if (camera) {
-        float view_w = static_cast<float>(Game::WIDTH) / camera->zoom;
-        float view_h = static_cast<float>(Game::HEIGHT) / camera->zoom;
-        constexpr float margin = 16.0f;
-
-        cam_min_x = camera->x - margin;
-        cam_max_x = camera->x + view_w + margin;
-        cam_min_y = camera->y - margin;
-        cam_max_y = camera->y + view_h + margin;
-    }
-
     for (const auto& p : m_pool) {
         if (!p.active || p.life <= 0.0f) continue;
 
-        // Viewport Culling Check
-        if (p.render_x < cam_min_x || p.render_x > cam_max_x ||
-            p.render_y < cam_min_y || p.render_y > cam_max_y) {
+        // Viewport Culling Check (Option 2 padded AABB check)
+        if (camera && !camera->is_aabb_visible(p.render_x - p.size, p.render_y - p.size, p.size * 2.0f, p.size * 2.0f)) {
             continue;
         }
 

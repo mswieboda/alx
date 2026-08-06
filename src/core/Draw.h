@@ -21,6 +21,7 @@ namespace Draw {
     void world_begin(const Camera& camera);
     void world_end();
     bool is_world_mode();
+    const Camera* active_camera();
 
     // --- COMMAND VARIANTS ---
 

@@ -884,33 +884,50 @@ void Network::draw(
 ) {
     DrawFixtures::begin_frame(last_dt, sim_tick_rate);
 
+    std::vector<int> drawn_roots;
+
     for (int gy = min_ty; gy <= max_ty; ++gy) {
         for (int gx = min_tx; gx <= max_tx; ++gx) {
             const Fixture& fix = fixture(gx, gy);
-            if (fix.is_empty() || !fix.is_root()) continue;
+            if (fix.is_empty()) continue;
 
-            FixtureType type = fix.type;
-            int world_x = gx * m_tile_size;
-            int world_y = gy * m_tile_size;
+            int root_gx = gx - fix.root_offset_x;
+            int root_gy = gy - fix.root_offset_y;
+
+            if (!in_bounds(root_gx, root_gy)) continue;
+
+            int root_idx = root_gy * m_width + root_gx;
+            if (std::find(drawn_roots.begin(), drawn_roots.end(), root_idx) != drawn_roots.end()) {
+                continue;
+            }
+
+            const Fixture& root_fix = fixture(root_gx, root_gy);
+            if (root_fix.is_empty() || !root_fix.is_root()) continue;
+
+            drawn_roots.push_back(root_idx);
+
+            FixtureType type = root_fix.type;
+            int world_x = root_gx * m_tile_size;
+            int world_y = root_gy * m_tile_size;
 
             if (type == FixtureType::Pipe) {
-                DrawFixtures::pipe(*this, ps, fix, gx, gy, world_x, world_y, m_tile_size, progress, last_dt, sim_tick_rate);
+                DrawFixtures::pipe(*this, ps, root_fix, root_gx, root_gy, world_x, world_y, m_tile_size, progress, last_dt, sim_tick_rate);
             } else if (is_building(type)) {
                 DrawFixtures::building(
-                    *this, ps, fix,
+                    *this, ps, root_fix,
                     world_x, world_y,
                     progress, last_dt, sim_tick_rate
                 );
             } else if (type == FixtureType::Seep) {
-                DrawFixtures::seep(fix, world_x, world_y, m_tile_size);
+                DrawFixtures::seep(root_fix, world_x, world_y, m_tile_size);
                 if (Random::chance(0.1f)) {
                     ParticleEmitters::spawn_dark_mana_spill(ps, world_x + 8.0f, world_y + 8.0f, Layer::WorldObjFX);
                 }
             }
 
             if constexpr (Debug::DRAW_FIXTURE_COLLISION_AREAS) {
-                if (is_solid(gx, gy)) {
-                    Collision::AABB c_aabb = fixture_ground_aabb(gx, gy, static_cast<float>(m_tile_size), type);
+                if (is_solid(root_gx, root_gy)) {
+                    Collision::AABB c_aabb = fixture_ground_aabb(root_gx, root_gy, static_cast<float>(m_tile_size), type);
                     Draw::rect(c_aabb.x, c_aabb.y, c_aabb.w, c_aabb.h, 0xFFFF00FF, false, 1, Layer::HUD_Text);
                 }
             }

@@ -354,13 +354,11 @@ bool MainScene::is_node_fixture(int gx, int gy) const {
 
 void MainScene::draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress) {
     int base_tile_size = m_tiles.tile_size();
-    float view_w = Game::WIDTH / m_camera.zoom;
-    float view_h = Game::HEIGHT / m_camera.zoom;
-
-    int min_tx = std::max(0, static_cast<int>(m_camera.x) / base_tile_size);
-    int max_tx = std::min(m_tiles.width() - 1, static_cast<int>(m_camera.x + view_w) / base_tile_size + 1);
-    int min_ty = std::max(0, static_cast<int>(m_camera.y) / base_tile_size);
-    int max_ty = std::min(m_tiles.height() - 1, static_cast<int>(m_camera.y + view_h) / base_tile_size + 1);
+    int min_tx = 0, max_tx = 0, min_ty = 0, max_ty = 0;
+    m_camera.get_tile_bounds(
+        m_tiles.width(), m_tiles.height(), base_tile_size,
+        min_tx, max_tx, min_ty, max_ty
+    );
 
     // Layer 0: Render Terrain Floor & Wall tiles
     for (int y = min_ty; y <= max_ty; ++y) {

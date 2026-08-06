@@ -139,6 +139,46 @@ struct Camera {
         return (screen_x / zoom) + x;
     }
 
+    static constexpr float DEFAULT_CULL_MARGIN_PX = 32.0f;
+    static constexpr int DEFAULT_CULL_TILE_MARGIN = 2;
+
+    [[nodiscard]] bool is_aabb_visible(
+        float obj_x, float obj_y, float obj_w, float obj_h,
+        float margin_px = DEFAULT_CULL_MARGIN_PX,
+        float viewport_width = static_cast<float>(Game::WIDTH),
+        float viewport_height = static_cast<float>(Game::HEIGHT)
+    ) const noexcept {
+        float view_w = viewport_width / zoom;
+        float view_h = viewport_height / zoom;
+
+        float min_cam_x = x - margin_px;
+        float max_cam_x = x + view_w + margin_px;
+        float min_cam_y = y - margin_px;
+        float max_cam_y = y + view_h + margin_px;
+
+        return (obj_x < max_cam_x) && (obj_x + obj_w > min_cam_x) &&
+               (obj_y < max_cam_y) && (obj_y + obj_h > min_cam_y);
+    }
+
+    void get_tile_bounds(
+        int map_w, int map_h, int tile_size,
+        int& out_min_tx, int& out_max_tx, int& out_min_ty, int& out_max_ty,
+        int tile_margin = DEFAULT_CULL_TILE_MARGIN,
+        float viewport_width = static_cast<float>(Game::WIDTH),
+        float viewport_height = static_cast<float>(Game::HEIGHT)
+    ) const noexcept {
+        if (tile_size <= 0) return;
+        float view_w = viewport_width / zoom;
+        float view_h = viewport_height / zoom;
+
+        float margin_px = static_cast<float>(tile_margin * tile_size);
+
+        out_min_tx = std::max(0, static_cast<int>(std::floor((x - margin_px) / static_cast<float>(tile_size))));
+        out_max_tx = std::min(map_w - 1, static_cast<int>(std::ceil((x + view_w + margin_px) / static_cast<float>(tile_size))));
+        out_min_ty = std::max(0, static_cast<int>(std::floor((y - margin_px) / static_cast<float>(tile_size))));
+        out_max_ty = std::min(map_h - 1, static_cast<int>(std::ceil((y + view_h + margin_px) / static_cast<float>(tile_size))));
+    }
+
     float to_world_y(float screen_y) const {
         return (screen_y / zoom) + y;
     }

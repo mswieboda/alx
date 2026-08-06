@@ -107,6 +107,10 @@ namespace Draw {
         return g_active_camera != nullptr;
     }
 
+    const Camera* active_camera() {
+        return g_active_camera;
+    }
+
     void set_y_sort_mode(YSortMode mode) {
         g_y_sort_mode = mode;
     }

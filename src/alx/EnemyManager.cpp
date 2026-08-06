@@ -973,24 +973,36 @@ namespace alx {
     }
 
     void EnemyManager::draw_enemies(std::vector<uint32_t>& pixel_buffer, float alpha) const {
+        const alx::Camera* cam = static_cast<const alx::Camera*>(Draw::active_camera());
+
         for (const auto& item : m_alloy_items) {
-            item.draw(pixel_buffer, alpha);
+            if (!cam || cam->is_aabb_visible(item.x, item.y, item.width, item.height)) {
+                item.draw(pixel_buffer, alpha);
+            }
         }
 
         for (const auto& struct_obj : m_world_structures) {
-            struct_obj.draw(pixel_buffer, alpha);
+            if (!cam || cam->is_aabb_visible(struct_obj.transform.x, struct_obj.transform.y, struct_obj.transform.width, struct_obj.transform.height)) {
+                struct_obj.draw(pixel_buffer, alpha);
+            }
         }
 
         for (const auto& egg : m_shadow_eggs) {
-            egg.draw(pixel_buffer, alpha);
+            if (!cam || cam->is_aabb_visible(egg.x, egg.y, egg.width, egg.height)) {
+                egg.draw(pixel_buffer, alpha);
+            }
         }
 
         for (const auto& enemy : m_enemies) {
-            enemy.draw(pixel_buffer, alpha);
+            if (!cam || cam->is_aabb_visible(enemy.transform.x, enemy.transform.y, enemy.transform.width, enemy.transform.height)) {
+                enemy.draw(pixel_buffer, alpha);
+            }
         }
 
         for (const auto& spark : m_mana_sparks) {
-            spark.draw(pixel_buffer, alpha);
+            if (!cam || cam->is_aabb_visible(spark.x - 2.0f, spark.y - 2.0f, 4.0f, 4.0f)) {
+                spark.draw(pixel_buffer, alpha);
+            }
         }
     }
 
