@@ -25,30 +25,30 @@ Resolving these violations will:
 
 ---
 
-## `[PH-ENMY]`: `Enemy.h` Method Relocation & Const-Cast Cleanup
+## `[PH-ENMY]`: `Enemy.h` Method Relocation & Const-Cast Cleanup (COMPLETED)
 
 ### Identified Anti-Patterns
 * `Enemy.h` contains over 230 lines of non-trivial inline method implementations (`take_damage`, `draw`, circle calculations, trig math, hit flash color blending), while `Enemy.cpp` is a trivial 8-line stub (~131 bytes).
 * `Enemy::draw()` performs a `const_cast<Enemy*>(this)->facing_dx = move_dx;` on lines 297–300 to mutate internal movement state inside a `const` drawing pass.
 
 ### Action Plan & Sub-Tasks
-* `[EHSO]`: Move all method implementations (`Enemy::Enemy()`, `center_x`, `center_y`, `ground_circle`, `hurt_circle`, `set_steering_vector_8way`, `take_damage`, `draw`) out of `Enemy.h` into [`Enemy.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Enemy.cpp).
-* `[ECST]`: Eliminate `const_cast` in `draw()` by updating facing vector state during entity movement logic in [`EnemyManager.cpp`](file:///Users/matt/code/cpp/alx/src/alx/EnemyManager.cpp) or `Enemy::update()`.
-* `[EHDR]`: Keep `Enemy.h` clean with member declarations, constants, forward declarations, and inline 1-line getters only.
+* `[EHSO]`: Move all method implementations (`Enemy::Enemy()`, `center_x`, `center_y`, `ground_circle`, `hurt_circle`, `set_steering_vector_8way`, `take_damage`, `draw`) out of `Enemy.h` into [`Enemy.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Enemy.cpp). (COMPLETED)
+* `[ECST]`: Eliminate `const_cast` in `draw()` by updating facing vector state during entity movement logic in [`EnemyMovement.cpp`](file:///Users/matt/code/cpp/alx/src/alx/EnemyMovement.cpp) or `Enemy::update()`. (COMPLETED)
+* `[EHDR]`: Keep `Enemy.h` clean with member declarations, constants, forward declarations, and inline 1-line getters only. (COMPLETED)
 
 ---
 
-## `[PH-MSCN]`: `MainScene.h` Source Extraction & Header Cleanup
+## `[PH-MSCN]`: `MainScene.h` Source Extraction & Header Cleanup (COMPLETED)
 
 ### Identified Anti-Patterns
 * `MainScene.h` is 453 lines (~16.5 KB) and contains complete inline function definitions for `init()`, `load_level()`, `load_tiles_and_network()`, `update()`, `update_tick_simulation()`, `sync_camera()`, `draw_world()`, `draw_screen()`, `draw_twilight()`, `draw_hud()`, `draw_tiles_and_network()`, and `draw_terrain_tile()`.
 * Line 23 includes `"alx/Camera.h"` inside the `namespace alx { ... }` block, causing header namespace pollution.
 
 ### Action Plan & Sub-Tasks
-* `[MSCP]`: Create a new source file `src/alx/MainScene.cpp`.
-* `[MSM1]`: Move method implementations (`init`, `load_level`, `update`, `draw_world`, `draw_screen`, `draw_twilight`, `draw_hud`) out of `MainScene.h` into `MainScene.cpp`.
-* `[MSIN]`: Relocate `#include "alx/Camera.h"` to the top of `MainScene.h` outside of the `namespace alx` block.
-* `[MSHD]`: Leave only struct/class definitions, member declarations, and static constants in `MainScene.h`.
+* `[MSCP]`: Create a new source file [`src/alx/MainScene.cpp`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp). (COMPLETED)
+* `[MSM1]`: Move method implementations (`init`, `load_level`, `update`, `draw_world`, `draw_screen`, `draw_twilight`, `draw_hud`) out of `MainScene.h` into `MainScene.cpp`. (COMPLETED)
+* `[MSIN]`: Relocate `#include "alx/Camera.h"` to the top of `MainScene.h` outside of the `namespace alx` block. (COMPLETED)
+* `[MSHD]`: Leave only struct/class definitions, member declarations, and static constants in [`MainScene.h`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.h). (COMPLETED)
 
 ---
 

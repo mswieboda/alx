@@ -82,6 +82,10 @@ void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tile
         if (!WorldCollision::is_solid_ground(enemy.ground_circle(test_x, test_y), tiles, network, structures)) {
             enemy.move_dx = dx;
             enemy.move_dy = dy;
+            if (dx != 0.0f || dy != 0.0f) {
+                enemy.facing_dx = dx;
+                enemy.facing_dy = dy;
+            }
             enemy.is_moving = true;
             state.last_dir_idx = idx;
             state.was_moving = true;
@@ -137,6 +141,10 @@ void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tile
         auto [dx, dy] = DIRS[chosen_idx];
         enemy.move_dx = dx;
         enemy.move_dy = dy;
+        if (dx != 0.0f || dy != 0.0f) {
+            enemy.facing_dx = dx;
+            enemy.facing_dy = dy;
+        }
         enemy.is_moving = true;
         state.last_dir_idx = chosen_idx;
         state.was_moving = true;
