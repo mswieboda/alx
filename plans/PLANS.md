@@ -38,12 +38,6 @@
 
 ## `EP-PFRR`: Pipe Flow & Dead-End Round-Robin Architecture
 
-### `PH-BDFL`: Broad Directional Flow & Dead-End Inclusion
-* `SDFE`: Dead-End Distance Propagation / Source Distance Fallback - allow pipe flow to travel into dead-end pipe branches when no active SDF path exists or in round-robin sequence
-* `RRMS`: Round-Robin Multi-Direction Selection - cycle through all valid connected pipe ports at T/X intersections regardless of SDF distance
-* `NRR`: No-Reverse Rule - universal rule across all mana types preventing 180-degree backtracking into entry pipes (`dx == -move_dx && dy == -move_dy`)
-* `DES`: Dead-End Stop & Park State - cause mana to gracefully stop in place (`move_dx = 0, move_dy = 0`) when reaching a dead end, filling the dead end until full
-
 ### `PH-EXP`: Optional Experiments
 * `PSTR`: Dark Mana Pulse Mode Experiment - optional experiment for Dark Mana stream generation to alternate between connected output ports in round-robin fashion, producing discrete 1-tile stream segments with gaps
 

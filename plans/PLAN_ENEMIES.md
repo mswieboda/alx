@@ -6,10 +6,8 @@ This document outlines the detailed roadmap, and design decisions for player wea
 
 (previous phases and subtasks completed, removed for brevity)
 
-### Phase 3: Unfinished WIP Enemy Details
-1. Implement player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range. [WIP - was disabled or removed]
-
-### Phase 4: Enemy Attacking & Fixture Destruction
+### Phase 4: Enemy Attacking Player
+1. Implement enemies having player aggro interception (checked every 1.0s to 3.0s): chase player if within detection radius, and return to high-value fixture targeting if player escapes range. [WIP - was disabled or removed]
 1. Implement enemy melee attack against Player when within reach (0.3s attack windup, 1.0s attack cycle, 1 damage, triggering 0.5s i-frames).
 2. Retargeting: Mid-attack switch to player if player enters smaller *Threat Radius*; return to target fixture if player escapes. [WIP - was disabled or removed]
 3. Implement Player defeat state at 0 HP (temporarily disable drawing and player input while scene runs).
