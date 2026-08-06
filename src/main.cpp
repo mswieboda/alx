@@ -57,7 +57,7 @@ void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scen
 
         if (window.is_active()) {
             // Early out on Escape key if allowed
-            if (Game::QUIT_ON_ESC && Input::is_key_just_pressed(MFB_KB_KEY_ESCAPE)) {
+            if (Game::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
                 window.close();
                 break;
             }
@@ -109,8 +109,8 @@ int main(int argc, char* argv[]) {
     Draw::set_palette(Assets::Images::GLOBAL_PALETTE);
 
     // Setup input routing
-    mfb_set_keyboard_callback(game_window.raw(), Input::keyboard_callback);
-    mfb_set_active_callback(game_window.raw(), Input::window_active_callback);
+    game_window.set_key_callback(Input::keyboard_callback);
+    game_window.set_active_callback(Input::window_active_callback);
 
     // Pixel buffer for drawing
     std::vector<uint32_t> pixel_buffer(Game::WIDTH * Game::HEIGHT, 0x00000000);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
     scene_manager.change_scene(std::make_unique<alx::MainScene>());
 
     while (game_window.is_running()) {
-        Input::update_input_state(game_window.raw());
+        Input::update_input_state(game_window.is_active());
         game_window.poll_events();
 
         frame_updates(game_window, frame_time, scene_manager);

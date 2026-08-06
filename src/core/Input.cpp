@@ -1,6 +1,5 @@
 #include "Input.h"
 #include <cstring>
-#include <MiniFB.h>
 #include <algorithm>
 #include "core/Log.h"
 
@@ -11,7 +10,7 @@ namespace Input {
     bool current_keys[MAX_KEYS] = { false };
     bool just_pressed_keys[MAX_KEYS] = { false };
 
-    static mfb_key_mod current_mods = static_cast<mfb_key_mod>(0);
+    static KeyModifier current_mods = KeyModifier::None;
 
     // Minigamepad state
     static mg_gamepads s_gamepads = {};
@@ -41,12 +40,12 @@ namespace Input {
         }
     }
 
-    void update_input_state(struct mfb_window *window) {
+    void update_input_state(bool is_window_active) {
         if (!s_gamepad_initialized) {
             init();
         }
 
-        if (window && !mfb_is_window_active(window)) {
+        if (!is_window_active) {
             force_clear_all_inputs();
             return;
         }
@@ -114,7 +113,7 @@ namespace Input {
         std::fill(std::begin(just_pressed_stick_dirs), std::end(just_pressed_stick_dirs), false);
     }
 
-    void keyboard_callback(struct mfb_window *window, mfb_key key, mfb_key_mod mod, bool is_pressed) {
+    void keyboard_callback(KeyCode key, KeyModifier mod, bool is_pressed) {
         const int key_code = static_cast<int>(key);
 
         current_mods = mod;
@@ -128,8 +127,10 @@ namespace Input {
         }
     }
 
-    void window_active_callback(struct mfb_window *window, bool is_active) {
-        force_clear_all_inputs();
+    void window_active_callback(bool is_active) {
+        if (!is_active) {
+            force_clear_all_inputs();
+        }
     }
 
     void force_clear_all_inputs() {
@@ -144,7 +145,11 @@ namespace Input {
         std::fill(std::begin(just_pressed_stick_dirs), std::end(just_pressed_stick_dirs), false);
         std::fill(std::begin(prev_stick_dirs), std::end(prev_stick_dirs), false);
 
-        current_mods = static_cast<mfb_key_mod>(0);
+        current_mods = KeyModifier::None;
+    }
+
+    bool is_key_pressed(KeyCode key) {
+        return is_key_pressed(static_cast<int>(key));
     }
 
     bool is_key_pressed(int key) {
@@ -152,13 +157,17 @@ namespace Input {
         return current_keys[key];
     }
 
+    bool is_key_just_pressed(KeyCode key) {
+        return is_key_just_pressed(static_cast<int>(key));
+    }
+
     bool is_key_just_pressed(int key) {
         if (key < 0 || key >= MAX_KEYS) return false;
         return just_pressed_keys[key];
     }
 
-    bool is_modifier_held(mfb_key_mod modifier_bit) {
-        return (current_mods & modifier_bit) != 0;
+    bool is_modifier_held(KeyModifier modifier) {
+        return (static_cast<uint8_t>(current_mods) & static_cast<uint8_t>(modifier)) != 0;
     }
 
     bool is_gamepad_connected() {

@@ -74,7 +74,7 @@ std::string type_to_string(Type type) {
 // - R-Shoulder + L-Shoulder (Q)  -> Cycle Build Type
 // =========================================================================
 
-static std::vector<int> s_bindings[static_cast<size_t>(Count)];
+static std::vector<KeyCode> s_bindings[static_cast<size_t>(Count)];
 static bool s_initialized = false;
 
 static void ensure_initialized() {
@@ -105,13 +105,13 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
     s_bindings[static_cast<size_t>(Map)]           = GBA::SELECT;
 
-    s_bindings[static_cast<size_t>(DebugResource)] = { MFB_KB_KEY_5 };
-    s_bindings[static_cast<size_t>(DebugEnemyWave)] = { MFB_KB_KEY_6 };
-    s_bindings[static_cast<size_t>(DebugTwUp)]     = { MFB_KB_KEY_EQUAL };
-    s_bindings[static_cast<size_t>(DebugTwDown)]   = { MFB_KB_KEY_MINUS };
+    s_bindings[static_cast<size_t>(DebugResource)] = { KeyCode::Key5 };
+    s_bindings[static_cast<size_t>(DebugEnemyWave)] = { KeyCode::Key6 };
+    s_bindings[static_cast<size_t>(DebugTwUp)]     = { KeyCode::Equal };
+    s_bindings[static_cast<size_t>(DebugTwDown)]   = { KeyCode::Minus };
 }
 
-void bind_key(Type type, int key) {
+void bind_key(Type type, KeyCode key) {
     ensure_initialized();
     if (type == Count) return;
 
@@ -121,7 +121,11 @@ void bind_key(Type type, int key) {
     }
 }
 
-void unbind_key(Type type, int key) {
+void bind_key(Type type, int key) {
+    bind_key(type, static_cast<KeyCode>(key));
+}
+
+void unbind_key(Type type, KeyCode key) {
     ensure_initialized();
     if (type == Count) return;
 
@@ -129,10 +133,14 @@ void unbind_key(Type type, int key) {
     vec.erase(std::remove(vec.begin(), vec.end(), key), vec.end());
 }
 
-const std::vector<int>& bound_keys(Type type) {
+void unbind_key(Type type, int key) {
+    unbind_key(type, static_cast<KeyCode>(key));
+}
+
+const std::vector<KeyCode>& bound_keys(Type type) {
     ensure_initialized();
     if (type == Count) {
-        static const std::vector<int> empty_vec;
+        static const std::vector<KeyCode> empty_vec;
         return empty_vec;
     }
     return s_bindings[static_cast<size_t>(type)];
@@ -216,7 +224,7 @@ bool is_pressed(Type type) {
     ensure_initialized();
     if (type == Count) return false;
 
-    for (int key : s_bindings[static_cast<size_t>(type)]) {
+    for (KeyCode key : s_bindings[static_cast<size_t>(type)]) {
         if (::Input::is_key_pressed(key)) return true;
     }
     return is_gamepad_action_pressed(type);
@@ -226,7 +234,7 @@ bool is_just_pressed(Type type) {
     ensure_initialized();
     if (type == Count) return false;
 
-    for (int key : s_bindings[static_cast<size_t>(type)]) {
+    for (KeyCode key : s_bindings[static_cast<size_t>(type)]) {
         if (::Input::is_key_just_pressed(key)) {
             return true;
         }

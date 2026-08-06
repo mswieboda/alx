@@ -1,12 +1,12 @@
 #pragma once
+
 #include <string>
 #include <vector>
+#include "core/KeyCodes.h"
 #include "core/Input.h"
 
 namespace alx {
 
-// =========================================================================
-// GBA CONTROLLER HARDWARE MAPPING SCHEME
 // =========================================================================
 // GBA CONTROLLER HARDWARE MAPPING SCHEME
 // =========================================================================
@@ -24,17 +24,17 @@ namespace alx {
 // =========================================================================
 
 namespace GBA {
-    inline const std::vector<int> DPAD_UP    = { MFB_KB_KEY_W, MFB_KB_KEY_UP };
-    inline const std::vector<int> DPAD_DOWN  = { MFB_KB_KEY_S, MFB_KB_KEY_DOWN };
-    inline const std::vector<int> DPAD_LEFT  = { MFB_KB_KEY_A, MFB_KB_KEY_LEFT };
-    inline const std::vector<int> DPAD_RIGHT = { MFB_KB_KEY_D, MFB_KB_KEY_RIGHT };
+    inline const std::vector<KeyCode> DPAD_UP    = { KeyCode::W, KeyCode::Up };
+    inline const std::vector<KeyCode> DPAD_DOWN  = { KeyCode::S, KeyCode::Down };
+    inline const std::vector<KeyCode> DPAD_LEFT  = { KeyCode::A, KeyCode::Left };
+    inline const std::vector<KeyCode> DPAD_RIGHT = { KeyCode::D, KeyCode::Right };
 
-    inline const std::vector<int> BUTTON_A   = { MFB_KB_KEY_J, MFB_KB_KEY_Z };
-    inline const std::vector<int> BUTTON_B   = { MFB_KB_KEY_K, MFB_KB_KEY_X };
-    inline const std::vector<int> L_SHOULDER = { MFB_KB_KEY_Q };
-    inline const std::vector<int> R_SHOULDER = { MFB_KB_KEY_O };
-    inline const std::vector<int> START      = { MFB_KB_KEY_ENTER };
-    inline const std::vector<int> SELECT     = { MFB_KB_KEY_TAB, MFB_KB_KEY_SPACE };
+    inline const std::vector<KeyCode> BUTTON_A   = { KeyCode::J, KeyCode::Z };
+    inline const std::vector<KeyCode> BUTTON_B   = { KeyCode::K, KeyCode::X };
+    inline const std::vector<KeyCode> L_SHOULDER = { KeyCode::Q };
+    inline const std::vector<KeyCode> R_SHOULDER = { KeyCode::O };
+    inline const std::vector<KeyCode> START      = { KeyCode::Enter };
+    inline const std::vector<KeyCode> SELECT     = { KeyCode::Tab, KeyCode::Space };
 }
 
 namespace Action {
@@ -79,10 +79,12 @@ namespace Action {
     bool is_just_pressed(const std::string& action_str);
 
     // Dynamic Binding API
+    void bind_key(Type type, KeyCode key);
     void bind_key(Type type, int key);
+    void unbind_key(Type type, KeyCode key);
     void unbind_key(Type type, int key);
     void reset_default_bindings();
-    const std::vector<int>& bound_keys(Type type);
+    const std::vector<KeyCode>& bound_keys(Type type);
 }
 
 } // namespace alx
