@@ -40,6 +40,7 @@ tasks:
   pack-assets-bin:
     desc: Build pack assets executable
     run: once
+    method: timestamp
     sources:
       - '{{.pack_assets_script_src}}'
       - '{{.toolchain_src_dir}}/**/*.cr'
@@ -70,28 +71,31 @@ tasks:
     desc: Pack font assets
     deps:
       - pack-assets-bin
+    method: timestamp
     sources:
       - '{{.assets_dir}}/fonts/**/*'
     generates:
       - '{{.assets_headers_dir}}/Fonts.h'
     cmds:
-      - '{{.pack_assets_bin}} -- --only=fonts'
+      - '{{.pack_assets_bin}} --only=fonts'
 
   images:
     desc: Pack image assets
     deps:
       - pack-assets-bin
+    method: timestamp
     sources:
       - '{{.assets_dir}}/images/**/*'
     generates:
       - '{{.assets_headers_dir}}/Images.h'
     cmds:
-      - '{{.pack_assets_bin}} -- --only=images'
+      - '{{.pack_assets_bin}} --only=images'
 
   music:
     desc: Pack music assets
     deps:
       - pack-assets-bin
+    method: timestamp
     sources:
       - '{{.assets_dir}}/music/**/*'
     generates:
@@ -155,13 +159,6 @@ tasks:
     vars:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
-    sources:
-      - 'src/**/*'
-      - '{{.assets_dir}}/**/*'
-      - '{{.toolchain_src_dir}}/**/*'
-      - 'CMakeLists.txt'
-    generates:
-      - '{{.binary}}'
     deps:
       - submodules
       - assets
@@ -178,6 +175,8 @@ tasks:
     desc: Run Debug game executable
     interactive: true
     silent: true
+    deps:
+      - build
     vars:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
@@ -195,6 +194,7 @@ tasks:
     cmds:
       - echo "=> Cleaning {{.build_dir}} folder..."
       - rm -rf "{{.build_dir}}"
+      - rm -rf .task
       - task: clean-assets
 
   clean-assets:
