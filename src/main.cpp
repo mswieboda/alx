@@ -150,7 +150,9 @@ int main(int argc, char* argv[]) {
     SceneManager scene_manager;
 
     // Initialize and change to the first scene
-    scene_manager.change_scene(std::make_unique<alx::MainScene>());
+    auto main_scene = std::make_unique<alx::MainScene>();
+    auto* raw_scene = main_scene.get();
+    scene_manager.change_scene(std::move(main_scene));
 
     while (game_window.is_running()) {
         Input::update_input_state(game_window.is_active());
@@ -160,6 +162,12 @@ int main(int argc, char* argv[]) {
 
         if (game_window.is_running()) {
             draw(game_window, frame_time, scene_manager, pixel_buffer);
+        }
+    }
+
+    if (has_cli_flag(argc, argv, "report")) {
+        if (raw_scene) {
+            raw_scene->print_headless_summary_report(seed);
         }
     }
 

@@ -466,6 +466,43 @@ task clean        # Wipes build output directory (build/Debug or build/Release)
 task clean-assets # Cleans generated asset headers in src/assets/
 ```
 
+### Headless Simulation, Summary Reports & Telemetry
+
+Aetherlux includes CLI options and tasks for headless simulation testing, exit summary reporting, and live terminal telemetry monitoring.
+
+#### CLI Command Flags
+
+* `--report`: Output a gameplay summary report to stdout when the game is exited.
+  ```bash
+  task run -- --report
+  # or directly:
+  ./build/Debug/alx --report
+  ```
+* `--headless` or `--headless-sim`: Run in headless simulation mode (no GUI window), execute ticks, print the summary report, and exit.
+  ```bash
+  task run-headless
+  # or with release build:
+  task run-release-headless
+  ```
+* `--ticks=<N>` / `--ticks <N>`: Set target simulation ticks for headless mode (default: `10000`).
+  ```bash
+  task run-headless -- --ticks=50000
+  ```
+* `--seed=<N>` / `--seed <N>`: Specify fixed RNG seed for deterministic simulation or gameplay.
+  ```bash
+  task run-headless -- --seed=12345 --ticks=20000
+  ```
+
+#### Live Telemetry Terminal Viewer
+
+During game execution (GUI or headless), the game periodically dumps state snapshots (Twilight levels, active structures, player stats) to `/tmp/alx_telemetry.json`.
+
+Run the live Crystal ANSI terminal dashboard in a separate terminal window to view real-time game metrics while playing or simulating:
+
+```bash
+task telemetry
+```
+
 ### Output Location
 
 * **Debug builds:** `build/Debug/alx`
