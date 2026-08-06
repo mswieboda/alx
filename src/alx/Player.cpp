@@ -16,6 +16,114 @@
 
 namespace alx {
 
+namespace {
+
+void update_facing_animation(AnimatedSpriteRender& anim, Facing::Type f) {
+    switch (f) {
+        case Facing::North:     anim.set_frame(0); anim.is_flip_h = false; break;
+        case Facing::NorthEast: anim.set_frame(1); anim.is_flip_h = false; break;
+        case Facing::East:      anim.set_frame(2); anim.is_flip_h = false; break;
+        case Facing::SouthEast: anim.set_frame(3); anim.is_flip_h = false; break;
+        case Facing::South:     anim.set_frame(4); anim.is_flip_h = true;  break;
+        case Facing::SouthWest: anim.set_frame(3); anim.is_flip_h = true;  break;
+        case Facing::West:      anim.set_frame(2); anim.is_flip_h = true;  break;
+        case Facing::NorthWest: anim.set_frame(1); anim.is_flip_h = true;  break;
+    }
+}
+
+void draw_player_sprite(const AnimatedSpriteRender& anim, float world_draw_x, float world_draw_y, float z_index, float world_bottom_y) {
+    if (anim.current_anim.frame_indices.empty()) return;
+
+    int frame_pool_index = anim.current_anim.frame_indices[anim.current_sequence_index];
+    const SpriteFrame& current_frame = anim.master_frames[frame_pool_index];
+
+    const uint8_t* frame_pixels = anim.sheet_pixels + current_frame.offset;
+    uint32_t frame_pixels_size = (current_frame.len > 0) ? static_cast<uint32_t>(current_frame.len) : anim.sheet_pixels_size;
+
+    Draw::sprite_frame(
+        world_draw_x,
+        world_draw_y,
+        frame_pixels,
+        frame_pixels_size,
+        static_cast<float>(current_frame.width),
+        static_cast<float>(current_frame.height),
+        current_frame.x,
+        current_frame.y,
+        current_frame.width,
+        current_frame.height,
+        z_index,
+        static_cast<int>(world_bottom_y),
+        anim.is_flip_h,
+        anim.is_flip_v
+    );
+}
+
+void draw_debug_outlines(const Player& player, float world_draw_x, float world_draw_y, float alpha, float world_bottom_y) {
+    if (Debug::DRAW_GROUND_AREAS) {
+        Collision::Circle ground = player.ground_circle(world_draw_x, world_draw_y);
+        Draw::circle(
+            ground.cx, ground.cy, ground.radius,
+            0xFF00FFFF, false, 1,
+            player.transform.z_index + 1, static_cast<int>(world_bottom_y)
+        );
+    }
+
+    if (Debug::DRAW_HURT_AREAS) {
+        Collision::Circle hurt = player.hurt_circle();
+        Draw::circle(
+            hurt.cx, hurt.cy, hurt.radius,
+            0xFFFFFF00, false, 1,
+            player.transform.z_index + 1, static_cast<int>(world_bottom_y)
+        );
+    }
+
+    if (player.is_attacking() && Debug::DRAW_MELEE_ARCS) {
+        Collision::Circle hit_c = player.attack_hit_circle(alpha);
+        Draw::circle(
+            hit_c.cx, hit_c.cy, hit_c.radius,
+            0xFF00FFFF, false, 1,
+            player.transform.z_index + 2, static_cast<int>(world_bottom_y)
+        );
+    }
+}
+
+void draw_placement_preview(const Player& player, float world_draw_x, float world_draw_y, float world_bottom_y, const Tiles* tiles, const Network* network) {
+    if (!Action::is_pressed(Action::Build)) return;
+
+    constexpr float tile_sz = 16.0f;
+    Player::PlacementPoint pt = player.placement_fixture_center(world_draw_x, world_draw_y, tile_sz);
+
+    int target_tx = static_cast<int>(std::floor(pt.cx / tile_sz));
+    int target_ty = static_cast<int>(std::floor(pt.cy / tile_sz));
+    GridPos target_pos{ static_cast<int16_t>(target_tx), static_cast<int16_t>(target_ty) };
+
+    FixtureType selected_type = player.selected_fixture_type();
+    MultiTileFootprint fp = get_fixture_footprint(selected_type);
+    Collision::AABB proposed_aabb = fixture_ground_aabb(target_tx, target_ty, tile_sz, selected_type);
+
+    bool self_overlap = Collision::circle_vs_aabb(player.ground_circle(world_draw_x, world_draw_y), proposed_aabb);
+    bool has_alloy = (player.cursed_alloy() >= Player::fixture_cost(selected_type));
+    bool can_place = true;
+    if (network && tiles) {
+        can_place = network->can_place_fixture(target_pos, selected_type, *tiles);
+    }
+
+    bool is_valid = (!self_overlap) && has_alloy && can_place;
+    uint32_t border_color = is_valid ? 0xFF00FF00 : 0xFF0000FF; // Green (valid) vs Red (invalid)
+
+    Draw::rect(
+        static_cast<float>(target_tx) * tile_sz,
+        static_cast<float>(target_ty) * tile_sz,
+        static_cast<float>(fp.width) * tile_sz,
+        static_cast<float>(fp.height) * tile_sz,
+        border_color,
+        false, 1,
+        player.transform.z_index + 1, static_cast<int>(world_bottom_y)
+    );
+}
+
+} // anonymous namespace
+
 FacingVector PlayerInputBuffer::update_facing(float dt, float raw_dx, float raw_dy) {
     bool is_diagonal = (raw_dx != 0.0f && raw_dy != 0.0f);
     bool is_moving = (raw_dx != 0.0f || raw_dy != 0.0f);
@@ -272,7 +380,6 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
     float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
     float world_draw_w = transform.width;
     float world_draw_h = transform.height;
-
     float world_bottom_y = world_draw_y + world_draw_h;
 
     // Player shadow underneath player at bottom Y edge (foreshortened oval)
@@ -288,110 +395,14 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
 
     // Player body
     if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
-        if (!anim->current_anim.frame_indices.empty()) {
-            int frame_pool_index = anim->current_anim.frame_indices[anim->current_sequence_index];
-            const SpriteFrame& current_frame = anim->master_frames[frame_pool_index];
-
-            const uint8_t* frame_pixels = anim->sheet_pixels + current_frame.offset;
-            uint32_t frame_pixels_size = (current_frame.len > 0) ? static_cast<uint32_t>(current_frame.len) : anim->sheet_pixels_size;
-
-            Draw::sprite_frame(
-                world_draw_x,
-                world_draw_y,
-                frame_pixels,
-                frame_pixels_size,
-                static_cast<float>(current_frame.width),
-                static_cast<float>(current_frame.height),
-                current_frame.x,
-                current_frame.y,
-                current_frame.width,
-                current_frame.height,
-                transform.z_index,
-                static_cast<int>(world_bottom_y), // sort Y override
-                anim->is_flip_h,
-                anim->is_flip_v
-            );
-        }
+        draw_player_sprite(*anim, world_draw_x, world_draw_y, transform.z_index, world_bottom_y);
     }
 
-    // Ground ground collision circle outline
-    if (Debug::DRAW_GROUND_AREAS) {
-        Collision::Circle ground = ground_circle(world_draw_x, world_draw_y);
-        Draw::circle(
-            ground.cx,
-            ground.cy,
-            ground.radius,
-            0xFF00FFFF, // Bright Cyan debug outline
-            false,      // fill = false (outline only)
-            1,          // thickness = 1
-            transform.z_index + 1,
-            static_cast<int>(world_bottom_y)
-        );
-    }
+    // Ground & hurt collision areas + attack hit arc debug outlines
+    draw_debug_outlines(*this, world_draw_x, world_draw_y, alpha, world_bottom_y);
 
-    // Ground hurt collision circle outline
-    if (Debug::DRAW_HURT_AREAS) {
-        Collision::Circle hurt = hurt_circle();
-        Draw::circle(
-            hurt.cx,
-            hurt.cy,
-            hurt.radius,
-            0xFFFFFF00, // Bright Yellow debug outline
-            false,      // fill = false (outline only)
-            1,          // thickness = 1
-            transform.z_index + 1,
-            static_cast<int>(world_bottom_y)
-        );
-    }
-
-    // Attack hit circle (2px inner-outlined circle)
-    if (is_attacking() && (Debug::DRAW_MELEE_ARCS)) {
-        Collision::Circle hit_c = attack_hit_circle(alpha);
-        Draw::circle(
-            hit_c.cx,
-            hit_c.cy,
-            hit_c.radius,
-            0xFF00FFFF, // Bright Cyan debug circle
-            false,      // fill = false (outline only)
-            1,          // thickness = 2 (2px inner-outlined circle)
-            transform.z_index + 2,
-            static_cast<int>(world_bottom_y) // sort Y override
-        );
-    }
-
-    if (Action::is_pressed(Action::Build)) {
-        PlacementPoint pt = placement_fixture_center(world_draw_x, world_draw_y, 16.0f);
-
-        float tile_sz = 16.0f;
-        int target_tx = static_cast<int>(std::floor(pt.cx / tile_sz));
-        int target_ty = static_cast<int>(std::floor(pt.cy / tile_sz));
-        GridPos target_pos{ static_cast<int16_t>(target_tx), static_cast<int16_t>(target_ty) };
-
-        MultiTileFootprint fp = get_fixture_footprint(m_selected_fixture_type);
-        Collision::AABB proposed_aabb = fixture_ground_aabb(target_tx, target_ty, tile_sz, m_selected_fixture_type);
-
-        bool self_overlap = Collision::circle_vs_aabb(ground_circle(world_draw_x, world_draw_y), proposed_aabb);
-        bool has_alloy = (m_cursed_alloy >= fixture_cost(m_selected_fixture_type));
-        bool can_place = true;
-        if (network && tiles) {
-            can_place = network->can_place_fixture(target_pos, m_selected_fixture_type, *tiles);
-        }
-
-        bool is_valid = (!self_overlap) && has_alloy && can_place;
-        uint32_t border_color = is_valid ? 0xFF00FF00 : 0xFF0000FF; // Green/Cyan (valid) vs Red (invalid)
-
-        Draw::rect(
-            static_cast<float>(target_tx) * tile_sz,
-            static_cast<float>(target_ty) * tile_sz,
-            static_cast<float>(fp.width) * tile_sz,
-            static_cast<float>(fp.height) * tile_sz,
-            border_color,
-            false,      // fill = false
-            1,          // thickness = 1
-            transform.z_index + 1,
-            static_cast<int>(world_bottom_y)
-        );
-    }
+    // Fixture placement preview box
+    draw_placement_preview(*this, world_draw_x, world_draw_y, world_bottom_y, tiles, network);
 }
 
 int Player::fixture_cost(FixtureType type) {
@@ -435,49 +446,18 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
         is_facing_left = false;
     }
 
-    // --- update movement animations ---
+    // Update movement animations
     if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
-        if (f == Facing::North) {
-            anim->set_frame(0);
-            anim->is_flip_h = false;
-        } else if (f == Facing::NorthEast) {
-            anim->set_frame(1);
-            anim->is_flip_h = false;
-        } else if (f == Facing::East) {
-            anim->set_frame(2);
-            anim->is_flip_h = false;
-        } else if (f == Facing::SouthEast) {
-            anim->set_frame(3);
-            anim->is_flip_h = false;
-        } else if (f == Facing::South) {
-            anim->set_frame(4);
-            anim->is_flip_h = true;
-        } else if (f == Facing::SouthWest) {
-            anim->set_frame(3);
-            anim->is_flip_h = true;
-        } else if (f == Facing::West) {
-            anim->set_frame(2);
-            anim->is_flip_h = true;
-        } else if (f == Facing::NorthWest) {
-            anim->set_frame(1);
-            anim->is_flip_h = true;
-        }
+        update_facing_animation(*anim, f);
     }
 
     // DIAGONAL SPEED SCALE OPTIONS:
-    // 1.00f = Classic 16-bit SNES/Zelda grid-aligned (+41% speed boost, 100% 60Hz smooth)
-    // 0.75f = Rational 3/4px sub-pixel step (+6% speed boost, silky 4-frame rational rhythm)
-    // 0.70710678f = Euclidean normalized (+0% speed boost, irrational jitter pattern)
     static constexpr float DIAGONAL_SPEED_SCALE = 0.75f;
 
     if (dx != 0.0f && dy != 0.0f) {
         dx *= DIAGONAL_SPEED_SCALE;
         dy *= DIAGONAL_SPEED_SCALE;
     }
-
-    // NOTE: WorldCollision::try_move() prevents geometry penetration during normal gameplay.
-    // Enable ejection safety net if adding heavy knockback, teleports, or phase-dashes.
-    // WorldCollision::enforce_solid_ground_ejection(transform.x, transform.y, ground_circle(), tiles, network, 2.0f, tag);
 
     WorldCollision::try_move(transform.x, transform.y, dx * speed * dt, dy * speed * dt, ground_circle(), tiles, network);
 }
