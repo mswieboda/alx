@@ -22,6 +22,7 @@ struct WorldStructure : public Entity {
     float spawn_timer = 0.0f;
     float pulse_timer = 0.0f;
     float hit_flash_timer = 0.0f;
+    uint32_t last_hit_swing_id = 0;
 
     WorldStructure(float px = 0.0f, float py = 0.0f, StructureType struct_type = StructureType::DarkTower);
 

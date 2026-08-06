@@ -14,6 +14,10 @@ void spawn_refiner_embers(ParticleSystem& ps, float x, float y, int count = 1, i
 void spawn_alloy_pickup(ParticleSystem& ps, float x, float y, int count = 15, int z_index = 10, int y_sort_override = -2147483647 - 1);
 void spawn_straight_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int dir_x, int dir_y, float sim_tick_rate, int count = 1, int tile_size = 16);
 void spawn_corner_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int in_dx, int in_dy, int out_dx, int out_dy, float sim_tick_rate, int count = 1, int tile_size = 16);
+void spawn_tower_pulse(ParticleSystem& ps, float x, float y, float radius, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
+void spawn_tower_shatter(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
+void spawn_egg_hatch(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
+void spawn_egg_shatter(ParticleSystem& ps, float x, float y, int z_index = Layer::WorldObjFX, int y_sort_override = -2147483647 - 1);
 
 } // namespace ParticleEmitters
 } // namespace alx

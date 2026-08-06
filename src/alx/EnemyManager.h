@@ -14,6 +14,7 @@
 #include "alx/ParticleEmitters.h"
 #include "alx/Layer.h"
 #include "alx/WorldStructure.h"
+#include "alx/ShadowEgg.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -59,6 +60,7 @@ private:
     std::vector<Enemy> m_enemies;
     std::vector<AlloyItem> m_alloy_items;
     std::vector<WorldStructure> m_world_structures;
+    std::vector<ShadowEgg> m_shadow_eggs;
     float m_scan_timer = 0.0f;
     float m_next_scan_interval = 2.0f;
     float m_scan_age = 999.0f; // Prevent initial rendering until scan/spawn
@@ -72,6 +74,7 @@ public:
         m_enemies.clear();
         m_alloy_items.clear();
         m_world_structures.clear();
+        m_shadow_eggs.clear();
         m_cached_threat_positions.clear();
         m_scan_timer = 0.0f;
         m_scan_age = 999.0f;
@@ -239,8 +242,49 @@ public:
             m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
         }
 
+        // Process Dark Towers
         for (auto& struct_obj : m_world_structures) {
             struct_obj.update(dt);
+            if (struct_obj.type == StructureType::DarkTower) {
+                // Pulse Logic
+                if (struct_obj.pulse_timer >= 10.0f) {
+                    struct_obj.pulse_timer = 0.0f;
+                    m_pending_twilight_increase += 0.02f;
+                    if (particles) {
+                        ParticleEmitters::spawn_tower_pulse(*particles, struct_obj.center_x(), struct_obj.center_y(), 64.0f);
+                    }
+                }
+                
+                // Spawner Logic
+                struct_obj.spawn_timer += dt;
+                if (struct_obj.spawn_timer >= 8.0f) { // Spawn every 8 seconds
+                    if (m_enemies.size() + m_shadow_eggs.size() < MAX_ACTIVE_ENEMIES) {
+                        struct_obj.spawn_timer = 0.0f;
+                        // Find empty adjacent tile
+                        float sx = struct_obj.transform.x + Random::get_float(-16.0f, 48.0f);
+                        float sy = struct_obj.transform.y + Random::get_float(-16.0f, 64.0f);
+                        m_shadow_eggs.emplace_back(sx, sy);
+                    }
+                }
+            }
+        }
+        
+        // Process Shadow Eggs
+        for (auto it = m_shadow_eggs.begin(); it != m_shadow_eggs.end(); ) {
+            it->update(dt);
+            if (it->hatched) {
+                if (particles) ParticleEmitters::spawn_egg_hatch(*particles, it->center_x(), it->center_y());
+                Enemy& e = m_enemies.emplace_back(it->x, it->y);
+                e.state = EnemyState::Wander;
+                e.state_timer = Random::get_float(4.0f, 6.0f);
+                EnemyMovement::reset_wander_state(e.move_state);
+                it = m_shadow_eggs.erase(it);
+            } else if (it->destroyed) {
+                if (particles) ParticleEmitters::spawn_egg_shatter(*particles, it->center_x(), it->center_y());
+                it = m_shadow_eggs.erase(it);
+            } else {
+                ++it;
+            }
         }
 
         update_enemy_ai(dt, player, tiles, network, particles);
@@ -805,16 +849,60 @@ public:
                             ParticleEmitters::spawn_hit_blood(*particles, contact_x, contact_y, kb_vx, kb_vy, 20, blood_z, blood_sort_y, 0.85f);
                         }
                     }
+                } // end m_enemies loop
+                for (auto& struct_obj : m_world_structures) {
+                    if (struct_obj.type != StructureType::DarkTower) continue;
+                    if (struct_obj.last_hit_swing_id == player.current_swing_id) continue;
+                    if (Collision::circle_vs_aabb(hit_c, struct_obj.ground_aabb())) {
+                        struct_obj.last_hit_swing_id = player.current_swing_id;
+                        struct_obj.take_damage(1);
+                        if (particles) {
+                            int tower_sort_y = static_cast<int>(struct_obj.transform.y + struct_obj.transform.height);
+                            ParticleEmitters::spawn_hit_blood(*particles, hit_c.cx, hit_c.cy, player.facing_dx * 100.0f, player.facing_dy * 100.0f, 10, Layer::WorldObjFX, tower_sort_y, 0.5f);
+                        }
+                    }
+                }
+
+                for (auto& egg : m_shadow_eggs) {
+                    if (egg.hatched || egg.destroyed) continue;
+                    if (egg.last_hit_swing_id == player.current_swing_id) continue;
+                    float contact_x = 0.0f, contact_y = 0.0f;
+                    if (Collision::circle_contact_point(hit_c, egg.hurt_circle(), contact_x, contact_y)) {
+                        egg.last_hit_swing_id = player.current_swing_id;
+                        egg.take_damage(1);
+                        if (particles) {
+                            int egg_sort_y = static_cast<int>(egg.y + egg.height);
+                            ParticleEmitters::spawn_hit_blood(*particles, contact_x, contact_y, player.facing_dx * 150.0f, player.facing_dy * 150.0f, 15, Layer::WorldObjFX, egg_sort_y, 0.7f);
+                        }
+                    }
                 }
             }
         }
 
-        // --- 2. ENEMY DEATH & LOOT DROP ---
+        // --- 2. ENEMY & STRUCTURE DEATH & LOOT DROP ---
         bool removed_any = false;
         for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
             if (it->is_dead() && it->state != EnemyState::HitStun) {
                 m_alloy_items.emplace_back(it->center_x() - 5.0f, it->center_y() - 2.0f);
                 it = m_enemies.erase(it);
+                removed_any = true;
+            } else {
+                ++it;
+            }
+        }
+        
+        for (auto it = m_world_structures.begin(); it != m_world_structures.end(); ) {
+            if (it->type == StructureType::DarkTower && it->hp <= 0) {
+                if (particles) {
+                    ParticleEmitters::spawn_tower_shatter(*particles, it->center_x(), it->center_y());
+                }
+                // Scatter loot (5 Alloy pieces)
+                for (int i = 0; i < 5; ++i) {
+                    float ax = it->center_x() + Random::get_float(-24.0f, 24.0f);
+                    float ay = it->center_y() + Random::get_float(-24.0f, 24.0f);
+                    m_alloy_items.emplace_back(ax, ay);
+                }
+                it = m_world_structures.erase(it);
                 removed_any = true;
             } else {
                 ++it;
@@ -858,6 +946,10 @@ public:
 
         for (const auto& struct_obj : m_world_structures) {
             struct_obj.draw(pixel_buffer, alpha);
+        }
+
+        for (const auto& egg : m_shadow_eggs) {
+            egg.draw(pixel_buffer, alpha);
         }
 
         for (const auto& enemy : m_enemies) {

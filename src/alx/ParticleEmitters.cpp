@@ -336,5 +336,110 @@ void spawn_corner_pipe_mana(ParticleSystem& ps, int tile_x, int tile_y, int in_d
     }
 }
 
+void spawn_tower_pulse(ParticleSystem& ps, float x, float y, float radius, int z_index, int y_sort_override) {
+    int count = Random::get_int(30, 40);
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            float angle = Random::get_float(0.0f, 6.28318f);
+            float speed = Random::get_float(150.0f, 300.0f);
+            
+            p->x = x + std::cos(angle) * radius;
+            p->y = y + std::sin(angle) * radius;
+            p->render_x = p->x;
+            p->render_y = p->y;
+            
+            p->vx = std::cos(angle) * speed;
+            p->vy = std::sin(angle) * speed;
+            
+            p->life = Random::get_float(0.3f, 0.6f);
+            p->max_life = p->life;
+            
+            p->color = Random::chance(0.5f) ? 0xFFCC44FF : 0xFF2A153D;
+            p->size = Random::chance(0.5f) ? 3 : 2;
+            p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
+void spawn_tower_shatter(ParticleSystem& ps, float x, float y, int z_index, int y_sort_override) {
+    int count = 50;
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-8.0f, 8.0f);
+            p->y = y + Random::get_float(-8.0f, 8.0f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+            
+            float angle = Random::get_float(0.0f, 6.28318f);
+            float speed = Random::get_float(80.0f, 250.0f);
+            
+            p->vx = std::cos(angle) * speed;
+            p->vy = std::sin(angle) * speed - Random::get_float(100.0f, 200.0f);
+            
+            p->life = Random::get_float(0.4f, 0.8f);
+            p->max_life = p->life;
+            
+            p->color = Random::chance(0.5f) ? 0xFF120B1C : 0xFF8800AA;
+            p->size = Random::chance(0.7f) ? 2 : 3;
+            p->type = ParticleType::Blood;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
+void spawn_egg_hatch(ParticleSystem& ps, float x, float y, int z_index, int y_sort_override) {
+    int count = Random::get_int(20, 30);
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-6.0f, 6.0f);
+            p->y = y + Random::get_float(-6.0f, 6.0f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+            
+            p->vx = Random::get_float(-40.0f, 40.0f);
+            p->vy = Random::get_float(-80.0f, -20.0f);
+            
+            p->life = Random::get_float(0.5f, 1.0f);
+            p->max_life = p->life;
+            
+            p->color = Random::chance(0.5f) ? 0xFF1A0A29 : 0xFF050505;
+            p->size = Random::get_int(1, 3);
+            p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
+void spawn_egg_shatter(ParticleSystem& ps, float x, float y, int z_index, int y_sort_override) {
+    int count = Random::get_int(20, 30);
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-4.0f, 4.0f);
+            p->y = y + Random::get_float(-4.0f, 4.0f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+            
+            float angle = Random::get_float(0.0f, 6.28318f);
+            float speed = Random::get_float(100.0f, 250.0f);
+            
+            p->vx = std::cos(angle) * speed;
+            p->vy = std::sin(angle) * speed - Random::get_float(30.0f, 80.0f);
+            
+            p->life = Random::get_float(0.2f, 0.5f);
+            p->max_life = p->life;
+            
+            p->color = Random::chance(0.6f) ? 0xFF8800AA : 0xFF440066;
+            p->size = Random::get_int(1, 2);
+            p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
 } // namespace ParticleEmitters
 } // namespace alx
