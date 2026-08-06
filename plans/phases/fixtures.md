@@ -1,4 +1,4 @@
-# Plan: Multi-Tile Fixture Buildings & Connection Ports
+# Multi-Tile Fixture Buildings & Connection Ports Roadmap
 
 ## [EP-FTMB]: Multi-Tile Fixture Buildings & Port Network Epic
 This epic refines multi-tile fixture building footprints (**Refiner: 3x3**, **Spire: 2x3**, **Seep: 3x2**), fixes world collision and player self-placement rules, removes x-ray transparency fading, implements strict perimeter connection ports, and updates 2.5D roof skylight frame rendering.
