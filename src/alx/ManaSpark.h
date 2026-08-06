@@ -5,6 +5,9 @@
 namespace alx {
 
 struct ManaSpark {
+    static constexpr float DEFAULT_SIZE = 4.0f;
+    static constexpr float HALF_SIZE = 2.0f;
+
     float x = 0.0f;
     float y = 0.0f;
     float vx = 0.0f;

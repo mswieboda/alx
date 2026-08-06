@@ -1000,7 +1000,7 @@ namespace alx {
         }
 
         for (const auto& spark : m_mana_sparks) {
-            if (!cam || cam->is_aabb_visible(spark.x - 2.0f, spark.y - 2.0f, 4.0f, 4.0f)) {
+            if (!cam || cam->is_aabb_visible(spark.x - ManaSpark::HALF_SIZE, spark.y - ManaSpark::HALF_SIZE, ManaSpark::DEFAULT_SIZE, ManaSpark::DEFAULT_SIZE)) {
                 spark.draw(pixel_buffer, alpha);
             }
         }

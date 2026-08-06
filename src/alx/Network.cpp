@@ -884,7 +884,8 @@ void Network::draw(
 ) {
     DrawFixtures::begin_frame(last_dt, sim_tick_rate);
 
-    std::vector<int> drawn_roots;
+    static thread_local std::vector<int> s_drawn_roots;
+    s_drawn_roots.clear();
 
     for (int gy = min_ty; gy <= max_ty; ++gy) {
         for (int gx = min_tx; gx <= max_tx; ++gx) {
@@ -897,14 +898,14 @@ void Network::draw(
             if (!in_bounds(root_gx, root_gy)) continue;
 
             int root_idx = root_gy * m_width + root_gx;
-            if (std::find(drawn_roots.begin(), drawn_roots.end(), root_idx) != drawn_roots.end()) {
+            if (std::find(s_drawn_roots.begin(), s_drawn_roots.end(), root_idx) != s_drawn_roots.end()) {
                 continue;
             }
 
             const Fixture& root_fix = fixture(root_gx, root_gy);
             if (root_fix.is_empty() || !root_fix.is_root()) continue;
 
-            drawn_roots.push_back(root_idx);
+            s_drawn_roots.push_back(root_idx);
 
             FixtureType type = root_fix.type;
             int world_x = root_gx * m_tile_size;
