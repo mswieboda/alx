@@ -52,15 +52,15 @@ Resolving these violations will:
 
 ---
 
-## `[PH-FXAL]`: `Fixture.h` & `AlloyItem.h` Source File Creation
+## `[PH-FXAL]`: `Fixture.h` & `AlloyItem.h` Source File Creation (COMPLETED)
 
 ### Identified Anti-Patterns
 * `Fixture.h` contains non-trivial helper logic inline in the header: `get_fixture_ports` (lines 83–101), `is_fixture_port` (lines 103–113), `max_fixture_footprint_dimension` (lines 115–129), and `fixture_ground_aabb` (lines 155–172).
 * `AlloyItem.h` is a header-only file containing full implementations of `update()` and a 50+ line `draw()` method with loops and rendering calls inside the header.
 
 ### Action Plan & Sub-Tasks
-* `[FXSP]`: Create `src/alx/Fixture.cpp` and move non-trivial port calculation functions and AABB helpers out of `Fixture.h`.
-* `[ALSP]`: Create `src/alx/AlloyItem.cpp` and relocate `AlloyItem::update()` and `AlloyItem::draw()` implementations from `AlloyItem.h`.
+* `[FXSP]`: Create `src/alx/Fixture.cpp` and move non-trivial port calculation functions and AABB helpers out of `Fixture.h`. (COMPLETED)
+* `[ALSP]`: Create `src/alx/AlloyItem.cpp` and relocate `AlloyItem::update()` and `AlloyItem::draw()` implementations from `AlloyItem.h`. (COMPLETED)
 
 ---
 
