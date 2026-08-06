@@ -46,6 +46,14 @@ int64_t parse_cli_int64_arg(int argc, char* argv[], std::string_view name, int64
     return result;
 }
 
+bool has_cli_flag(int argc, char* argv[], std::string_view name) {
+    std::string flag = "--" + std::string(name);
+    for (int i = 1; i < argc; ++i) {
+        if (argv[i] == flag) return true;
+    }
+    return false;
+}
+
 // --- UPDATE --- where game logic updates happens
 void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager) {
     frame_time.update();
@@ -92,6 +100,30 @@ void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager
 int main(int argc, char* argv[]) {
     int64_t seed = parse_cli_int64_arg(argc, argv, "seed", Game::CUSTOM_SEED);
     alx::Random::init(seed);
+
+    if (has_cli_flag(argc, argv, "headless-sim") || has_cli_flag(argc, argv, "headless")) {
+        int64_t target_ticks = parse_cli_int64_arg(argc, argv, "ticks", 10000);
+        Log::info("=== RUNNING HEADLESS SIMULATION ===");
+        Log::info("Target Ticks: " + std::to_string(target_ticks));
+        Log::info("Seed: " + std::to_string(seed));
+
+        SceneManager scene_manager;
+        auto scene_ptr = std::make_unique<alx::MainScene>();
+        auto* raw_scene = scene_ptr.get();
+        scene_manager.change_scene(std::move(scene_ptr));
+
+        constexpr float fixed_dt = 1.0f / 60.0f;
+        for (int64_t i = 0; i < target_ticks; ++i) {
+            scene_manager.update(fixed_dt);
+        }
+
+        if (raw_scene) {
+            raw_scene->print_headless_summary_report(seed);
+        }
+
+        Log::info("=== HEADLESS SIMULATION COMPLETED ===");
+        return 0;
+    }
 
     GameWindow game_window(
         Game::TITLE.data(),

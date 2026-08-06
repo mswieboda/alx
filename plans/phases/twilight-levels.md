@@ -1,6 +1,6 @@
 # [EP-TWLS]: Twilight Levels & Automation Survival Balancing Plan
 
-Comprehensive phased roadmap for Headless Simulation Tooling, Twilight Net Flow Dynamics, Continuous Dark Tower Emergence, Infrastructure HP / Penalties, and Enemy Aggro Priorities.
+Comprehensive phased roadmap for Headless Simulation Tooling, Telemetry Viewers, Twilight Net Flow Dynamics, Continuous Dark Tower Emergence, Infrastructure HP / Penalties, and Enemy Aggro Priorities.
 
 ---
 
@@ -28,13 +28,14 @@ Cooldown intervals scale dynamically based on current Twilight Level $T \in [0.0
 
 ## Phased Implementation Roadmap
 
-### [PH-SIMT]: Phase 1 - Headless Simulator & Telemetry Tooling
-Focus: Implement fast headless simulation CLI mode, in-game speed dilation, and real-time debug HUD to enable empirical game balancing without slow manual testing.
+### [PH-SIMT]: Phase 1 - Headless Simulator & Telemetry Tooling (COMPLETED)
+Focus: Implement fast headless simulation CLI mode, atomic JSON telemetry dumper, `task telemetry` live terminal dashboard viewer, and in-game speed dilation.
 
-- [ ] `[SIMT-CLI]`: Headless Simulation CLI Flag - Add `--headless-sim` flag to `main.cpp` supporting `--ticks=N`, `--spires=N`, and `--towers=N` CLI arguments to run game logic without rendering graphics or creating a window.
-- [ ] `[SIMT-STAT]`: Headless Telemetry Logger - Output end-of-simulation summary metrics (Average Twilight, Twilight $dTW/dt$, Fixture destruction counts, Egg spawn count, Time-to-100% Twilight) to stdout or CSV.
-- [ ] `[SIMT-DIL]`: In-Game Time-Dilation Hotkeys - Add speed multiplier keybindings in `MainScene` (Keys 1-4 for 1x, 2x, 5x, 10x frame step simulation speed).
-- [ ] `[SIMT-HUD]`: Debug Telemetry HUD Overlay - Render on-screen debug stats overlay (toggled via `F3` or tilde) displaying real-time Twilight %, Net $dTW/dt$, Active Dark Towers, and Mana Spire Cleanse Rate.
+- [x] `[SIMT-CLI]`: Headless Simulation CLI Flag - Add `--headless-sim` flag to `main.cpp` supporting `--ticks=N`, `--spires=N`, and `--towers=N` CLI arguments to run game logic without rendering graphics or creating a window.
+- [x] `[SIMT-FILE]`: Atomic Telemetry Serializer - Add `TelemetryDumper` in C++ that atomically dumps game state (Twilight %, $dTW/dt$, active towers, egg counts, spire stats) to `/tmp/alx_telemetry.json`.
+- [x] `[SIMT-VIEW]`: `task telemetry` Live Terminal Dashboard - Create Crystal viewer script `toolchain/src/telemetry_viewer.cr` and Taskfile alias `task telemetry` that updates ANSI text in-place every 100ms.
+- [x] `[SIMT-DIL]`: In-Game Time-Dilation Hotkeys - Add speed multiplier keybindings in `MainScene` (Keys 1-4 for 1.0x, 2.0x, 5.0x, 10.0x frame step simulation speed).
+- [x] `[SIMT-STAT]`: Headless Telemetry Exporter - Output end-of-simulation summary metrics (Average Twilight, Twilight $dTW/dt$, Fixture destruction counts, Egg spawn count, Time-to-100% Twilight) to stdout or CSV.
 
 ---
 

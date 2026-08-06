@@ -182,7 +182,7 @@ tasks:
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
     cmds:
       - echo "=> Running {{.build}} {{.name}}..."
-      - ./{{.binary}}
+      - ./{{.binary}} {{.CLI_ARGS}}
 
   # ==========================================
   # CLEAN BUILD FOLDER OR ASSET HEADERS
@@ -285,6 +285,27 @@ tasks:
       - task: run
         vars: { build: Release }
 
+  run-headless:
+    desc: Run Debug game executable in headless simulation mode
+    interactive: true
+    silent: true
+    vars:
+      build: '{{.build | default "Debug"}}'
+      binary: 'build/{{.build}}/{{.name}}{{.exe}}'
+    cmds:
+      - task: build
+        vars: { build: '{{.build}}' }
+      - echo "=> Running {{.build}} {{.name}} (Headless Sim)..."
+      - ./{{.binary}} --headless-sim {{.CLI_ARGS}}
+
+  run-release-headless:
+    desc: Run Release game executable in headless simulation mode
+    interactive: true
+    silent: true
+    cmds:
+      - task: run-headless
+        vars: { build: Release }
+
   clean-release:
     desc: Clean Release build
     cmds:
@@ -334,3 +355,10 @@ tasks:
       - task: build-release
       - task: size-release
       - task: run-release
+
+  telemetry:
+    desc: Run live ANSI telemetry viewer CLI in Crystal
+    interactive: true
+    silent: true
+    cmds:
+      - crystal run toolchain/src/telemetry_viewer.cr

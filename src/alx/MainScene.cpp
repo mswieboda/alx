@@ -11,7 +11,8 @@
 #include "Action.h"
 #include "Random.h"
 #include "Layer.h"
-#include "ParticleEmitters.h"
+#include "alx/ParticleEmitters.h"
+#include "alx/TelemetryDumper.h"
 
 namespace alx {
 
@@ -68,6 +69,12 @@ void MainScene::load_level(int level_id) {
     if (start_node_idx >= 0) {
         m_enemy_manager.spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(start_node_idx), m_tiles);
     }
+
+    m_initial_twilight = m_twilight_level;
+    m_peak_twilight = m_twilight_level;
+    m_min_twilight = m_twilight_level;
+    m_sum_twilight = 0.0;
+    m_time_to_max_twilight = -1.0f;
 }
 
 void MainScene::load_tiles_and_network(
@@ -117,12 +124,76 @@ void MainScene::update_camera_map_boundary() {
     m_camera.set_limits(0, 0, bound_width, bound_height);
 }
 
-void MainScene::update(SceneManager& sm, float dt) {
+void MainScene::dump_telemetry_snapshot() {
+    TelemetrySnapshot snap;
+    snap.ticks = m_sim_tick_count;
+    snap.sim_time_sec = m_sim_elapsed_sec;
+    snap.time_scale = m_time_scale;
+    snap.paused = m_paused;
+    snap.twilight_level = m_twilight_level;
+    snap.twilight_delta_per_sec = m_twilight_delta_per_sec;
+
+    int towers = 0;
+    for (const auto& s : m_enemy_manager.structures()) {
+        if (s.type == StructureType::DarkTower && s.hp > 0) {
+            ++towers;
+        }
+    }
+    snap.dark_towers_count = towers;
+    snap.shadow_eggs_count = static_cast<int>(m_enemy_manager.shadow_eggs().size());
+    snap.enemies_count = static_cast<int>(m_enemy_manager.enemies().size());
+
+    int spires = 0;
+    int refiners = 0;
+    int pipes = 0;
+    int net_w = m_network.width();
+    if (net_w > 0) {
+        for (int idx : m_network.active_indices()) {
+            int x = idx % net_w;
+            int y = idx / net_w;
+            const auto& fix = m_network.fixture(x, y);
+            if (fix.root_offset_x == 0 && fix.root_offset_y == 0) {
+                if (fix.type == FixtureType::Spire) ++spires;
+                else if (fix.type == FixtureType::Refiner) ++refiners;
+                else if (fix.type == FixtureType::Pipe) ++pipes;
+            }
+        }
+    }
+    snap.spires_count = spires;
+    snap.refiners_count = refiners;
+    snap.pipes_count = pipes;
+    snap.spires_cleanse_rate_per_sec = (SIM_TICK_RATE > 0.001f) ? (spires * TWILIGHT_DECREASE_PER_MANA / SIM_TICK_RATE) : 0.0f;
+
+    snap.player_hp = m_player.state.hp;
+    snap.player_max_hp = m_player.state.max_hp;
+    snap.player_alloy = m_player.cursed_alloy();
+
+    TelemetryDumper::dump_snapshot(snap);
+}
+
+void MainScene::update(SceneManager& sm, float raw_dt) {
     if (Action::is_just_pressed(Action::Menu)) {
         m_paused = !m_paused;
     }
 
+    // Time Dilation Hotkeys (Keys 1-4 for 1.0x, 2.0x, 5.0x, 10.0x)
+    if (Input::is_key_just_pressed(KeyCode::Key1)) {
+        m_time_scale = 1.0f;
+    } else if (Input::is_key_just_pressed(KeyCode::Key2)) {
+        m_time_scale = 2.0f;
+    } else if (Input::is_key_just_pressed(KeyCode::Key3)) {
+        m_time_scale = 5.0f;
+    } else if (Input::is_key_just_pressed(KeyCode::Key4)) {
+        m_time_scale = 10.0f;
+    }
+
+    float dt = raw_dt * m_time_scale;
     m_last_dt = dt;
+    ++m_sim_tick_count;
+    m_sim_elapsed_sec += dt;
+
+    float prev_twilight = m_twilight_level;
+
     update_tick_simulation(dt);
 
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
@@ -198,6 +269,67 @@ void MainScene::update(SceneManager& sm, float dt) {
         m_twilight_level -= 1 * dt;
         m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
     }
+
+    m_peak_twilight = std::max(m_peak_twilight, m_twilight_level);
+    m_min_twilight = std::min(m_min_twilight, m_twilight_level);
+    m_sum_twilight += m_twilight_level;
+    if (m_twilight_level >= 0.899f && m_time_to_max_twilight < 0.0f) {
+        m_time_to_max_twilight = m_sim_elapsed_sec;
+    }
+
+    m_twilight_delta_per_sec = (dt > 0.0001f) ? ((m_twilight_level - prev_twilight) / dt) : 0.0f;
+
+    m_telemetry_dump_timer += raw_dt;
+    if (m_telemetry_dump_timer >= TELEMETRY_DUMP_INTERVAL) { // Dump snapshot every 100ms
+        m_telemetry_dump_timer = 0.0f;
+        dump_telemetry_snapshot();
+    }
+}
+
+void MainScene::print_headless_summary_report(int64_t seed) {
+    HeadlessSummaryStats stats;
+    stats.total_ticks = m_sim_tick_count;
+    stats.total_sim_time_sec = m_sim_elapsed_sec;
+    stats.seed = seed;
+    stats.initial_twilight = m_initial_twilight;
+    stats.final_twilight = m_twilight_level;
+    stats.peak_twilight = m_peak_twilight;
+    stats.min_twilight = m_min_twilight;
+    stats.avg_twilight = (m_sim_tick_count > 0) ? static_cast<float>(m_sum_twilight / static_cast<double>(m_sim_tick_count)) : m_twilight_level;
+    stats.time_to_max_twilight = m_time_to_max_twilight;
+
+    int towers = 0;
+    for (const auto& s : m_enemy_manager.structures()) {
+        if (s.type == StructureType::DarkTower && s.hp > 0) {
+            ++towers;
+        }
+    }
+    stats.dark_towers_count = towers;
+    stats.shadow_eggs_count = static_cast<int>(m_enemy_manager.shadow_eggs().size());
+    stats.enemies_count = static_cast<int>(m_enemy_manager.enemies().size());
+
+    int spires = 0;
+    int refiners = 0;
+    int pipes = 0;
+    int net_w = m_network.width();
+    if (net_w > 0) {
+        for (int idx : m_network.active_indices()) {
+            int x = idx % net_w;
+            int y = idx / net_w;
+            const auto& fix = m_network.fixture(x, y);
+            if (fix.root_offset_x == 0 && fix.root_offset_y == 0) {
+                if (fix.type == FixtureType::Spire) ++spires;
+                else if (fix.type == FixtureType::Refiner) ++refiners;
+                else if (fix.type == FixtureType::Pipe) ++pipes;
+            }
+        }
+    }
+    stats.spires_count = spires;
+    stats.refiners_count = refiners;
+    stats.pipes_count = pipes;
+    stats.spires_cleanse_rate_per_sec = (SIM_TICK_RATE > 0.001f) ? (spires * TWILIGHT_DECREASE_PER_MANA / SIM_TICK_RATE) : 0.0f;
+
+    TelemetryDumper::print_summary_report(stats);
 }
 
 void MainScene::update_tick_simulation(float dt) {
