@@ -5,10 +5,9 @@
 
 namespace {
 
-[[nodiscard]] bool is_valid_ley_node_footprint(int tile_x, int tile_y, const alx::Tiles& tiles) noexcept {
-    const int tile_sz = tiles.tile_size();
-    const int foot_w_tiles = (tile_sz > 0) ? static_cast<int>(std::ceil(alx::WorldStructure::DARK_TOWER_WIDTH / static_cast<float>(tile_sz))) : 3;
-    const int foot_h_tiles = (tile_sz > 0) ? static_cast<int>(std::ceil(alx::WorldStructure::DARK_TOWER_HEIGHT / static_cast<float>(tile_sz))) : 4;
+[[nodiscard]] bool is_valid_corrupted_tile_footprint(int tile_x, int tile_y, const alx::Tiles& tiles) noexcept {
+    constexpr int foot_w_tiles = alx::WorldStructure::DARK_TOWER_TILE_WIDTH;
+    constexpr int foot_h_tiles = alx::WorldStructure::DARK_TOWER_TILE_HEIGHT;
 
     for (int dy = 0; dy < foot_h_tiles; ++dy) {
         for (int dx = 0; dx < foot_w_tiles; ++dx) {
@@ -32,56 +31,54 @@ namespace alx {
         m_world_structures.clear();
         m_shadow_eggs.clear();
         m_cached_threat_positions.clear();
-        for (auto& node : m_ley_nodes) {
-            node.is_occupied = false;
+        for (auto& tile : m_corrupted_tiles) {
+            tile.is_occupied = false;
         }
         m_scan_timer = 0.0f;
         m_scan_age = 999.0f;
         m_next_scan_interval = 2.0f;
+        m_tower_emergence_timer = 0.0f;
+        m_next_emergence_cooldown = DarkTowerConstants::EMERGENCE_COOLDOWN_MIN;
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
     }
 
-    void EnemyManager::register_ley_nodes(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles) {
-        m_ley_nodes.clear();
-        m_ley_nodes.reserve(coords.size());
+    void EnemyManager::register_corrupted_tiles(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles) {
+        m_corrupted_tiles.clear();
+        m_corrupted_tiles.reserve(coords.size());
 
         for (const auto& [tx, ty] : coords) {
-            if (is_valid_ley_node_footprint(tx, ty, tiles)) {
-                m_ley_nodes.push_back(DarkTowerLeyNode{ tx, ty, false, 0.0f });
+            if (is_valid_corrupted_tile_footprint(tx, ty, tiles)) {
+                m_corrupted_tiles.push_back(CorruptedDarkTowerTile{ tx, ty, false, 0.0f });
             }
         }
     }
 
-    int EnemyManager::find_unoccupied_ley_node_index() const {
-        std::vector<int> candidates;
-        candidates.reserve(m_ley_nodes.size());
-
-        for (size_t i = 0; i < m_ley_nodes.size(); ++i) {
-            if (!m_ley_nodes[i].is_occupied) {
-                candidates.push_back(static_cast<int>(i));
+    int EnemyManager::find_unoccupied_corrupted_tile_index() const {
+        int free_count = 0;
+        int selected_idx = -1;
+        for (size_t i = 0; i < m_corrupted_tiles.size(); ++i) {
+            if (m_corrupted_tiles[i].is_available()) {
+                ++free_count;
+                if (Random::get_int(1, free_count) == 1) {
+                    selected_idx = static_cast<int>(i);
+                }
             }
         }
-
-        if (candidates.empty()) {
-            return -1;
-        }
-
-        int rand_idx = Random::get_int(0, static_cast<int>(candidates.size()) - 1);
-        return candidates[rand_idx];
+        return selected_idx;
     }
 
-    void EnemyManager::spawn_dark_tower_at_ley_node(size_t node_index, const Tiles& tiles) {
-        if (node_index >= m_ley_nodes.size() || m_ley_nodes[node_index].is_occupied) {
+    void EnemyManager::spawn_dark_tower_at_corrupted_tile(size_t tile_index, const Tiles& tiles) {
+        if (tile_index >= m_corrupted_tiles.size() || !m_corrupted_tiles[tile_index].is_available()) {
             return;
         }
 
-        m_ley_nodes[node_index].is_occupied = true;
-        float px = static_cast<float>(m_ley_nodes[node_index].tile_x * tiles.tile_size());
-        float py = static_cast<float>(m_ley_nodes[node_index].tile_y * tiles.tile_size());
+        m_corrupted_tiles[tile_index].is_occupied = true;
+        float px = static_cast<float>(m_corrupted_tiles[tile_index].tile_x * tiles.tile_size());
+        float py = static_cast<float>(m_corrupted_tiles[tile_index].tile_y * tiles.tile_size());
 
         WorldStructure& dt = m_world_structures.emplace_back(px, py, StructureType::DarkTower);
-        dt.ley_node_index = static_cast<int>(node_index);
+        dt.corrupted_tile_index = static_cast<int>(tile_index);
         dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
     }
 
@@ -92,10 +89,8 @@ namespace alx {
 
     float EnemyManager::calculate_inverse_twilight_cooldown(float twilight_level) const {
         float clamped_t = std::clamp(twilight_level, 0.0f, 1.0f);
-        float min_cd = DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN + 
-            (DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN - DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN) * clamped_t;
-        float max_cd = DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN + 
-            (DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN - DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN) * clamped_t;
+        float min_cd = std::lerp(DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN, clamped_t);
+        float max_cd = std::lerp(DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN, clamped_t);
         return Random::get_float(min_cd, max_cd);
     }
 
@@ -274,6 +269,28 @@ namespace alx {
                     spawn_dark_tower_wave(struct_obj, tiles, network);
                 }
             }
+        }
+
+        // Emergence Spawner Loop: Re-emerge a Dark Tower if active towers drop below target count
+        int active_dark_towers = 0;
+        for (const auto& s : m_world_structures) {
+            if (s.type == StructureType::DarkTower && s.hp > 0) {
+                ++active_dark_towers;
+            }
+        }
+
+        if (active_dark_towers < DarkTowerConstants::TARGET_ACTIVE_DARK_TOWERS) {
+            m_tower_emergence_timer += dt;
+            if (m_tower_emergence_timer >= m_next_emergence_cooldown) {
+                m_tower_emergence_timer = 0.0f;
+                m_next_emergence_cooldown = Random::get_float(DarkTowerConstants::EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::EMERGENCE_COOLDOWN_MAX);
+                int target_tile_idx = find_unoccupied_corrupted_tile_index();
+                if (target_tile_idx >= 0) {
+                    spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(target_tile_idx), tiles);
+                }
+            }
+        } else {
+            m_tower_emergence_timer = 0.0f;
         }
         
         // Process Shadow Eggs
@@ -1004,9 +1021,9 @@ namespace alx {
                 if (particles) {
                     ParticleEmitters::spawn_tower_shatter(*particles, it->center_x(), it->center_y());
                 }
-                // Free associated Ley-Node slot
-                if (it->ley_node_index >= 0 && static_cast<size_t>(it->ley_node_index) < m_ley_nodes.size()) {
-                    m_ley_nodes[it->ley_node_index].is_occupied = false;
+                // Free associated corrupted tile slot
+                if (it->corrupted_tile_index >= 0 && static_cast<size_t>(it->corrupted_tile_index) < m_corrupted_tiles.size()) {
+                    m_corrupted_tiles[it->corrupted_tile_index].is_occupied = false;
                 }
                 // Scatter loot (5 Alloy pieces)
                 for (int i = 0; i < 5; ++i) {
@@ -1254,6 +1271,24 @@ namespace alx {
                 float start_x = tc_x - (ShadowEgg::EGG_WIDTH * 0.5f);
                 float start_y = tc_y - (ShadowEgg::EGG_HEIGHT * 0.5f);
                 m_shadow_eggs.emplace_back(start_x, start_y, target_x, target_y, ShadowEggConstants::EJECT_FLIGHT_DURATION);
+            }
+        }
+    }
+
+    void EnemyManager::draw_corrupted_tiles(int tile_size) const {
+        float w = WorldStructure::DARK_TOWER_WIDTH;
+        float h = WorldStructure::DARK_TOWER_HEIGHT;
+        uint32_t fill_color = 0x7F120B1C;   // 50% opacity Deep Obsidian Base
+        uint32_t border_color = 0x7F2A153D; // 50% opacity Dark Trim Accent Border
+
+        for (const auto& tile : m_corrupted_tiles) {
+            if (tile.is_available()) {
+                float wx = static_cast<float>(tile.tile_x * tile_size);
+                float wy = static_cast<float>(tile.tile_y * tile_size);
+                int roof_sort_y = static_cast<int>(wy + 16.0f);
+
+                Draw::rect(wx, wy, w, h, fill_color, true, 1, Layer::WorldObjBG, roof_sort_y);
+                Draw::rect(wx, wy, w, h, border_color, false, 2, Layer::WorldObjBG, roof_sort_y);
             }
         }
     }

@@ -36,7 +36,7 @@ void MainScene::load_level(int level_id) {
     std::vector<std::pair<int, int>> spires;
     std::vector<std::pair<int, int>> pipes;
 
-    std::vector<std::pair<int, int>> ley_node_coords;
+    std::vector<std::pair<int, int>> corrupted_tile_coords;
 
     if (level_id == 1) {
         m_tiles = Tiles(60, 30);
@@ -56,17 +56,17 @@ void MainScene::load_level(int level_id) {
             {9, 9}, {8, 9}, {7, 9}
         };
 
-        ley_node_coords = { {25, 10}, {40, 12}, {15, 20}, {45, 8} };
+        corrupted_tile_coords = { {25, 10}, {40, 12}, {15, 20}, {45, 8} };
     }
 
     update_camera_map_boundary();
     load_tiles_and_network(seeps, refiners, spires, pipes);
     m_enemy_manager.clear();
-    m_enemy_manager.register_ley_nodes(ley_node_coords, m_tiles);
+    m_enemy_manager.register_corrupted_tiles(corrupted_tile_coords, m_tiles);
 
-    int start_node_idx = m_enemy_manager.find_unoccupied_ley_node_index();
+    int start_node_idx = m_enemy_manager.find_unoccupied_corrupted_tile_index();
     if (start_node_idx >= 0) {
-        m_enemy_manager.spawn_dark_tower_at_ley_node(static_cast<size_t>(start_node_idx), m_tiles);
+        m_enemy_manager.spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(start_node_idx), m_tiles);
     }
 }
 
@@ -224,6 +224,7 @@ void MainScene::draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) {
     float sub_tick_progress = std::clamp(m_sim_timer / SIM_TICK_RATE, 0.0f, 1.0f);
 
     draw_tiles_and_network(pixel_buffer, sub_tick_progress);
+    m_enemy_manager.draw_corrupted_tiles(m_tiles.tile_size());
     m_enemy_manager.draw_enemies(pixel_buffer, alpha);
     m_player.draw(pixel_buffer, alpha, &m_tiles, &m_network);
     m_particle_system.draw(&m_camera);

@@ -14,12 +14,14 @@ enum class StructureType : uint8_t {
 struct WorldStructure : public Entity {
     static constexpr float DARK_TOWER_WIDTH = 48.0f;  // 3 tiles (16px * 3)
     static constexpr float DARK_TOWER_HEIGHT = 64.0f; // 4 tiles (16px * 4)
+    static constexpr int DARK_TOWER_TILE_WIDTH = 3;
+    static constexpr int DARK_TOWER_TILE_HEIGHT = 4;
     static constexpr int DEFAULT_DARK_TOWER_MAX_HP = 8;
 
     StructureType type = StructureType::DarkTower;
     int hp = DEFAULT_DARK_TOWER_MAX_HP;
     int max_hp = DEFAULT_DARK_TOWER_MAX_HP;
-    int ley_node_index = -1;
+    int corrupted_tile_index = -1;
     float spawn_timer = 0.0f;
     float next_spawn_cooldown = 4.0f; // Initial spawn warm-up delay
     float pulse_timer = 0.0f;
