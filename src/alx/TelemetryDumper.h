@@ -12,6 +12,12 @@ struct TelemetrySnapshot {
     bool paused{false};
     float twilight_level{0.0f};
     float twilight_delta_per_sec{0.0f};
+    float twilight_rolling_rate_per_sec{0.0f};
+    float twilight_rolling_rate_15s_per_sec{0.0f};
+    float twilight_session_net_rate_per_sec{0.0f};
+    float last_twilight_event_delta{0.0f};
+    std::string last_twilight_event_cause{"None"};
+    float seconds_since_last_event{0.0f};
     int dark_towers_count{0};
     int shadow_eggs_count{0};
     int enemies_count{0};

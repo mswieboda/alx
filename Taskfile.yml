@@ -361,4 +361,6 @@ tasks:
     interactive: true
     silent: true
     cmds:
+      - echo "=> Running live telemetry viewer..."
+      - echo "=> Compiling script, and running..."
       - crystal run toolchain/src/telemetry_viewer.cr

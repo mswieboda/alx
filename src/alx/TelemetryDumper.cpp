@@ -23,6 +23,12 @@ bool TelemetryDumper::dump_snapshot(const TelemetrySnapshot& snapshot) {
         "  \"twilight_level\": %.4f,\n"
         "  \"twilight_pct\": %d,\n"
         "  \"twilight_delta_per_sec\": %.4f,\n"
+        "  \"twilight_rolling_rate_per_sec\": %.4f,\n"
+        "  \"twilight_rolling_rate_15s_per_sec\": %.4f,\n"
+        "  \"twilight_session_net_rate_per_sec\": %.4f,\n"
+        "  \"last_twilight_event_delta\": %.4f,\n"
+        "  \"last_twilight_event_cause\": \"%s\",\n"
+        "  \"seconds_since_last_event\": %.2f,\n"
         "  \"dark_towers_count\": %d,\n"
         "  \"shadow_eggs_count\": %d,\n"
         "  \"enemies_count\": %d,\n"
@@ -41,6 +47,12 @@ bool TelemetryDumper::dump_snapshot(const TelemetrySnapshot& snapshot) {
         snapshot.twilight_level,
         twilight_pct,
         snapshot.twilight_delta_per_sec,
+        snapshot.twilight_rolling_rate_per_sec,
+        snapshot.twilight_rolling_rate_15s_per_sec,
+        snapshot.twilight_session_net_rate_per_sec,
+        snapshot.last_twilight_event_delta,
+        snapshot.last_twilight_event_cause.c_str(),
+        snapshot.seconds_since_last_event,
         snapshot.dark_towers_count,
         snapshot.shadow_eggs_count,
         snapshot.enemies_count,

@@ -13,6 +13,12 @@ module Alx
       property twilight_level : Float64?
       property twilight_pct : Int32?
       property twilight_delta_per_sec : Float64?
+      property twilight_rolling_rate_per_sec : Float64?
+      property twilight_rolling_rate_15s_per_sec : Float64?
+      property twilight_session_net_rate_per_sec : Float64?
+      property last_twilight_event_delta : Float64?
+      property last_twilight_event_cause : String?
+      property seconds_since_last_event : Float64?
       property dark_towers_count : Int32?
       property shadow_eggs_count : Int32?
       property enemies_count : Int32?
@@ -56,7 +62,6 @@ module Alx
 
       twilight_val = data.twilight_level || 0.0
       twilight_pct = data.twilight_pct || (twilight_val * 100).to_i
-      twilight_dt = data.twilight_delta_per_sec || 0.0
 
       bar_width = 30
       filled_len = (twilight_val * bar_width).round.to_i.clamp(0, bar_width)
@@ -82,10 +87,28 @@ module Alx
         (data.paused ? "\e[33mPAUSED\e[0m" : "\e[32mRUNNING\e[0m"),
         data.player_hp || 0, data.player_max_hp || 0, data.player_alloy || 0
       puts "\e[1;36m-----------------------------------------------------------------------\e[0m"
-      puts " TWILIGHT LEVEL:"
-      printf " [%s] %s%3d%%\e[0m (Raw: %.4f)\n", bar_str, tw_color, twilight_pct, twilight_val
-      printf " Rate of Change (dTW/dt): %s%+.4f/sec\e[0m\n",
-        (twilight_dt > 0 ? "\e[31m" : (twilight_dt < 0 ? "\e[32m" : "\e[37m")), twilight_dt
+      puts " TWILIGHT LEVEL & NET FLOW DYNAMICS:"
+      printf " Current Level:     [%s] %s%3d%%\e[0m (Raw: %.4f)\n", bar_str, tw_color, twilight_pct, twilight_val
+
+      rolling_dt = data.twilight_rolling_rate_per_sec || 0.0
+      rolling_color = rolling_dt > 0.0001 ? "\e[1;31m" : (rolling_dt < -0.0001 ? "\e[1;32m" : "\e[37m")
+      rolling_status = rolling_dt > 0.0001 ? "Corrupting" : (rolling_dt < -0.0001 ? "Cleansing" : "Stable")
+      printf " Rolling Rate (3s):  %s%+.4f/sec (%s)\e[0m\n", rolling_color, rolling_dt, rolling_status
+
+      rolling_15s_dt = data.twilight_rolling_rate_15s_per_sec || 0.0
+      rolling_15s_color = rolling_15s_dt > 0.0001 ? "\e[1;31m" : (rolling_15s_dt < -0.0001 ? "\e[1;32m" : "\e[37m")
+      rolling_15s_status = rolling_15s_dt > 0.0001 ? "Corrupting" : (rolling_15s_dt < -0.0001 ? "Cleansing" : "Stable")
+      printf " Rolling Rate (15s): %s%+.4f/sec (%s)\e[0m\n", rolling_15s_color, rolling_15s_dt, rolling_15s_status
+
+      session_dt = data.twilight_session_net_rate_per_sec || 0.0
+      session_color = session_dt > 0.0001 ? "\e[1;31m" : (session_dt < -0.0001 ? "\e[1;32m" : "\e[37m")
+      session_status = session_dt > 0.0001 ? "Net Corrupting" : (session_dt < -0.0001 ? "Net Purifying" : "Net Neutral")
+      printf " Session Net Rate:   %s%+.4f/sec (%s)\e[0m\n", session_color, session_dt, session_status
+
+      last_delta = data.last_twilight_event_delta || 0.0
+      last_cause = data.last_twilight_event_cause || "None"
+      last_ago = data.seconds_since_last_event || 0.0
+      printf " Last Event:         %+.4f [%s] (%.1fs ago)\n", last_delta, last_cause, last_ago
       puts "\e[1;36m-----------------------------------------------------------------------\e[0m"
       puts " SHADOW & THREAT SYSTEM:"
       printf " Dark Towers:  %-3d  | Shadow Eggs: %-3d  | Active Enemies: %-3d\n",

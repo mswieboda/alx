@@ -41,12 +41,29 @@ private:
     bool m_slash_was_attacking = false;
 
     // Telemetry & Time Dilation
+    static constexpr float ROLLING_WINDOW_SHORT_SEC = 3.0f;
+    static constexpr float ROLLING_WINDOW_LONG_SEC = 15.0f;
+    static constexpr size_t ROLLING_BUFFER_MAX_SAMPLES = 960; // 16s @ 60fps
+    
+    struct RollingSample {
+        float dt{0.0f};
+        float delta{0.0f};
+    };
+    RollingSample m_rolling_samples[ROLLING_BUFFER_MAX_SAMPLES]{};
+    size_t m_rolling_sample_head{0};
+    size_t m_rolling_sample_count{0};
+
     float m_time_scale{1.0f};
     int64_t m_sim_tick_count{0};
     float m_sim_elapsed_sec{0.0f};
     float m_last_twilight_level{TWILIGHT_MAX};
     float m_twilight_delta_per_sec{0.0f};
     float m_telemetry_dump_timer{0.0f};
+
+    // Last Event Tracking
+    float m_last_event_delta{0.0f};
+    std::string m_last_event_cause{"None"};
+    float m_last_event_timestamp{0.0f};
 
     // Summary Statistics Tracking
     float m_initial_twilight{TWILIGHT_MAX};
@@ -55,6 +72,8 @@ private:
     double m_sum_twilight{0.0};
     float m_time_to_max_twilight{-1.0f};
 
+    void record_twilight_event(float delta, const char* cause);
+    [[nodiscard]] float calculate_rolling_twilight_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
     void update_tick_simulation(float dt);
     void dump_telemetry_snapshot();
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);

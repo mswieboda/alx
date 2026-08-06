@@ -75,6 +75,12 @@ void MainScene::load_level(int level_id) {
     m_min_twilight = m_twilight_level;
     m_sum_twilight = 0.0;
     m_time_to_max_twilight = -1.0f;
+
+    m_rolling_sample_head = 0;
+    m_rolling_sample_count = 0;
+    m_last_event_delta = 0.0f;
+    m_last_event_cause = "None";
+    m_last_event_timestamp = 0.0f;
 }
 
 void MainScene::load_tiles_and_network(
@@ -124,6 +130,32 @@ void MainScene::update_camera_map_boundary() {
     m_camera.set_limits(0, 0, bound_width, bound_height);
 }
 
+void MainScene::record_twilight_event(float delta, const char* cause) {
+    m_last_event_delta = delta;
+    m_last_event_cause = cause ? cause : "Unknown";
+    m_last_event_timestamp = m_sim_elapsed_sec;
+}
+
+float MainScene::calculate_rolling_twilight_rate(float duration_sec) const {
+    if (m_rolling_sample_count == 0) return 0.0f;
+
+    float total_dt = 0.0f;
+    float total_delta = 0.0f;
+
+    for (size_t i = 0; i < m_rolling_sample_count; ++i) {
+        size_t idx = (m_rolling_sample_head + ROLLING_BUFFER_MAX_SAMPLES - 1 - i) % ROLLING_BUFFER_MAX_SAMPLES;
+        const auto& sample = m_rolling_samples[idx];
+        if (total_dt + sample.dt > duration_sec && total_dt > 0.0f) {
+            break;
+        }
+        total_dt += sample.dt;
+        total_delta += sample.delta;
+    }
+
+    if (total_dt <= 0.0001f) return 0.0f;
+    return total_delta / total_dt;
+}
+
 void MainScene::dump_telemetry_snapshot() {
     TelemetrySnapshot snap;
     snap.ticks = m_sim_tick_count;
@@ -132,6 +164,12 @@ void MainScene::dump_telemetry_snapshot() {
     snap.paused = m_paused;
     snap.twilight_level = m_twilight_level;
     snap.twilight_delta_per_sec = m_twilight_delta_per_sec;
+    snap.twilight_rolling_rate_per_sec = calculate_rolling_twilight_rate(ROLLING_WINDOW_SHORT_SEC);
+    snap.twilight_rolling_rate_15s_per_sec = calculate_rolling_twilight_rate(ROLLING_WINDOW_LONG_SEC);
+    snap.twilight_session_net_rate_per_sec = (m_sim_elapsed_sec > 0.001f) ? ((m_twilight_level - m_initial_twilight) / m_sim_elapsed_sec) : 0.0f;
+    snap.last_twilight_event_delta = m_last_event_delta;
+    snap.last_twilight_event_cause = m_last_event_cause;
+    snap.seconds_since_last_event = std::max(0.0f, m_sim_elapsed_sec - m_last_event_timestamp);
 
     int towers = 0;
     for (const auto& s : m_enemy_manager.structures()) {
@@ -256,6 +294,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
     if (tw_inc > 0.0f) {
         m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
+        record_twilight_event(tw_inc, "Tower/Fixture Corruption");
     }
 
     if (Action::is_just_pressed(Action::DebugEnemyWave)) {
@@ -265,9 +304,11 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (Action::is_pressed(Action::DebugTwUp)) {
         m_twilight_level += 1 * dt;
         m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+        record_twilight_event(1.0f * dt, "Debug TwUp");
     } else if (Action::is_pressed(Action::DebugTwDown)) {
         m_twilight_level -= 1 * dt;
         m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+        record_twilight_event(-1.0f * dt, "Debug TwDown");
     }
 
     m_peak_twilight = std::max(m_peak_twilight, m_twilight_level);
@@ -277,7 +318,14 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_time_to_max_twilight = m_sim_elapsed_sec;
     }
 
-    m_twilight_delta_per_sec = (dt > 0.0001f) ? ((m_twilight_level - prev_twilight) / dt) : 0.0f;
+    float frame_delta = m_twilight_level - prev_twilight;
+    m_twilight_delta_per_sec = (dt > 0.0001f) ? (frame_delta / dt) : 0.0f;
+
+    m_rolling_samples[m_rolling_sample_head] = RollingSample{ dt, frame_delta };
+    m_rolling_sample_head = (m_rolling_sample_head + 1) % ROLLING_BUFFER_MAX_SAMPLES;
+    if (m_rolling_sample_count < ROLLING_BUFFER_MAX_SAMPLES) {
+        ++m_rolling_sample_count;
+    }
 
     m_telemetry_dump_timer += raw_dt;
     if (m_telemetry_dump_timer >= TELEMETRY_DUMP_INTERVAL) { // Dump snapshot every 100ms
@@ -342,8 +390,10 @@ void MainScene::update_tick_simulation(float dt) {
 
         NetworkSimResults sim_res = m_network.sim_tick();
         if (sim_res.spires_converted > 0) {
-            m_twilight_level -= TWILIGHT_DECREASE_PER_MANA * sim_res.spires_converted;
+            float dec = TWILIGHT_DECREASE_PER_MANA * sim_res.spires_converted;
+            m_twilight_level -= dec;
             m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            record_twilight_event(-dec, "Spire Cleanse");
         }
     }
 }
