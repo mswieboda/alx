@@ -20,6 +20,7 @@ struct WorldStructure : public Entity {
     int hp = DEFAULT_DARK_TOWER_MAX_HP;
     int max_hp = DEFAULT_DARK_TOWER_MAX_HP;
     float spawn_timer = 0.0f;
+    float next_spawn_cooldown = 4.0f; // Initial spawn warm-up delay
     float pulse_timer = 0.0f;
     float hit_flash_timer = 0.0f;
     uint32_t last_hit_swing_id = 0;
@@ -29,6 +30,7 @@ struct WorldStructure : public Entity {
     float center_x(float alpha = 1.0f) const;
     float center_y(float alpha = 1.0f) const;
 
+    bool is_telegraphing(float telegraph_threshold = 1.0f) const;
     Collision::AABB ground_aabb() const;
     void sync_prev_transforms();
     void take_damage(int amount);

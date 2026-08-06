@@ -24,6 +24,21 @@ namespace SpawnerConstants {
 
 }
 
+namespace DarkTowerConstants {
+    static constexpr float SPAWN_INTERVAL_MIN = 6.0f;
+    static constexpr float SPAWN_INTERVAL_MAX = 12.0f;
+    static constexpr float INITIAL_SPAWN_DELAY = 4.0f;
+    static constexpr int WAVE_EGG_COUNT_MIN = 1;
+    static constexpr int WAVE_EGG_COUNT_MAX = 3;
+    static constexpr int MAX_ACTIVE_EGGS_PER_TOWER = 4;
+    static constexpr float SPAWN_TILE_OFFSET_MIN_RATIO = 0.25f;
+    static constexpr float SPAWN_TILE_OFFSET_MAX_RATIO = 2.00f;
+    static constexpr int SPAWN_RING_SEARCH_STEPS = 16;
+    static constexpr float TELEGRAPH_DURATION = 1.0f;
+    static constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
+    static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
+}
+
 struct CachedThreatPos {
     float world_x = 0.0f;
     float world_y = 0.0f;
@@ -87,7 +102,7 @@ public:
     void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false) ;
 
 
-    void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr) ;
+    void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr, float twilight_level = 0.0f) ;
 
 
     bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) const ;
@@ -118,7 +133,7 @@ public:
 
 private:
     void update_threat_cache() ;
-
+    void spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network) ;
 };
 
 } // namespace alx

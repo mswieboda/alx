@@ -22,6 +22,10 @@ namespace Collision {
                 y1 < y2 + h2 && y1 + h1 > y2);
     }
 
+    inline bool aabb_vs_aabb(const AABB& a, const AABB& b) {
+        return aabb(a.x, a.y, a.w, a.h, b.x, b.y, b.w, b.h);
+    }
+
     inline bool circle_vs_circle(const Circle& a, const Circle& b) {
         float dx = a.cx - b.cx;
         float dy = a.cy - b.cy;

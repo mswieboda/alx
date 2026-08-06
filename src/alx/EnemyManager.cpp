@@ -19,7 +19,8 @@ namespace alx {
     }
 
     void EnemyManager::spawn_dark_tower(float x, float y) {
-        m_world_structures.emplace_back(x, y, StructureType::DarkTower);
+        WorldStructure& dt = m_world_structures.emplace_back(x, y, StructureType::DarkTower);
+        dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
     }
 
     float EnemyManager::consume_pending_twilight_increase() {
@@ -164,7 +165,7 @@ namespace alx {
         m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
     }
 
-    void EnemyManager::update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles ) {
+    void EnemyManager::update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles, float twilight_level) {
         m_scan_timer += dt;
         m_scan_age += dt;
         if (m_scan_timer >= m_next_scan_interval) {
@@ -187,16 +188,14 @@ namespace alx {
                     }
                 }
                 
-                // Spawner Logic
-                struct_obj.spawn_timer += dt;
-                if (struct_obj.spawn_timer >= 8.0f) { // Spawn every 8 seconds
-                    if (m_enemies.size() + m_shadow_eggs.size() < MAX_ACTIVE_ENEMIES) {
-                        struct_obj.spawn_timer = 0.0f;
-                        // Find empty adjacent tile
-                        float sx = struct_obj.transform.x + Random::get_float(-16.0f, 48.0f);
-                        float sy = struct_obj.transform.y + Random::get_float(-16.0f, 64.0f);
-                        m_shadow_eggs.emplace_back(sx, sy);
-                    }
+                // Spawner Logic with twilight speedup
+                float speedup = (twilight_level >= DarkTowerConstants::CRITICAL_TWILIGHT_THRESHOLD) ? DarkTowerConstants::TWILIGHT_SPEEDUP_FACTOR : 1.0f;
+                struct_obj.spawn_timer += dt * speedup;
+
+                if (struct_obj.spawn_timer >= struct_obj.next_spawn_cooldown) {
+                    struct_obj.spawn_timer = 0.0f;
+                    struct_obj.next_spawn_cooldown = Random::get_float(DarkTowerConstants::SPAWN_INTERVAL_MIN, DarkTowerConstants::SPAWN_INTERVAL_MAX);
+                    spawn_dark_tower_wave(struct_obj, tiles, network);
                 }
             }
         }
@@ -1090,6 +1089,92 @@ namespace alx {
         m_cached_threat_positions.reserve(m_enemies.size());
         for (const auto& enemy : m_enemies) {
             m_cached_threat_positions.push_back(CachedThreatPos{ enemy.center_x(), enemy.center_y() });
+        }
+    }
+
+    void EnemyManager::spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network) {
+        int active_eggs_count = 0;
+        Collision::AABB tower_aabb = tower.ground_aabb();
+        float tc_x = tower.center_x();
+        float tc_y = tower.center_y();
+
+        // Count active unhatched eggs belonging to/around this tower
+        float tower_radius_check = (WorldStructure::DARK_TOWER_WIDTH + WorldStructure::DARK_TOWER_HEIGHT) * 0.5f + (tiles.tile_size() * 4.0f);
+        for (const auto& egg : m_shadow_eggs) {
+            if (egg.hatched || egg.destroyed) continue;
+            float dx = egg.center_x() - tc_x;
+            float dy = egg.center_y() - tc_y;
+            if ((dx * dx + dy * dy) <= (tower_radius_check * tower_radius_check)) {
+                active_eggs_count++;
+            }
+        }
+
+        if (active_eggs_count >= DarkTowerConstants::MAX_ACTIVE_EGGS_PER_TOWER) {
+            return;
+        }
+
+        int eggs_to_spawn = Random::get_int(DarkTowerConstants::WAVE_EGG_COUNT_MIN, DarkTowerConstants::WAVE_EGG_COUNT_MAX);
+        int remaining_room_capacity = static_cast<int>(MAX_ACTIVE_ENEMIES) - static_cast<int>(m_enemies.size() + m_shadow_eggs.size());
+        int max_can_spawn = std::min(DarkTowerConstants::MAX_ACTIVE_EGGS_PER_TOWER - active_eggs_count, remaining_room_capacity);
+        eggs_to_spawn = std::clamp(eggs_to_spawn, 0, std::max(0, max_can_spawn));
+
+        if (eggs_to_spawn <= 0) return;
+
+        static constexpr float TWO_PI = 6.28318530718f;
+        float base_angle = Random::get_float(0.0f, TWO_PI);
+        float angle_step = TWO_PI / static_cast<float>(eggs_to_spawn);
+
+        float tower_max_extent = std::max(WorldStructure::DARK_TOWER_WIDTH * 0.5f, WorldStructure::DARK_TOWER_HEIGHT * 0.5f) + (ShadowEgg::EGG_WIDTH * 0.5f);
+
+        for (int i = 0; i < eggs_to_spawn; ++i) {
+            float angle = base_angle + i * angle_step + Random::get_float(-0.2f, 0.2f);
+            float offset_ratio = Random::get_float(DarkTowerConstants::SPAWN_TILE_OFFSET_MIN_RATIO, DarkTowerConstants::SPAWN_TILE_OFFSET_MAX_RATIO);
+            float dist = tower_max_extent + (tiles.tile_size() * offset_ratio);
+
+            float target_x = tc_x + dist * std::cos(angle) - (ShadowEgg::EGG_WIDTH * 0.5f);
+            float target_y = tc_y + dist * std::sin(angle) - (ShadowEgg::EGG_HEIGHT * 0.5f);
+
+            bool spot_found = false;
+            // 16-step Rotational Ring Search Safety Fallback
+            for (int step = 0; step < DarkTowerConstants::SPAWN_RING_SEARCH_STEPS; ++step) {
+                float test_angle = angle + (step * (TWO_PI / DarkTowerConstants::SPAWN_RING_SEARCH_STEPS));
+                float candidate_x = tc_x + dist * std::cos(test_angle) - (ShadowEgg::EGG_WIDTH * 0.5f);
+                float candidate_y = tc_y + dist * std::sin(test_angle) - (ShadowEgg::EGG_HEIGHT * 0.5f);
+
+                ShadowEgg test_egg(candidate_x, candidate_y);
+                Collision::AABB egg_aabb = test_egg.ground_aabb();
+
+                // 1. Ensure egg does not overlap DarkTower bounding box
+                if (Collision::aabb_vs_aabb(egg_aabb, tower_aabb)) continue;
+
+                // 2. Ensure egg is on solid floor (not in walls, out of bounds, or inside pipe fixtures)
+                if (!is_solid_ground(test_egg.hurt_circle(), tiles, network)) continue;
+
+                // 3. Ensure candidate does not heavily overlap existing eggs
+                bool overlaps_egg = false;
+                for (const auto& existing_egg : m_shadow_eggs) {
+                    if (existing_egg.hatched || existing_egg.destroyed) continue;
+                    if (Collision::aabb_vs_aabb(egg_aabb, existing_egg.ground_aabb())) {
+                        overlaps_egg = true;
+                        break;
+                    }
+                }
+                if (overlaps_egg) continue;
+
+                // Found valid landing spot! Launch egg in arc trajectory from tower top center
+                float start_x = tc_x - (ShadowEgg::EGG_WIDTH * 0.5f);
+                float start_y = tc_y - (ShadowEgg::EGG_HEIGHT * 0.5f);
+                m_shadow_eggs.emplace_back(start_x, start_y, candidate_x, candidate_y, ShadowEggConstants::EJECT_FLIGHT_DURATION);
+                spot_found = true;
+                break;
+            }
+
+            if (!spot_found) {
+                // Fallback: Launch directly to initial candidate coordinate
+                float start_x = tc_x - (ShadowEgg::EGG_WIDTH * 0.5f);
+                float start_y = tc_y - (ShadowEgg::EGG_HEIGHT * 0.5f);
+                m_shadow_eggs.emplace_back(start_x, start_y, target_x, target_y, ShadowEggConstants::EJECT_FLIGHT_DURATION);
+            }
         }
     }
 

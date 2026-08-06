@@ -135,7 +135,7 @@ void MainScene::update(SceneManager& sm, float dt) {
         m_player.sync_prev_transforms();
     }
 
-    m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system);
+    m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
     m_particle_system.update(dt);
 
     if (m_player.is_attacking()) {

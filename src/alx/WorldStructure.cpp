@@ -31,6 +31,11 @@ float WorldStructure::center_y(float alpha) const {
     return draw_y + (transform.height * 0.5f);
 }
 
+bool WorldStructure::is_telegraphing(float telegraph_threshold) const {
+    if (type != StructureType::DarkTower) return false;
+    return (next_spawn_cooldown - spawn_timer) <= telegraph_threshold;
+}
+
 Collision::AABB WorldStructure::ground_aabb() const {
     // Full 3x4 tile solid ground footprint (48px width x 64px height)
     return Collision::AABB{
@@ -146,10 +151,12 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     // 5. Pulsing violet core diamond in upper section of tower
     float core_cx = top_cx;
     float core_cy = world_draw_y + 24.0f;
-    float pulse = std::sin(pulse_timer * 3.0f) * 0.5f + 0.5f; // 0.0 to 1.0 sine pulse
-    float core_r = 6.0f + pulse * 2.0f;
+    bool telegraph = is_telegraphing(1.0f);
+    float pulse_speed = telegraph ? 12.0f : 3.0f;
+    float pulse = std::sin(pulse_timer * pulse_speed) * 0.5f + 0.5f; // 0.0 to 1.0 sine pulse
+    float core_r = (telegraph ? 8.0f : 6.0f) + pulse * 3.0f;
 
-    uint32_t core_color = 0xFF8800AA; // Violet magenta
+    uint32_t core_color = telegraph ? 0xFFFF0055 : 0xFF8800AA; // Crimson warning vs Violet
     Draw::circle(
         core_cx,
         core_cy,
@@ -160,11 +167,12 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         roof_sort_y
     );
 
+    uint32_t aura_color = telegraph ? 0xFFFF44AA : 0xFFCC44FF;
     Draw::circle(
         core_cx,
         core_cy,
         core_r + 2.0f,
-        0xFFCC44FF, // Bright pulse aura outline
+        aura_color, // Bright pulse aura outline
         false, 1,
         transform.z_index,
         roof_sort_y
