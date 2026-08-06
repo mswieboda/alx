@@ -13,6 +13,7 @@
 #include "alx/WorldCollision.h"
 #include "alx/ParticleEmitters.h"
 #include "alx/Layer.h"
+#include "alx/WorldStructure.h"
 #include "core/Draw.h"
 
 namespace alx {
@@ -57,6 +58,7 @@ private:
 
     std::vector<Enemy> m_enemies;
     std::vector<AlloyItem> m_alloy_items;
+    std::vector<WorldStructure> m_world_structures;
     float m_scan_timer = 0.0f;
     float m_next_scan_interval = 2.0f;
     float m_scan_age = 999.0f; // Prevent initial rendering until scan/spawn
@@ -69,6 +71,7 @@ public:
     void clear() {
         m_enemies.clear();
         m_alloy_items.clear();
+        m_world_structures.clear();
         m_cached_threat_positions.clear();
         m_scan_timer = 0.0f;
         m_scan_age = 999.0f;
@@ -76,6 +79,13 @@ public:
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
     }
+
+    void spawn_dark_tower(float x, float y) {
+        m_world_structures.emplace_back(x, y, StructureType::DarkTower);
+    }
+
+    std::vector<WorldStructure>& structures() { return m_world_structures; }
+    const std::vector<WorldStructure>& structures() const { return m_world_structures; }
 
     float consume_pending_twilight_increase() {
         float val = m_pending_twilight_increase;
@@ -229,6 +239,10 @@ public:
             m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
         }
 
+        for (auto& struct_obj : m_world_structures) {
+            struct_obj.update(dt);
+        }
+
         update_enemy_ai(dt, player, tiles, network, particles);
         update_enemy_push_separation(tiles, network);
 
@@ -237,8 +251,8 @@ public:
         }
     }
 
-    static bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
-        return WorldCollision::is_solid_ground(ground, tiles, network);
+    bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) const {
+        return WorldCollision::is_solid_ground(ground, tiles, network, &m_world_structures);
     }
 
     // static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network) {
@@ -348,10 +362,10 @@ public:
                             enemy.state = EnemyState::RestlessWander;
                             enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
                             enemy.has_target = false;
-                            EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network);
+                            EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network, {}, &m_world_structures);
                         }
                     } else {
-                        EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network);
+                        EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network, {}, &m_world_structures);
                     }
                     break;
                 }
@@ -678,7 +692,7 @@ public:
                             }
                         }
                     } else if (enemy.state == EnemyState::Wander || enemy.state == EnemyState::RestlessWander || enemy.state == EnemyState::DetourWander) {
-                        EnemyMovement::handle_wall_collision(enemy, enemy.move_state, tiles, network);
+                        EnemyMovement::handle_wall_collision(enemy, enemy.move_state, tiles, network, {}, &m_world_structures);
                     } else {
                         enemy.is_moving = false;
                         enemy.move_dx = 0.0f;
@@ -840,6 +854,10 @@ public:
     void draw_enemies(std::vector<uint32_t>& pixel_buffer, float alpha) const {
         for (const auto& item : m_alloy_items) {
             item.draw(pixel_buffer, alpha);
+        }
+
+        for (const auto& struct_obj : m_world_structures) {
+            struct_obj.draw(pixel_buffer, alpha);
         }
 
         for (const auto& enemy : m_enemies) {

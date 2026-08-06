@@ -18,34 +18,37 @@ The roadmap is divided into 5 sequential execution batches designed to transform
 
 ## Implementation Batches Breakdown
 
-### Batch 1: Core Combat & Aggro Loop
+### Batch 1: Core Combat & Aggro Loop (COMPLETED)
 
 * `[EP-EATK]`: Enemy Player Aggro & Melee Attacks Epic - Threat detection, melee swarming, and player HP defeat loop.
   * `[PH-EATK]`: Enemy Melee Combat Phase - Enable shadow pests (`Enemy.h`) to aggro and damage the Mystic Adept (`Player.h`).
     * `[EPAT]`: Player Aggro Interception - Periodic timer check (1.0s-3.0s) for shadow pests to switch focus from fixtures to chasing the player when within detection radius.
-    * `[EMAT]`: Enemy Melee Attack Cycle - Melee attack execution (0.3s windup, 1.0s attack cycle, 1 damage, 0.5s i-frame trigger).
+    * `[EMAT]`: Enemy Melee Attack Cycle - Melee attack execution (0.3s windup, 1.0s attack cycle, 1 damage, 0.5s i-frame trigger, player 5 HP max).
     * `[ERET]`: Mid-Attack Retargeting - Dynamic threat-radius evaluation to swap target between fixture and player mid-cycle.
-    * `[PDFS]`: Player Defeat & Respawn State - Handle 0 HP state by disabling player control/rendering while scene updates run (`PlayerState struct: int hp = 3, max_hp = 3; float iframe_timer = 0.0f; bool defeated = false;`).
+    * `[PDFS]`: Player Defeat & Respawn State - Handle 0 HP state by disabling player control/rendering while scene updates run (`PlayerState struct: int hp = 5, max_hp = 5; float iframe_timer = 0.0f; bool defeated = false;`).
 
 ---
 
 ### Batch 2: Dark Tower Infrastructure & Spawners
 
-* `[EP-DT]`: Dark Tower Implementation Epic - Spawning shadow towers that incubate pests, pulse dark energy, and require strategic purification or destruction.
-  * `[PH-CDS]`: Core Data Structures & Entity Definition - Initial Dark Tower state, incubators, and health rendering extensions.
-    * `[DTS]`: Dark Tower Data Struct - State tracking for active dark towers (`DarkTower struct: float x, y; int hp = 8; float shield_hp = 5.0f; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`).
-    * `[EGS]`: Shadow Egg State Struct - Data tracking for incubating pest pods (`ShadowEgg struct: float x, y; float incubation_timer; bool hatched;`).
-    * `[FHS]`: Fixture Health Bar & Tint Extension - Health bar / dynamic damage tint shift overlaid on damaged fixtures and dark towers (`FixtureHealthVis struct: int current_hp, max_hp; float flash_timer;`).
+* `[EP-DT]`: Dark Tower Implementation Epic - Spawning shadow towers that incubate pests, pulse dark energy, and drop alloy on destruction.
+  * `[PH-CDS]`: Core Data Structures & Entity Definition - `WorldStructure.h` architecture (`StructureType::DarkTower`, 3x4 tile / 48x64px looming dark obsidian column visual with spired peak and pulsing violet core) and `ShadowEgg.h` incubator definition.
+    * `[DTS]`: Dark Tower Data Struct - State tracking for active dark towers (`WorldStructure struct: float x, y; int hp = 8, max_hp = 8; float spawn_timer = 0.0f; float pulse_timer = 0.0f; bool active = true;`).
+    * `[EGS]`: Shadow Egg State Struct - Data tracking for incubating pest pods (`ShadowEgg struct: float x, y; float incubation_timer = 5.0f; int hp = 1; bool hatched; bool destroyed;`).
   * `[PH-SLR]`: Spawner Logic & Lifecycle Replacement - Shifting enemy spawns from map edges to active towers.
     * `[SRS]`: Dark Tower Enemy Spawner Routing - Re-route world enemy spawn queries directly to active `DarkTower` coordinates.
-    * `[ECH]`: Egg-to-Chrysalis Hatching Logic - Incubate and drop local `ShadowEgg` nodes on adjacent tiles that mature into shadow pests.
-    * `[TGP]`: Tower Global Pulse Emission - Periodic visual pulse ring every $N$ seconds that increments room Twilight and sets up corruption mechanics.
+    * `[ECH]`: Egg-to-Chrysalis Hatching Logic - Incubate and drop local `ShadowEgg` nodes (3D layered twilight ovals with top highlight) on adjacent tiles that hatch directly into `Enemy.cpp` after 5.0s.
+    * `[TGP]`: Tower Global Pulse Emission - Periodic visual pulse ring every 10s that increments room Twilight (+0.02) and sets up corruption mechanics.
   * `[PH-CID]`: Combat Integration & Destruction Loop - Player offensive interaction with Dark Towers.
-    * `[HBI]`: Swept Attack Damage Integration - Allow player melee swipe hurtbox to deal damage to active `DarkTower` entities.
+    * `[HBI]`: Swept Attack Damage Integration - Allow player melee swipe hurtbox to deal damage to active `DarkTower` entities and `ShadowEgg` pods.
     * `[DLS]`: Destruction Loot Scatter - Trigger tile-scattered Cursed Alloy scrap drops when a Dark Tower's HP hits zero.
-  * `[PH-NIM]`: Network Interaction & Shield Mechanics - Tower defense forcefields and light energy counter-play.
-    * `[DTSF]`: Dark Tower Forcefield Armor - Shield layer that absorbs structural damage before HP depletion (`DarkShield struct: float max_shield = 5.0f, current_shield, regen_rate = 0.5f;`).
-    * `[SRD]`: Spire Resonance Drain - Light Spire proximity drain that actively strips dark shields and slows pest egg incubation.
+
+---
+
+### Batch 2.5: Architecture Refactoring (EnemyManager Header/Source Separation)
+
+* `[EP-REFC]`: Architecture Refactoring Epic - Decoupling inline class implementation into dedicated `.cpp` source files for build speed and C++ best practices.
+  * `[PH-REFC-EM]`: `EnemyManager` Source Separation Phase - Extract inline implementation logic from `EnemyManager.h` into a dedicated `EnemyManager.cpp` file, preserving raw headers for declaration types.
 
 ---
 

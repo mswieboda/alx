@@ -12,6 +12,7 @@ namespace alx {
 class Camera;
 class Tiles;
 class Network;
+struct WorldStructure;
 
 struct PlayerInputBuffer {
     static constexpr float FACING_DIAGONAL_LATCH_TIME = 0.050f; // 50ms (~3 frames at 60 FPS)
@@ -129,7 +130,7 @@ struct Player : public Entity {
     bool try_build_tile(const Tiles& tiles, Network& network);
     bool try_remove_tile(const Tiles& tiles, Network& network);
 
-    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera);
+    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles* tiles = nullptr, const Network* network = nullptr);
 
     int cursed_alloy() const { return m_cursed_alloy; }
@@ -142,7 +143,7 @@ private:
     int m_cursed_alloy = 5;
     FixtureType m_selected_fixture_type = FixtureType::Pipe;
 
-    void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera);
+    void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
     void update_actions(float dt, const Tiles& tiles, Network& network);
 };
 

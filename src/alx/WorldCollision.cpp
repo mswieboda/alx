@@ -1,9 +1,10 @@
 #include "alx/WorldCollision.h"
+#include "alx/WorldStructure.h"
 #include "core/Log.h"
 
 namespace alx::WorldCollision {
 
-bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
+bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network, const std::vector<WorldStructure>* structures) {
     float tile_size = static_cast<float>(tiles.tile_size());
 
     int min_tx = static_cast<int>(std::floor((ground.cx - ground.radius) / tile_size));
@@ -44,16 +45,26 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
             }
         }
     }
+
+    // World structure solid ground checks (Dark Towers, etc.)
+    if (structures != nullptr) {
+        for (const auto& struct_obj : *structures) {
+            if (struct_obj.active && Collision::circle_vs_aabb(ground, struct_obj.ground_aabb())) {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
-MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network) {
+MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network, const std::vector<WorldStructure>* structures) {
     MoveResult res;
 
     if (dx != 0.0f) {
         float test_x = x + dx;
         Collision::Circle test_ground{ ground.cx + dx, ground.cy, ground.radius };
-        if (!is_solid_ground(test_ground, tiles, network)) {
+        if (!is_solid_ground(test_ground, tiles, network, structures)) {
             x = test_x;
             res.moved_dx = dx;
         } else {
@@ -64,7 +75,7 @@ MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Cir
     if (dy != 0.0f) {
         float test_y = y + dy;
         Collision::Circle test_ground{ ground.cx + res.moved_dx, ground.cy + dy, ground.radius };
-        if (!is_solid_ground(test_ground, tiles, network)) {
+        if (!is_solid_ground(test_ground, tiles, network, structures)) {
             y = test_y;
             res.moved_dy = dy;
         } else {

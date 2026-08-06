@@ -68,7 +68,7 @@ void reset_wander_state(MovementState& state) {
     state.was_moving = false;
 }
 
-void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tiles, const Network& network, const WanderConfig& config) {
+void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tiles, const Network& network, const WanderConfig& config, const std::vector<WorldStructure>* structures) {
     std::vector<int> candidate_indices = (state.last_dir_idx < 0)
         ? get_facing_3_cone(enemy)
         : get_forward_5_cone(state.last_dir_idx);
@@ -79,7 +79,7 @@ void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tile
         auto [dx, dy] = DIRS[idx];
         float test_x = enemy.transform.x + dx * (enemy.speed * 0.2f);
         float test_y = enemy.transform.y + dy * (enemy.speed * 0.2f);
-        if (!WorldCollision::is_solid_ground(enemy.ground_circle(test_x, test_y), tiles, network)) {
+        if (!WorldCollision::is_solid_ground(enemy.ground_circle(test_x, test_y), tiles, network, structures)) {
             enemy.move_dx = dx;
             enemy.move_dy = dy;
             enemy.is_moving = true;
@@ -98,7 +98,7 @@ void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tile
     state.micro_step_timer = Random::get_float(config.step_min_time, config.step_max_time);
 }
 
-void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tiles& tiles, const Network& network, const WanderConfig& config) {
+void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tiles& tiles, const Network& network, const WanderConfig& config, const std::vector<WorldStructure>* structures) {
     state.micro_step_timer -= dt;
     if (state.micro_step_timer > 0.0f && enemy.is_moving) {
         return; // Continue current micro-step
@@ -128,7 +128,7 @@ void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tile
             auto [dx, dy] = DIRS[idx];
             float test_x = enemy.transform.x + dx * (enemy.speed * 0.2f);
             float test_y = enemy.transform.y + dy * (enemy.speed * 0.2f);
-            if (!WorldCollision::is_solid_ground(enemy.ground_circle(test_x, test_y), tiles, network)) {
+            if (!WorldCollision::is_solid_ground(enemy.ground_circle(test_x, test_y), tiles, network, structures)) {
                 chosen_idx = idx;
                 break;
             }

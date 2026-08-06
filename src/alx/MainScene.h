@@ -97,6 +97,9 @@ public:
         update_camera_map_boundary();
         load_tiles_and_network(seeps, refiners, spires, pipes);
         m_enemy_manager.clear();
+        if (level_id == 1) {
+            m_enemy_manager.spawn_dark_tower(25.0f * m_tiles.tile_size(), 10.0f * m_tiles.tile_size());
+        }
     }
 
     void load_tiles_and_network(
@@ -157,7 +160,7 @@ public:
         m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
         m_camera.update(dt);
 
-        m_player.update(dt, m_tiles, m_network, m_camera);
+        m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
 
         if (m_player.state.defeated && m_player.state.defeat_timer <= 0.0f) {
             m_player.state.hp = m_player.state.max_hp;

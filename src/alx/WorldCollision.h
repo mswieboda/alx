@@ -5,6 +5,10 @@
 #include "alx/Network.h"
 #include "alx/Fixture.h"
 
+namespace alx {
+struct WorldStructure;
+}
+
 namespace alx::WorldCollision {
 
 struct MoveResult {
@@ -14,11 +18,11 @@ struct MoveResult {
     bool blocked_y = false;
 };
 
-// Single Authoritative Solid Ground Check (Tile Walls + Solid Network Fixtures)
-bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network);
+// Single Authoritative Solid Ground Check (Tile Walls + Solid Network Fixtures + World Structures)
+bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network, const std::vector<WorldStructure>* structures = nullptr);
 
 // Shared Axis-Separated Movement Helper
-MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network);
+MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network, const std::vector<WorldStructure>* structures = nullptr);
 
 // DEPRECATED: Do not use. Kept for extreme fallback cases only.
 [[deprecated("Use WorldCollision::try_move instead")]]

@@ -379,7 +379,7 @@ bool Player::take_damage(int amount) {
     return true;
 }
 
-void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera) {
+void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures) {
     sync_prev_transforms();
 
     if (state.iframe_timer > 0.0f) {
@@ -393,7 +393,7 @@ void Player::update(float dt, const Tiles& tiles, Network& network, const alx::C
         return;
     }
 
-    update_movement(dt, tiles, network, camera);
+    update_movement(dt, tiles, network, camera, structures);
     update_actions(dt, tiles, network);
 }
 
@@ -447,7 +447,7 @@ int Player::fixture_cost(FixtureType type) {
     }
 }
 
-void Player::update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera) {
+void Player::update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures) {
     is_panning = Action::is_pan_mode_active();
 
     if (camera.is_player_movement_locked()) {
@@ -492,7 +492,7 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
         dy *= DIAGONAL_SPEED_SCALE;
     }
 
-    WorldCollision::try_move(transform.x, transform.y, dx * speed * dt, dy * speed * dt, ground_circle(), tiles, network);
+    WorldCollision::try_move(transform.x, transform.y, dx * speed * dt, dy * speed * dt, ground_circle(), tiles, network, structures);
 }
 
 void Player::update_actions(float dt, const Tiles& tiles, Network& network) {

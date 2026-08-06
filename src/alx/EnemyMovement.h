@@ -9,6 +9,7 @@
 namespace alx {
 
 struct Enemy; // Forward declaration
+struct WorldStructure; // Forward declaration
 
 namespace EnemyMovement {
 
@@ -35,13 +36,13 @@ struct MovementState {
 extern const std::pair<float, float> DIRS[8];
 
 // Updates a wander micro-step for the given enemy using its MovementState and WanderConfig
-void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tiles& tiles, const Network& network, const WanderConfig& config = {});
+void update_wander_step(Enemy& enemy, MovementState& state, float dt, const Tiles& tiles, const Network& network, const WanderConfig& config = {}, const std::vector<WorldStructure>* structures = nullptr);
 
 // Resets movement state upon changing macro states or targets
 void reset_wander_state(MovementState& state);
 
 // Called when an enemy hits a wall during micro-stepping to immediately pick a new direction
-void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tiles, const Network& network, const WanderConfig& config = {});
+void handle_wall_collision(Enemy& enemy, MovementState& state, const Tiles& tiles, const Network& network, const WanderConfig& config = {}, const std::vector<WorldStructure>* structures = nullptr);
 
 } // namespace EnemyMovement
 } // namespace alx
