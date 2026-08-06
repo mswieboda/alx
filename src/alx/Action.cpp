@@ -241,6 +241,10 @@ bool is_attack() {
     return !is_pressed(Build) && is_just_pressed(ActionBtn);
 }
 
+bool is_attack_held() {
+    return !is_pressed(Build) && is_pressed(ActionBtn);
+}
+
 bool is_build_tile() {
     return is_pressed(Build) && is_just_pressed(ActionBtn);
 }

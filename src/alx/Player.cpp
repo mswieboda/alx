@@ -432,6 +432,23 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
         }
     }
 
+    // Charging visual feedback ring / aura
+    if (is_charging_attack) {
+        float cx = world_draw_x + world_draw_w * 0.5f;
+        float cy = world_draw_y + world_draw_h * 0.5f;
+        if (charge_timer < 0.5f) {
+            float progress = charge_timer / 0.5f;
+            int r = static_cast<int>(progress * 8.0f);
+            if (r > 1) {
+                Draw::rect(cx - r, cy - r, r * 2, r * 2, 0xFF00AAFF, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+            }
+        } else {
+            // Fully charged! Flash cyan aura ring
+            Draw::rect(cx - 10, cy - 10, 20, 20, 0xFF00FFFF, false, 2, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+            Draw::rect(cx - 6, cy - 6, 12, 12, 0xFFFFFFFF, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+        }
+    }
+
     // Ground & hurt collision areas + attack hit arc debug outlines
     draw_debug_outlines(*this, world_draw_x, world_draw_y, alpha, world_bottom_y);
 
@@ -517,9 +534,10 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
         }
     }
 
-    bool btn_pressed = Action::is_attack();
+    bool btn_just_pressed = Action::is_attack();
+    bool btn_held = Action::is_attack_held();
     
-    if (btn_pressed && attack_phase == AttackPhase::Idle && !is_charging_attack) {
+    if (btn_just_pressed && attack_phase == AttackPhase::Idle && !is_charging_attack) {
         sync_prev_transforms();
         attack_phase = AttackPhase::ActiveSweep;
         attack_timer = 0.0f;
@@ -531,7 +549,7 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
     }
     
     if (is_charging_attack) {
-        if (btn_pressed) {
+        if (btn_held) {
             charge_timer += dt;
         } else {
             if (charge_timer >= 0.5f) {

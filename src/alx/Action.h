@@ -68,6 +68,7 @@ namespace Action {
 
     // Semantic Combo Helpers (GBA R-Shoulder + D-Pad / Button A / L-Shoulder)
     bool is_attack();           // Button A without R-Shoulder (Build) held
+    bool is_attack_held();      // Button A held without R-Shoulder (Build) held
     bool is_build_tile();       // R-Shoulder (Build) held + Button A
     bool is_remove_tile();      // R-Shoulder (Build) held + Button B (Cancel)
     bool is_build_cycle();      // R-Shoulder (Build) held + L-Shoulder (PanMode)
