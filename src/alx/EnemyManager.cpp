@@ -125,8 +125,8 @@ namespace alx {
     }
 
     float EnemyManager::calculate_inverse_twilight_cooldown(float twilight_level) const {
-        float min_cd = Random::get_float(DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN);
-        float max_cd = Random::get_float(DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN);
+        float min_cd = Random::get_float(DarkTowerConstants::TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN);
+        float max_cd = Random::get_float(DarkTowerConstants::TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN);
         return calculate_twilight_cooldown(twilight_level, min_cd, max_cd, DarkTowerConstants::DEFAULT_CURVE_EXPONENT);
     }
 
@@ -321,7 +321,7 @@ namespace alx {
             float base_cd = 0.0f;
             if (twilight_level <= DarkTowerConstants::TWILIGHT_LOW_THRESHOLD) {
                 // Crunch Mode (<= 10% Twilight): 10.0s to 15.0s emergence
-                base_cd = Random::get_float(DarkTowerConstants::CRUNCH_EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::CRUNCH_EMERGENCE_COOLDOWN_MAX);
+                base_cd = Random::get_float(DarkTowerConstants::CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN, DarkTowerConstants::CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX);
             } else {
                 // Normal Scaling Mode (> 10% Twilight): 15.0s (at 10%) to 30.0s (at 75%)
                 base_cd = calculate_twilight_cooldown(twilight_level, DarkTowerConstants::EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::EMERGENCE_COOLDOWN_MAX, DarkTowerConstants::DEFAULT_CURVE_EXPONENT);
