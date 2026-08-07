@@ -29,10 +29,10 @@ namespace SpawnerConstants {
 namespace DarkTowerConstants {
     static constexpr float SPAWN_INTERVAL_MIN = 6.0f;
     static constexpr float SPAWN_INTERVAL_MAX = 12.0f;
-    static constexpr float INITIAL_SPAWN_DELAY = 4.0f;
+    static constexpr float INITIAL_SPAWN_DELAY = 3.0f;
     static constexpr int WAVE_EGG_COUNT_MIN = 1;
     static constexpr int WAVE_EGG_COUNT_MAX = 3;
-    static constexpr int MAX_ACTIVE_EGGS_PER_TOWER = 4;
+    static constexpr int MAX_ACTIVE_EGGS_PER_TOWER = 5;
     static constexpr float SPAWN_TILE_OFFSET_MIN_RATIO = 0.25f;
     static constexpr float SPAWN_TILE_OFFSET_MAX_RATIO = 2.00f;
     static constexpr int SPAWN_RING_SEARCH_STEPS = 16;

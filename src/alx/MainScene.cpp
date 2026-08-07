@@ -65,11 +65,6 @@ void MainScene::load_level(int level_id) {
     m_enemy_manager.clear();
     m_enemy_manager.register_corrupted_tiles(corrupted_tile_coords, m_tiles);
 
-    int start_node_idx = m_enemy_manager.find_unoccupied_corrupted_tile_index();
-    if (start_node_idx >= 0) {
-        m_enemy_manager.spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(start_node_idx), m_tiles);
-    }
-
     m_initial_twilight = m_twilight_level;
     m_peak_twilight = m_twilight_level;
     m_min_twilight = m_twilight_level;
