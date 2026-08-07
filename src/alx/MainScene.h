@@ -17,6 +17,10 @@ private:
     static constexpr float TWILIGHT_MAX = 0.9f;
     static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.010f;
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
+    static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
+    static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;
+    static constexpr uint32_t COLOR_VICTORY_TEXT = 0xFF00FF88;
+    static constexpr uint32_t COLOR_PAUSE_TEXT   = 0xFFFFCC00;
 
     Tiles m_tiles;
     Network m_network;
@@ -120,6 +124,8 @@ public:
     void sync_camera(float alpha) override;
     void draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) override;
     void draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) override;
+
+    void draw_victory_and_pause_overlays(int screen_width, int screen_height, const FontData& font);
 
     bool is_connectable_fixture(int gx, int gy) const;
     bool connects_dark_mana(int gx, int gy) const;

@@ -211,10 +211,10 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     if (m_paused) return;
 
-    // Victory Check: If Twilight < 1.0% (< 0.01f), hold for 60s to win
-    if (m_twilight_level < 0.01f) {
+    // Victory Check: If Twilight < 1.0%, hold for 60 seconds to win
+    if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
         m_victory_hold_timer += raw_dt;
-        if (m_victory_hold_timer >= 60.0f) {
+        if (m_victory_hold_timer >= VICTORY_HOLD_DURATION_SEC) {
             m_victory_achieved = true;
             m_paused = true;
         }
@@ -562,7 +562,10 @@ void MainScene::draw_hud() {
         );
     }
 
-    // Victory Banner, Pause Text, & Countdown Overlay (no background box, centered)
+    draw_victory_and_pause_overlays(screen_width, screen_height, font);
+}
+
+void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_height, const FontData& font) {
     if (m_victory_achieved) {
         std::string_view win_str = "YOU WIN!";
         int win_w = Draw::text_width(win_str, 2, &font);
@@ -570,7 +573,7 @@ void MainScene::draw_hud() {
             screen_width / 2 - win_w / 2,
             screen_height / 2 - font.size,
             win_str,
-            0xFF00FF88, 2, Layer::HUD_Text, &font
+            COLOR_VICTORY_TEXT, 2, Layer::HUD_Text, &font
         );
     } else if (m_paused) {
         std::string_view pause_str = "PAUSED";
@@ -579,17 +582,17 @@ void MainScene::draw_hud() {
             screen_width / 2 - pause_w / 2,
             screen_height / 2 - font.size,
             pause_str,
-            0xFFFFCC00, 2, Layer::HUD_Text, &font
+            COLOR_PAUSE_TEXT, 2, Layer::HUD_Text, &font
         );
-    } else if (m_twilight_level < 0.01f) {
-        int remaining_sec = std::max(0, static_cast<int>(std::ceil(60.0f - m_victory_hold_timer)));
+    } else if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
+        int remaining_sec = std::max(0, static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer)));
         std::string_view count_str = Draw::fmt("TWILIGHT CLEARED IN: %ds", remaining_sec);
         int count_w = Draw::text_width(count_str, 1, &font);
         Draw::text(
             screen_width / 2 - count_w / 2,
             screen_height / 2 - font.size / 2,
             count_str,
-            0xFF00FF88, 1, Layer::HUD_Text, &font
+            COLOR_VICTORY_TEXT, 1, Layer::HUD_Text, &font
         );
     }
 }
