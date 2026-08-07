@@ -31,6 +31,39 @@ struct Camera {
 
     float zoom = 1.0f; // 1.0f = 1x normal, 0.75f = 3/4 scale
 
+    // Camera Shake System (Trauma Quadratic Decay)
+    float shake_intensity = 0.0f;
+    float shake_duration = 0.0f;
+    float shake_timer = 0.0f;
+    float shake_offset_x = 0.0f;
+    float shake_offset_y = 0.0f;
+
+    void shake(float intensity_px, float duration_sec) {
+        shake_intensity = intensity_px;
+        shake_duration = duration_sec;
+        shake_timer = duration_sec;
+    }
+
+    void update_shake(float dt) {
+        if (shake_timer <= 0.0f) {
+            shake_offset_x = 0.0f;
+            shake_offset_y = 0.0f;
+            shake_timer = 0.0f;
+            return;
+        }
+
+        shake_timer -= dt;
+        if (shake_timer < 0.0f) shake_timer = 0.0f;
+
+        float norm_time = (shake_duration > 0.0001f) ? (shake_timer / shake_duration) : 0.0f;
+        float current_intensity = shake_intensity * norm_time * norm_time; // Quadratic trauma decay
+
+        // Deterministic pseudo-random jitter angle using timer tick hash
+        float angle = shake_timer * 73.123f + shake_intensity * 17.456f;
+        shake_offset_x = std::cos(angle) * current_intensity;
+        shake_offset_y = std::sin(angle) * current_intensity;
+    }
+
     void follow(float target_center_x, float target_center_y) {
         target_x = target_center_x;
         target_y = target_center_y;
@@ -67,6 +100,7 @@ struct Camera {
                 float viewport_width = static_cast<float>(Game::WIDTH),
                 float viewport_height = static_cast<float>(Game::HEIGHT))
     {
+        update_shake(dt);
         if (!has_target) return;
 
         float half_vw = (viewport_width / 2.0f) / zoom;
@@ -128,11 +162,11 @@ struct Camera {
     // 2. Translation Invariance: Satisfies f(v + K) == f(v) + K for all integer tile widths K,
     //    preventing negative-coordinate origin tearing on tile maps.
     int to_screen_x(float world_x) const {
-        return static_cast<int>(std::floor((world_x - x) * zoom + 0.5f));
+        return static_cast<int>(std::floor((world_x - x) * zoom + shake_offset_x + 0.5f));
     }
 
     int to_screen_y(float world_y) const {
-        return static_cast<int>(std::floor((world_y - y) * zoom + 0.5f));
+        return static_cast<int>(std::floor((world_y - y) * zoom + shake_offset_y + 0.5f));
     }
 
     float to_world_x(float screen_x) const {

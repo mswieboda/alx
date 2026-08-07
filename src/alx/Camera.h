@@ -144,6 +144,7 @@ private:
     }
 
     void sync_core_camera(float dt = 1.0f / 60.0f) {
+        update_shake(dt);
         if (has_target) {
             float half_vw = (static_cast<float>(Game::WIDTH) / 2.0f) / zoom;
             float half_vh = (static_cast<float>(Game::HEIGHT) / 2.0f) / zoom;

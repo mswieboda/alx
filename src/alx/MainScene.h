@@ -73,10 +73,13 @@ private:
     float m_time_to_max_twilight{-1.0f};
 
     static constexpr float VIGNETTE_SURGE_DURATION = 1.0f;
-    static constexpr float VIGNETTE_PEAK_INTENSITY = 0.3f;
-    static constexpr float VIGNETTE_INNER_RADIUS = 0.9f;
-    static constexpr float VIGNETTE_OUTER_RADIUS = 1.3f;
+    static constexpr float VIGNETTE_PEAK_INTENSITY = 0.33f;
+    static constexpr float VIGNETTE_INNER_RADIUS = 0.90f;
+    static constexpr float VIGNETTE_OUTER_RADIUS = 1.05f;
     static constexpr uint32_t VIGNETTE_COLOR = 0x00CC44FF;
+
+    static constexpr float CAMERA_SHAKE_PEAK_INTENSITY = 3.33f;
+    static constexpr float CAMERA_SHAKE_DURATION = 1.33f;
 
     float m_vignette_surge_timer = 0.0f;
 
@@ -92,6 +95,11 @@ private:
 
 public:
     void trigger_vignette_surge(float duration = VIGNETTE_SURGE_DURATION);
+    void trigger_tower_spawn_alert(
+        float vignette_duration = VIGNETTE_SURGE_DURATION,
+        float shake_intensity = CAMERA_SHAKE_PEAK_INTENSITY,
+        float shake_duration = CAMERA_SHAKE_DURATION
+    );
     void print_headless_summary_report(int64_t seed = -1);
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }

@@ -225,11 +225,6 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_time_scale = 10.0f;
     }
 
-    // Temporary Test Hotkey: Press 'V' or 'O' to trigger vignette surge on demand
-    if (Input::is_key_just_pressed(KeyCode::V) || Input::is_key_just_pressed(KeyCode::O)) {
-        trigger_vignette_surge(VIGNETTE_SURGE_DURATION);
-    }
-
     float dt = raw_dt * m_time_scale;
     m_last_dt = dt;
     ++m_sim_tick_count;
@@ -258,7 +253,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
     if (m_enemy_manager.consume_tower_spawned_event()) {
-        trigger_vignette_surge(VIGNETTE_SURGE_DURATION);
+        trigger_tower_spawn_alert();
     }
 
     if (m_vignette_surge_timer > 0.0f) {
@@ -428,6 +423,11 @@ void MainScene::draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) {
 
 void MainScene::trigger_vignette_surge(float duration) {
     m_vignette_surge_timer = duration;
+}
+
+void MainScene::trigger_tower_spawn_alert(float vignette_duration, float shake_intensity, float shake_duration) {
+    trigger_vignette_surge(vignette_duration);
+    m_camera.shake(shake_intensity, shake_duration);
 }
 
 void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
