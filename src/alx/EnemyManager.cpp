@@ -41,6 +41,7 @@ namespace alx {
         m_next_emergence_cooldown = DarkTowerConstants::EMERGENCE_COOLDOWN_MIN;
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
+        m_last_destroyed_tile_index = -1;
     }
 
     void EnemyManager::register_corrupted_tiles(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles) {
@@ -56,15 +57,39 @@ namespace alx {
 
     int EnemyManager::find_unoccupied_corrupted_tile_index() const {
         int free_count = 0;
-        int selected_idx = -1;
-        for (size_t i = 0; i < m_corrupted_tiles.size(); ++i) {
-            if (m_corrupted_tiles[i].is_available()) {
+        for (const auto& tile : m_corrupted_tiles) {
+            if (tile.is_available()) {
                 ++free_count;
-                if (Random::get_int(1, free_count) == 1) {
-                    selected_idx = static_cast<int>(i);
+            }
+        }
+        if (free_count == 0) return -1;
+
+        bool exclude_last = (free_count > 1 && m_last_destroyed_tile_index >= 0);
+        int eligible_count = 0;
+        int selected_idx = -1;
+
+        for (size_t i = 0; i < m_corrupted_tiles.size(); ++i) {
+            if (!m_corrupted_tiles[i].is_available()) continue;
+            if (exclude_last && static_cast<int>(i) == m_last_destroyed_tile_index) continue;
+
+            ++eligible_count;
+            if (Random::get_int(1, eligible_count) == 1) {
+                selected_idx = static_cast<int>(i);
+            }
+        }
+
+        if (selected_idx == -1 && free_count > 0) {
+            int count = 0;
+            for (size_t i = 0; i < m_corrupted_tiles.size(); ++i) {
+                if (m_corrupted_tiles[i].is_available()) {
+                    ++count;
+                    if (Random::get_int(1, count) == 1) {
+                        selected_idx = static_cast<int>(i);
+                    }
                 }
             }
         }
+
         return selected_idx;
     }
 
@@ -89,11 +114,20 @@ namespace alx {
         m_tower_spawned_event = true;
     }
 
+    float EnemyManager::calculate_twilight_cooldown(float twilight_level, float min_cd, float max_cd, float exponent) const {
+        constexpr float t_low = DarkTowerConstants::TWILIGHT_LOW_THRESHOLD;
+        constexpr float t_high = DarkTowerConstants::TWILIGHT_HIGH_THRESHOLD;
+        float t = std::clamp((twilight_level - t_low) / (t_high - t_low), 0.0f, 1.0f);
+        if (exponent != 1.0f && t > 0.0f) {
+            t = std::pow(t, exponent);
+        }
+        return std::lerp(min_cd, max_cd, t);
+    }
+
     float EnemyManager::calculate_inverse_twilight_cooldown(float twilight_level) const {
-        float clamped_t = std::clamp(twilight_level, 0.0f, 1.0f);
-        float min_cd = std::lerp(DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN, clamped_t);
-        float max_cd = std::lerp(DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN, clamped_t);
-        return Random::get_float(min_cd, max_cd);
+        float min_cd = Random::get_float(DarkTowerConstants::TWILIGHT_PURIFIED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_PURIFIED_MAX_COOLDOWN);
+        float max_cd = Random::get_float(DarkTowerConstants::TWILIGHT_CORRUPTED_MIN_COOLDOWN, DarkTowerConstants::TWILIGHT_CORRUPTED_MAX_COOLDOWN);
+        return calculate_twilight_cooldown(twilight_level, min_cd, max_cd, DarkTowerConstants::DEFAULT_CURVE_EXPONENT);
     }
 
     float EnemyManager::consume_pending_twilight_increase() {
@@ -258,10 +292,11 @@ namespace alx {
         for (auto& struct_obj : m_world_structures) {
             struct_obj.update(dt);
             if (struct_obj.type == StructureType::DarkTower) {
-                // Pulse Logic
-                if (struct_obj.pulse_timer >= 10.0f) {
+                // Pulse Logic: 4.0s - 5.0s pulse interval, +0.04f (4%) twilight increase
+                if (struct_obj.pulse_timer >= struct_obj.next_pulse_cooldown) {
                     struct_obj.pulse_timer = 0.0f;
-                    m_pending_twilight_increase += 0.02f;
+                    struct_obj.next_pulse_cooldown = Random::get_float(DarkTowerConstants::PULSE_INTERVAL_MIN, DarkTowerConstants::PULSE_INTERVAL_MAX);
+                    m_pending_twilight_increase += DarkTowerConstants::PULSE_TWILIGHT_INCREASE;
                     if (particles) {
                         ParticleEmitters::spawn_tower_pulse(*particles, struct_obj.center_x(), struct_obj.center_y(), 64.0f);
                     }
@@ -279,26 +314,24 @@ namespace alx {
             }
         }
 
-        // Emergence Spawner Loop: Re-emerge a Dark Tower if active towers drop below target count
-        int active_dark_towers = 0;
-        for (const auto& s : m_world_structures) {
-            if (s.type == StructureType::DarkTower && s.hp > 0) {
-                ++active_dark_towers;
-            }
-        }
-
-        if (active_dark_towers < DarkTowerConstants::TARGET_ACTIVE_DARK_TOWERS) {
-            m_tower_emergence_timer += dt;
-            if (m_tower_emergence_timer >= m_next_emergence_cooldown) {
-                m_tower_emergence_timer = 0.0f;
-                m_next_emergence_cooldown = Random::get_float(DarkTowerConstants::EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::EMERGENCE_COOLDOWN_MAX);
-                int target_tile_idx = find_unoccupied_corrupted_tile_index();
-                if (target_tile_idx >= 0) {
-                    spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(target_tile_idx), tiles);
-                }
-            }
-        } else {
+        // Emergence Spawner Loop: Continuous global Dark Tower emergence across all unoccupied corrupted tiles
+        m_tower_emergence_timer += dt;
+        if (m_tower_emergence_timer >= m_next_emergence_cooldown) {
             m_tower_emergence_timer = 0.0f;
+            float base_cd = 0.0f;
+            if (twilight_level <= DarkTowerConstants::TWILIGHT_LOW_THRESHOLD) {
+                // Crunch Mode (<= 10% Twilight): 10.0s to 15.0s emergence
+                base_cd = Random::get_float(DarkTowerConstants::CRUNCH_EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::CRUNCH_EMERGENCE_COOLDOWN_MAX);
+            } else {
+                // Normal Scaling Mode (> 10% Twilight): 15.0s (at 10%) to 30.0s (at 75%)
+                base_cd = calculate_twilight_cooldown(twilight_level, DarkTowerConstants::EMERGENCE_COOLDOWN_MIN, DarkTowerConstants::EMERGENCE_COOLDOWN_MAX, DarkTowerConstants::DEFAULT_CURVE_EXPONENT);
+            }
+            float jitter = Random::get_float(-1.5f, 1.5f);
+            m_next_emergence_cooldown = std::max(1.0f, base_cd + jitter);
+            int target_tile_idx = find_unoccupied_corrupted_tile_index();
+            if (target_tile_idx >= 0) {
+                spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(target_tile_idx), tiles);
+            }
         }
         
         // Process Shadow Eggs
@@ -1029,9 +1062,10 @@ namespace alx {
                 if (particles) {
                     ParticleEmitters::spawn_tower_shatter(*particles, it->center_x(), it->center_y());
                 }
-                // Free associated corrupted tile slot
+                // Free associated corrupted tile slot and record last destroyed tile index for anti-repetition guard
                 if (it->corrupted_tile_index >= 0 && static_cast<size_t>(it->corrupted_tile_index) < m_corrupted_tiles.size()) {
                     m_corrupted_tiles[it->corrupted_tile_index].is_occupied = false;
+                    m_last_destroyed_tile_index = it->corrupted_tile_index;
                 }
                 // Scatter loot (5 Alloy pieces)
                 for (int i = 0; i < 5; ++i) {
@@ -1224,6 +1258,8 @@ namespace alx {
         eggs_to_spawn = std::clamp(eggs_to_spawn, 0, std::max(0, max_can_spawn));
 
         if (eggs_to_spawn <= 0) return;
+
+        m_pending_twilight_increase += DarkTowerConstants::EGG_WAVE_TWILIGHT_INCREASE;
 
         static constexpr float TWO_PI = 6.28318530718f;
         float base_angle = Random::get_float(0.0f, TWO_PI);

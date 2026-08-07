@@ -15,7 +15,7 @@ class MainScene : public Scene {
 private:
     // --- CONSTANTS ---
     static constexpr float TWILIGHT_MAX = 0.9f;
-    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.005f;
+    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.010f;
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
 
     Tiles m_tiles;
@@ -28,6 +28,8 @@ private:
     float m_last_dt = 0.016f;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
+    float m_victory_hold_timer = 0.0f;
+    bool m_victory_achieved = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
 
     // Level-specific progress stats

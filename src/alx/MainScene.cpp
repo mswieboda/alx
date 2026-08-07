@@ -209,6 +209,19 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_paused = !m_paused;
     }
 
+    if (m_paused) return;
+
+    // Victory Check: If Twilight < 1.0% (< 0.01f), hold for 60s to win
+    if (m_twilight_level < 0.01f) {
+        m_victory_hold_timer += raw_dt;
+        if (m_victory_hold_timer >= 60.0f) {
+            m_victory_achieved = true;
+            m_paused = true;
+        }
+    } else if (!m_victory_achieved) {
+        m_victory_hold_timer = 0.0f;
+    }
+
     // Time Dilation Hotkeys (Keys 1-4 for 1.0x, 2.0x, 5.0x, 10.0x)
     if (Input::is_key_just_pressed(KeyCode::Key1)) {
         m_time_scale = 1.0f;
@@ -497,6 +510,7 @@ void MainScene::draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) 
 
 void MainScene::draw_hud() {
     int screen_width = Game::WIDTH;
+    int screen_height = Game::HEIGHT;
 
     const char* selected_name = "pipe";
     FixtureType sel_type = m_player.selected_fixture_type();
@@ -545,6 +559,28 @@ void MainScene::draw_hud() {
             6, bottom_y,
             seed_str,
             0x9900CCCC, 1, Layer::HUD_Text, &font
+        );
+    }
+
+    // Victory Banner & Countdown Overlay (no background box, centered)
+    if (m_victory_achieved) {
+        std::string_view win_str = "YOU WIN!";
+        int win_w = Draw::text_width(win_str, 2, &font);
+        Draw::text(
+            screen_width / 2 - win_w / 2,
+            screen_height / 2 - font.size,
+            win_str,
+            0xFF00FF88, 2, Layer::HUD_Text, &font
+        );
+    } else if (m_twilight_level < 0.01f) {
+        int remaining_sec = std::max(0, static_cast<int>(std::ceil(60.0f - m_victory_hold_timer)));
+        std::string_view count_str = Draw::fmt("TWILIGHT CLEARED IN: %ds", remaining_sec);
+        int count_w = Draw::text_width(count_str, 1, &font);
+        Draw::text(
+            screen_width / 2 - count_w / 2,
+            screen_height / 2 - font.size / 2,
+            count_str,
+            0xFF00FF88, 1, Layer::HUD_Text, &font
         );
     }
 }

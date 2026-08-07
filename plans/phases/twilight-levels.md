@@ -39,14 +39,14 @@ Focus: Implement fast headless simulation CLI mode, atomic JSON telemetry dumper
 
 ---
 
-### [PH-TWDM]: Phase 2 - Twilight Dynamics & Continuous Tower Spawning
+### [PH-TWDM]: Phase 2 - Twilight Dynamics & Continuous Tower Spawning (COMPLETED)
 Focus: Re-architect Dark Tower emergence, remove single-tower cap, implement dynamic twilight scaling curves, and adjust pulse/egg twilight bumps.
 
-- [ ] `[TWDM-CURV]`: Implement Twilight Scaling Curve Helper - Add `calculate_twilight_cooldown(twilight_level, min_cd, max_cd, exponent)` supporting $10\%$–$75\%$ thresholds.
-- [ ] `[TWDM-TWR]`: Continuous Tower Emergence Engine - Remove `TARGET_ACTIVE_DARK_TOWERS = 1` hardcap in `EnemyManager`. Allow continuous global emergence across all unoccupied corrupted tiles.
-- [ ] `[TWDM-TWRM]`: Anti-Repetition Corrupted Tile Guard - Track `m_last_destroyed_tile_index` in `EnemyManager` and skip it during random tile selection if other unoccupied tiles are available.
-- [ ] `[TWDM-PULS]`: Tower Twilight Pulse & Egg Wave Bumps - Set Dark Tower pulse rate to `4.0s`–`5.0s`, pulse amount to `0.04f` (4%), and add a `+0.01f` (1%) Twilight bump when egg waves spawn.
-- [ ] `[TWDM-CLEA]`: Light Spire Cleanse Rate Adjustment - Update `TWILIGHT_DECREASE_PER_MANA` in `MainScene.h` to `0.010f` (1.0% per tick per spire).
+- [x] `[TWDM-CURV]`: Implement Twilight Scaling Curve Helper - Add `calculate_twilight_cooldown(twilight_level, min_cd, max_cd, exponent)` supporting $10\%$–$75\%$ thresholds.
+- [x] `[TWDM-TWR]`: Continuous Tower Emergence Engine - Remove `TARGET_ACTIVE_DARK_TOWERS = 1` hardcap in `EnemyManager`. Allow continuous global emergence across all unoccupied corrupted tiles.
+- [x] `[TWDM-TWRM]`: Anti-Repetition Corrupted Tile Guard - Track `m_last_destroyed_tile_index` in `EnemyManager` and skip it during random tile selection if other unoccupied tiles are available.
+- [x] `[TWDM-PULS]`: Tower Twilight Pulse & Egg Wave Bumps - Set Dark Tower pulse rate to `4.0s`–`5.0s`, pulse amount to `0.04f` (4%), and add a `+0.01f` (1%) Twilight bump when egg waves spawn.
+- [x] `[TWDM-CLEA]`: Light Spire Cleanse Rate Adjustment - Update `TWILIGHT_DECREASE_PER_MANA` in `MainScene.h` to `0.010f` (1.0% per tick per spire).
 
 ---
 

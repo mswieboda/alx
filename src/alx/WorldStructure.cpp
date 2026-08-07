@@ -1,4 +1,6 @@
 #include "alx/WorldStructure.h"
+#include "alx/EnemyManager.h"
+#include "alx/Random.h"
 #include <cmath>
 #include <algorithm>
 #include "core/Draw.h"
@@ -17,7 +19,8 @@ WorldStructure::WorldStructure(float px, float py, StructureType struct_type)
       ),
       type(struct_type),
       hp(DEFAULT_DARK_TOWER_MAX_HP),
-      max_hp(DEFAULT_DARK_TOWER_MAX_HP)
+      max_hp(DEFAULT_DARK_TOWER_MAX_HP),
+      next_pulse_cooldown(Random::get_float(DarkTowerConstants::PULSE_INTERVAL_MIN, DarkTowerConstants::PULSE_INTERVAL_MAX))
 {
 }
 

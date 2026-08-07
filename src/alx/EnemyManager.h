@@ -40,6 +40,17 @@ namespace DarkTowerConstants {
     static constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
     static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
 
+    // Twilight Scaling Curve Thresholds & Exponent
+    static constexpr float TWILIGHT_LOW_THRESHOLD = 0.10f;
+    static constexpr float TWILIGHT_HIGH_THRESHOLD = 0.75f;
+    static constexpr float DEFAULT_CURVE_EXPONENT = 1.0f;
+
+    // Pulse & Egg Twilight Bumps
+    static constexpr float PULSE_INTERVAL_MIN = 4.0f;
+    static constexpr float PULSE_INTERVAL_MAX = 5.0f;
+    static constexpr float PULSE_TWILIGHT_INCREASE = 0.04f;
+    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.01f;
+
     // Inverse Twilight Cooldown Scaling (Seconds)
     // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
     static constexpr float TWILIGHT_CORRUPTED_MIN_COOLDOWN = 15.0f;
@@ -49,10 +60,13 @@ namespace DarkTowerConstants {
     static constexpr float TWILIGHT_PURIFIED_MIN_COOLDOWN = 5.0f;
     static constexpr float TWILIGHT_PURIFIED_MAX_COOLDOWN = 10.0f;
 
-    // Periodic Emergence Settings
-    static constexpr int TARGET_ACTIVE_DARK_TOWERS = 1;
-    static constexpr float EMERGENCE_COOLDOWN_MIN = 8.0f;
-    static constexpr float EMERGENCE_COOLDOWN_MAX = 16.0f;
+    // Normal Periodic Emergence Settings (for Twilight > 10%)
+    static constexpr float EMERGENCE_COOLDOWN_MIN = 15.0f;
+    static constexpr float EMERGENCE_COOLDOWN_MAX = 30.0f;
+
+    // Low Twilight Crunch Emergence Settings (for Twilight <= 10%)
+    static constexpr float CRUNCH_EMERGENCE_COOLDOWN_MIN = 10.0f;
+    static constexpr float CRUNCH_EMERGENCE_COOLDOWN_MAX = 15.0f;
 }
 
 struct CachedThreatPos {
@@ -104,6 +118,7 @@ private:
     bool m_attack_hit_registered = false;
     float m_pending_twilight_increase = 0.0f;
     bool m_tower_spawned_event = false;
+    int m_last_destroyed_tile_index = -1;
 
 
 public:
@@ -113,6 +128,7 @@ public:
     [[nodiscard]] int find_unoccupied_corrupted_tile_index() const;
     void spawn_dark_tower_at_corrupted_tile(size_t tile_index, const Tiles& tiles);
     void spawn_dark_tower(float x, float y);
+    [[nodiscard]] float calculate_twilight_cooldown(float twilight_level, float min_cd, float max_cd, float exponent = DarkTowerConstants::DEFAULT_CURVE_EXPONENT) const;
     [[nodiscard]] float calculate_inverse_twilight_cooldown(float twilight_level) const;
 
     [[nodiscard]] std::span<const CorruptedDarkTowerTile> corrupted_tiles() const noexcept { return m_corrupted_tiles; }

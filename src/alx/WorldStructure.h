@@ -25,6 +25,7 @@ struct WorldStructure : public Entity {
     float spawn_timer = 0.0f;
     float next_spawn_cooldown = 5.0f; // Initial spawn warm-up delay
     float pulse_timer = 0.0f;
+    float next_pulse_cooldown = 4.5f;
     float hit_flash_timer = 0.0f;
     uint32_t last_hit_swing_id = 0;
 
