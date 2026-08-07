@@ -55,6 +55,16 @@ namespace alx {
         }
     }
 
+    int EnemyManager::count_active_dark_towers() const {
+        int count = 0;
+        for (const auto& s : m_world_structures) {
+            if (s.type == StructureType::DarkTower && s.hp > 0) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
     int EnemyManager::find_unoccupied_corrupted_tile_index() const {
         int free_count = 0;
         for (const auto& tile : m_corrupted_tiles) {
@@ -328,9 +338,11 @@ namespace alx {
             }
             float jitter = Random::get_float(-1.5f, 1.5f);
             m_next_emergence_cooldown = std::max(1.0f, base_cd + jitter);
-            int target_tile_idx = find_unoccupied_corrupted_tile_index();
-            if (target_tile_idx >= 0) {
-                spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(target_tile_idx), tiles);
+            if (count_active_dark_towers() < DarkTowerConstants::MAX_ACTIVE_DARK_TOWERS) {
+                int target_tile_idx = find_unoccupied_corrupted_tile_index();
+                if (target_tile_idx >= 0) {
+                    spawn_dark_tower_at_corrupted_tile(static_cast<size_t>(target_tile_idx), tiles);
+                }
             }
         }
         

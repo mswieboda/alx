@@ -39,7 +39,7 @@ struct HeadlessSummaryStats {
     float peak_twilight{0.0f};
     float min_twilight{1.0f};
     float avg_twilight{0.0f};
-    float time_to_max_twilight{-1.0f};
+    float time_to_zero_twilight{-1.0f};
     int dark_towers_count{0};
     int shadow_eggs_count{0};
     int enemies_count{0};

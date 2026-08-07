@@ -85,11 +85,11 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
     int min_pct = static_cast<int>(std::round(stats.min_twilight * 100.0f));
     int avg_pct = static_cast<int>(std::round(stats.avg_twilight * 100.0f));
 
-    char time_max_buf[64];
-    if (stats.time_to_max_twilight >= 0.0f) {
-        std::snprintf(time_max_buf, sizeof(time_max_buf), "%.2fs", stats.time_to_max_twilight);
+    char time_zero_buf[64];
+    if (stats.time_to_zero_twilight >= 0.0f) {
+        std::snprintf(time_zero_buf, sizeof(time_zero_buf), "%.2fs", stats.time_to_zero_twilight);
     } else {
-        std::snprintf(time_max_buf, sizeof(time_max_buf), "N/A (Never reached)");
+        std::snprintf(time_zero_buf, sizeof(time_zero_buf), "N/A (Never reached)");
     }
 
     std::printf(
@@ -106,7 +106,7 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
         "    Peak Twilight:        %3d%% (%.4f)\n"
         "    Min Twilight:         %3d%% (%.4f)\n"
         "    Average Twilight:     %3d%% (%.4f)\n"
-        "    Time to 100%% Twilight: %s\n"
+        "    Time to 0%% Twilight:   %s\n"
         "  --------------------------------------------------------------------\n"
         "  THREAT & INFRASTRUCTURE SUMMARY:\n"
         "    Active Dark Towers:   %d\n"
@@ -125,7 +125,7 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
         peak_pct, stats.peak_twilight,
         min_pct, stats.min_twilight,
         avg_pct, stats.avg_twilight,
-        time_max_buf,
+        time_zero_buf,
         stats.dark_towers_count,
         stats.shadow_eggs_count,
         stats.enemies_count,

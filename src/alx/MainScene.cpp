@@ -69,7 +69,7 @@ void MainScene::load_level(int level_id) {
     m_peak_twilight = m_twilight_level;
     m_min_twilight = m_twilight_level;
     m_sum_twilight = 0.0;
-    m_time_to_max_twilight = -1.0f;
+    m_time_to_zero_twilight = -1.0f;
 
     m_rolling_sample_head = 0;
     m_rolling_sample_count = 0;
@@ -213,6 +213,9 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     // Victory Check: If Twilight < 1.0%, hold for 60 seconds to win
     if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
+        if (m_time_to_zero_twilight < 0.0f) {
+            m_time_to_zero_twilight = m_sim_elapsed_sec;
+        }
         m_victory_hold_timer += raw_dt;
         if (m_victory_hold_timer >= VICTORY_HOLD_DURATION_SEC) {
             m_victory_achieved = true;
@@ -331,8 +334,8 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     m_peak_twilight = std::max(m_peak_twilight, m_twilight_level);
     m_min_twilight = std::min(m_min_twilight, m_twilight_level);
     m_sum_twilight += m_twilight_level;
-    if (m_twilight_level >= 0.899f && m_time_to_max_twilight < 0.0f) {
-        m_time_to_max_twilight = m_sim_elapsed_sec;
+    if ((m_twilight_level <= 0.0f || m_twilight_level < VICTORY_TWILIGHT_THRESHOLD || m_victory_achieved) && m_time_to_zero_twilight < 0.0f) {
+        m_time_to_zero_twilight = m_sim_elapsed_sec;
     }
 
     float frame_delta = m_twilight_level - prev_twilight;
@@ -361,7 +364,7 @@ void MainScene::print_headless_summary_report(int64_t seed) {
     stats.peak_twilight = m_peak_twilight;
     stats.min_twilight = m_min_twilight;
     stats.avg_twilight = (m_sim_tick_count > 0) ? static_cast<float>(m_sum_twilight / static_cast<double>(m_sim_tick_count)) : m_twilight_level;
-    stats.time_to_max_twilight = m_time_to_max_twilight;
+    stats.time_to_zero_twilight = m_time_to_zero_twilight;
 
     int towers = 0;
     for (const auto& s : m_enemy_manager.structures()) {

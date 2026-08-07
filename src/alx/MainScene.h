@@ -15,7 +15,7 @@ class MainScene : public Scene {
 private:
     // --- CONSTANTS ---
     static constexpr float TWILIGHT_MAX = 0.99f;
-    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.030f;
+    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.030f; // foo
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
     static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
     static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;
@@ -76,7 +76,7 @@ private:
     float m_peak_twilight{0.0f};
     float m_min_twilight{1.0f};
     double m_sum_twilight{0.0};
-    float m_time_to_max_twilight{-1.0f};
+    float m_time_to_zero_twilight{-1.0f};
 
     static constexpr float VIGNETTE_SURGE_DURATION = 1.0f;
     static constexpr float VIGNETTE_PEAK_INTENSITY = 0.33f;

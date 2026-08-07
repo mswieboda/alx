@@ -36,6 +36,7 @@ namespace DarkTowerConstants {
     static constexpr float SPAWN_TILE_OFFSET_MIN_RATIO = 0.25f;
     static constexpr float SPAWN_TILE_OFFSET_MAX_RATIO = 2.00f;
     static constexpr int SPAWN_RING_SEARCH_STEPS = 16;
+    static constexpr int MAX_ACTIVE_DARK_TOWERS = 3;
     static constexpr float TELEGRAPH_DURATION = 1.0f;
     static constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
     static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
@@ -43,30 +44,30 @@ namespace DarkTowerConstants {
     // Twilight Scaling Curve Thresholds & Exponent
     static constexpr float TWILIGHT_LOW_THRESHOLD = 0.05f;
     static constexpr float TWILIGHT_HIGH_THRESHOLD = 0.90f;
-    static constexpr float DEFAULT_CURVE_EXPONENT = 1.0f;
+    static constexpr float DEFAULT_CURVE_EXPONENT = 0.69f;
 
     // Pulse & Egg Twilight Bumps
     static constexpr float PULSE_INTERVAL_MIN = 7.0f;
     static constexpr float PULSE_INTERVAL_MAX = 15.0f;
     static constexpr float PULSE_TWILIGHT_INCREASE = 0.03f;
-    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.005f;
+    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.003f;
 
     // Inverse Twilight Cooldown Scaling (Seconds)
     // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
-    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 15.0f;
-    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 25.0f;
+    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 25.0f;
+    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 35.0f;
 
     // Low Twilight (0.0 = Purified room): Faster tower spawn cooldown range (escalation)
-    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 10.0f;
-    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 20.0f;
+    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 17.0f;
+    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 29.0f;
 
     // Normal Periodic Emergence Settings (for Twilight > 10%)
-    static constexpr float EMERGENCE_COOLDOWN_MIN = 30.0f;
+    static constexpr float EMERGENCE_COOLDOWN_MIN = 45.0f;
     static constexpr float EMERGENCE_COOLDOWN_MAX = 60.0f;
 
     // Low Twilight Crunch Emergence Settings (for Twilight <= 10%)
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 20.0f;
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 30.0f;
+    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 30.0f;
+    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 45.0f;
 }
 
 struct CachedThreatPos {
@@ -125,6 +126,7 @@ public:
     void clear();
 
     void register_corrupted_tiles(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles);
+    [[nodiscard]] int count_active_dark_towers() const;
     [[nodiscard]] int find_unoccupied_corrupted_tile_index() const;
     void spawn_dark_tower_at_corrupted_tile(size_t tile_index, const Tiles& tiles);
     void spawn_dark_tower(float x, float y);

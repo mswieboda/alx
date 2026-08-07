@@ -175,8 +175,6 @@ tasks:
     desc: Run Debug game executable
     interactive: true
     silent: true
-    deps:
-      - build
     vars:
       build_dir: 'build/{{.build}}'
       binary: '{{.build_dir}}/{{.name}}{{.exe}}'
