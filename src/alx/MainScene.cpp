@@ -42,8 +42,12 @@ void MainScene::load_level(int level_id) {
     if (level_id == 1) {
         m_tiles = Tiles(60, 30);
         m_network = Network(60, 30);
-        m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
-        m_twilight_level = 0.99f;
+        if (m_is_headless) {
+            m_player = Player(HeadlessConstants::OFFSCREEN_PLAYER_POS, HeadlessConstants::OFFSCREEN_PLAYER_POS);
+        } else {
+            m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
+        }
+        m_twilight_level = 0.9f;
 
         seeps = { {15, 12} };
         refiners = { {10, 8} };
@@ -208,10 +212,56 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (Debug::CAN_PAUSE && (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P))) {
         m_paused = !m_paused;
     }
-
     if (m_paused) return;
 
-    // Victory Check: If Twilight < 1.0%, hold for 60 seconds to win
+    update_victory_condition(raw_dt);
+    update_time_dilation_hotkeys();
+
+    const float dt = raw_dt * m_time_scale;
+    m_last_dt = dt;
+    ++m_sim_tick_count;
+    m_sim_elapsed_sec += dt;
+    const float prev_twilight = m_twilight_level;
+
+    update_tick_simulation(dt);
+    m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
+    m_camera.update(dt);
+    m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
+
+    if (m_is_headless) {
+        update_headless_defense(raw_dt);
+    }
+
+    update_player_respawn();
+
+    m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
+    if (m_enemy_manager.consume_tower_spawned_event()) {
+        trigger_tower_spawn_alert();
+    }
+
+    if (m_vignette_surge_timer > 0.0f) {
+        m_vignette_surge_timer = std::max(0.0f, m_vignette_surge_timer - dt);
+    }
+
+    m_particle_system.update(dt);
+    update_sword_slash_trail();
+
+    float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
+    if (tw_inc > 0.0f) {
+        m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
+        record_twilight_event(tw_inc, "Tower/Fixture Corruption");
+    }
+
+    update_twilight_metrics(dt, prev_twilight);
+
+    m_telemetry_dump_timer += raw_dt;
+    if (m_telemetry_dump_timer >= TELEMETRY_DUMP_INTERVAL) {
+        m_telemetry_dump_timer = 0.0f;
+        dump_telemetry_snapshot();
+    }
+}
+
+void MainScene::update_victory_condition(float raw_dt) {
     if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
         if (m_time_to_zero_twilight < 0.0f) {
             m_time_to_zero_twilight = m_sim_elapsed_sec;
@@ -224,8 +274,9 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     } else if (!m_victory_achieved) {
         m_victory_hold_timer = 0.0f;
     }
+}
 
-    // Time Dilation Hotkeys (Keys 1-4 for 1.0x, 2.0x, 5.0x, 10.0x)
+void MainScene::update_time_dilation_hotkeys() {
     if (Input::is_key_just_pressed(KeyCode::Key1)) {
         m_time_scale = 1.0f;
     } else if (Input::is_key_just_pressed(KeyCode::Key2)) {
@@ -235,88 +286,63 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     } else if (Input::is_key_just_pressed(KeyCode::Key4)) {
         m_time_scale = 10.0f;
     }
+}
 
-    float dt = raw_dt * m_time_scale;
-    m_last_dt = dt;
-    ++m_sim_tick_count;
-    m_sim_elapsed_sec += dt;
-
-    float prev_twilight = m_twilight_level;
-
-    update_tick_simulation(dt);
-
-    m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
-    m_camera.update(dt);
-
-    m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
-
+void MainScene::update_player_respawn() {
     if (m_player.state.defeated && m_player.state.defeat_timer <= 0.0f) {
         m_player.state.hp = m_player.state.max_hp;
         m_player.state.defeated = false;
         m_player.state.iframe_timer = Player::State::IFRAME_DURATION;
 
-        float spawn_x = 9.0f * m_tiles.tile_size();
-        float spawn_y = 9.0f * m_tiles.tile_size();
+        const float spawn_x = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
+        const float spawn_y = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
         m_player.transform.x = spawn_x;
         m_player.transform.y = spawn_y;
         m_player.sync_prev_transforms();
     }
+}
 
-    m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
-    if (m_enemy_manager.consume_tower_spawned_event()) {
-        trigger_tower_spawn_alert();
+void MainScene::update_sword_slash_trail() {
+    if (!m_player.is_attacking()) {
+        m_slash_was_attacking = false;
+        return;
     }
 
-    if (m_vignette_surge_timer > 0.0f) {
-        m_vignette_surge_timer -= dt;
-        if (m_vignette_surge_timer < 0.0f) m_vignette_surge_timer = 0.0f;
+    const Collision::Circle hit_circle = m_player.attack_hit_circle(1.0f);
+    const float pcx = m_player.center_x(1.0f);
+    const float pcy = m_player.center_y(1.0f);
+
+    float dir_x = hit_circle.cx - pcx;
+    float dir_y = hit_circle.cy - pcy;
+    const float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
+    if (len > 0.001f) {
+        dir_x /= len;
+        dir_y /= len;
+    } else {
+        dir_x = 0.0f;
+        dir_y = 1.0f;
     }
 
-    m_particle_system.update(dt);
+    const float curr_tip_x = hit_circle.cx + dir_x * (hit_circle.radius - 1.0f);
+    const float curr_tip_y = hit_circle.cy + dir_y * (hit_circle.radius - 1.0f);
 
-    if (m_player.is_attacking()) {
-        Collision::Circle hit_circle = m_player.attack_hit_circle(1.0f);
-        float pcx = m_player.center_x(1.0f);
-        float pcy = m_player.center_y(1.0f);
-
-        float dir_x = hit_circle.cx - pcx;
-        float dir_y = hit_circle.cy - pcy;
-        float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
-        if (len > 0.001f) {
-            dir_x /= len;
-            dir_y /= len;
-        } else {
-            dir_x = 0.0f;
-            dir_y = 1.0f;
-        }
-
-        float curr_tip_x = hit_circle.cx + dir_x * (hit_circle.radius - 1.0f);
-        float curr_tip_y = hit_circle.cy + dir_y * (hit_circle.radius - 1.0f);
-
-        if (!m_slash_was_attacking) {
-            m_slash_prev_tip_x = curr_tip_x;
-            m_slash_prev_tip_y = curr_tip_y;
-            m_slash_was_attacking = true;
-        }
-
-        int player_sort_y = static_cast<int>(m_player.transform.y + m_player.transform.height);
-        ParticleEmitters::spawn_sword_slash_trail(
-            m_particle_system, m_slash_prev_tip_x, m_slash_prev_tip_y, curr_tip_x, curr_tip_y,
-            m_player.swing_progress_curr, Layer::WorldObjFX, Layer::WorldObj, player_sort_y
-        );
-
+    if (!m_slash_was_attacking) {
         m_slash_prev_tip_x = curr_tip_x;
         m_slash_prev_tip_y = curr_tip_y;
-    } else {
-        m_slash_was_attacking = false;
+        m_slash_was_attacking = true;
     }
 
-    float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
-    if (tw_inc > 0.0f) {
-        m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
-        record_twilight_event(tw_inc, "Tower/Fixture Corruption");
-    }
+    const int player_sort_y = static_cast<int>(m_player.transform.y + m_player.transform.height);
+    ParticleEmitters::spawn_sword_slash_trail(
+        m_particle_system, m_slash_prev_tip_x, m_slash_prev_tip_y, curr_tip_x, curr_tip_y,
+        m_player.swing_progress_curr, Layer::WorldObjFX, Layer::WorldObj, player_sort_y
+    );
 
+    m_slash_prev_tip_x = curr_tip_x;
+    m_slash_prev_tip_y = curr_tip_y;
+}
+
+void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
     if (Action::is_just_pressed(Action::DebugEnemyWave)) {
         m_enemy_manager.spawn_enemy_wave(m_tiles, &m_network, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
     }
@@ -338,7 +364,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_time_to_zero_twilight = m_sim_elapsed_sec;
     }
 
-    float frame_delta = m_twilight_level - prev_twilight;
+    const float frame_delta = m_twilight_level - prev_twilight;
     m_twilight_delta_per_sec = (dt > 0.0001f) ? (frame_delta / dt) : 0.0f;
 
     m_rolling_samples[m_rolling_sample_head] = RollingSample{ dt, frame_delta };
@@ -346,11 +372,15 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (m_rolling_sample_count < ROLLING_BUFFER_MAX_SAMPLES) {
         ++m_rolling_sample_count;
     }
+}
 
-    m_telemetry_dump_timer += raw_dt;
-    if (m_telemetry_dump_timer >= TELEMETRY_DUMP_INTERVAL) { // Dump snapshot every 100ms
-        m_telemetry_dump_timer = 0.0f;
-        dump_telemetry_snapshot();
+void MainScene::update_headless_defense(float dt) {
+    m_headless_defend_timer += dt;
+    if (m_headless_defend_timer >= HeadlessConstants::DEFEND_INTERVAL_SEC) {
+        m_headless_defend_timer = 0.0f;
+        float base_x = 9.0f * m_tiles.tile_size();
+        float base_y = 9.0f * m_tiles.tile_size();
+        m_enemy_manager.clear_enemies_near(base_x, base_y, HeadlessConstants::DEFEND_RADIUS_PX);
     }
 }
 

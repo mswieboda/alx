@@ -126,6 +126,7 @@ public:
     void clear();
 
     void register_corrupted_tiles(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles);
+    int clear_enemies_near(float center_x, float center_y, float radius);
     [[nodiscard]] int count_active_dark_towers() const;
     [[nodiscard]] int find_unoccupied_corrupted_tile_index() const;
     void spawn_dark_tower_at_corrupted_tile(size_t tile_index, const Tiles& tiles);

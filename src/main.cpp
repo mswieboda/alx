@@ -110,6 +110,7 @@ int main(int argc, char* argv[]) {
         SceneManager scene_manager;
         auto scene_ptr = std::make_unique<alx::MainScene>();
         auto* raw_scene = scene_ptr.get();
+        raw_scene->set_headless(true);
         scene_manager.change_scene(std::move(scene_ptr));
 
         constexpr float fixed_dt = 1.0f / 60.0f;

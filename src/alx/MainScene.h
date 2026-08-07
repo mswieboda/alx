@@ -15,7 +15,7 @@ class MainScene : public Scene {
 private:
     // --- CONSTANTS ---
     static constexpr float TWILIGHT_MAX = 0.99f;
-    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.030f; // foo
+    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.03f;
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
     static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
     static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;
@@ -32,6 +32,8 @@ private:
     float m_last_dt = 0.016f;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
+    bool m_is_headless = false;
+    float m_headless_defend_timer = 0.0f;
     float m_victory_hold_timer = 0.0f;
     bool m_victory_achieved = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
@@ -89,9 +91,22 @@ private:
 
     float m_vignette_surge_timer = 0.0f;
 
+    // Headless Simulation Parameters
+    struct HeadlessConstants {
+        static constexpr float DEFEND_INTERVAL_SEC = 7.0f;
+        static constexpr float DEFEND_RADIUS_PX = 96.0f;
+        static constexpr float OFFSCREEN_PLAYER_POS = -100.0f;
+    };
+
     void record_twilight_event(float delta, const char* cause);
     [[nodiscard]] float calculate_rolling_twilight_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
     void update_tick_simulation(float dt);
+    void update_headless_defense(float dt);
+    void update_victory_condition(float raw_dt);
+    void update_time_dilation_hotkeys();
+    void update_player_respawn();
+    void update_sword_slash_trail();
+    void update_twilight_metrics(float dt, float prev_twilight);
     void dump_telemetry_snapshot();
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
     void draw_vignette_surge();
@@ -107,6 +122,8 @@ public:
         float shake_duration = CAMERA_SHAKE_DURATION
     );
     void print_headless_summary_report(int64_t seed = -1);
+    void set_headless(bool headless) noexcept { m_is_headless = headless; }
+    [[nodiscard]] bool is_headless() const noexcept { return m_is_headless; }
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }
 

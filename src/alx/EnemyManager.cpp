@@ -55,14 +55,21 @@ namespace alx {
         }
     }
 
+    int EnemyManager::clear_enemies_near(float center_x, float center_y, float radius) {
+        const float r_sq = radius * radius;
+        const size_t initial_count = m_enemies.size();
+        std::erase_if(m_enemies, [center_x, center_y, r_sq](const Enemy& enemy) {
+            const float dx = enemy.center_x() - center_x;
+            const float dy = enemy.center_y() - center_y;
+            return (dx * dx + dy * dy) <= r_sq;
+        });
+        return static_cast<int>(initial_count - m_enemies.size());
+    }
+
     int EnemyManager::count_active_dark_towers() const {
-        int count = 0;
-        for (const auto& s : m_world_structures) {
-            if (s.type == StructureType::DarkTower && s.hp > 0) {
-                ++count;
-            }
-        }
-        return count;
+        return static_cast<int>(std::count_if(m_world_structures.cbegin(), m_world_structures.cend(), [](const WorldStructure& s) {
+            return s.type == StructureType::DarkTower && s.hp > 0;
+        }));
     }
 
     int EnemyManager::find_unoccupied_corrupted_tile_index() const {
