@@ -85,11 +85,10 @@ public:
     [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
     [[nodiscard]] const std::vector<int32_t>& active_indices() const noexcept { return m_active_indices; }
 
-    // --- Draw ---
     void draw(
         int min_tx, int max_tx, int min_ty, int max_ty,
         Transform p_xform, float progress,
-        ParticleSystem& particle_system, float last_dt, const float sim_tick_rate
+        ParticleSystem* particle_system = nullptr, float last_dt = 0.016f, const float sim_tick_rate = 0.6f
     );
 };
 

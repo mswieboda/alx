@@ -11,4 +11,5 @@ namespace Debug {
     inline constexpr bool DRAW_ENEMY_AGGRO_AREAS = true;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = true;
+    inline constexpr bool CAN_PAUSE = true;
 }

@@ -880,8 +880,13 @@ NetworkSimResults Network::sim_tick() {
 void Network::draw(
     int min_tx, int max_tx, int min_ty, int max_ty,
     Transform p_xform, float progress,
-    ParticleSystem& ps, float last_dt, const float sim_tick_rate
+    ParticleSystem* particle_system, float last_dt, const float sim_tick_rate
 ) {
+    static thread_local ParticleSystem s_dummy_ps;
+    if (!particle_system) {
+        s_dummy_ps.clear();
+    }
+    ParticleSystem& ps = particle_system ? *particle_system : s_dummy_ps;
     DrawFixtures::begin_frame(last_dt, sim_tick_rate);
 
     static thread_local std::vector<int> s_drawn_roots;

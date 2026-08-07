@@ -205,7 +205,7 @@ void MainScene::dump_telemetry_snapshot() {
 }
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
-    if (Action::is_just_pressed(Action::Menu)) {
+    if (Debug::CAN_PAUSE && (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P))) {
         m_paused = !m_paused;
     }
 
@@ -562,7 +562,7 @@ void MainScene::draw_hud() {
         );
     }
 
-    // Victory Banner & Countdown Overlay (no background box, centered)
+    // Victory Banner, Pause Text, & Countdown Overlay (no background box, centered)
     if (m_victory_achieved) {
         std::string_view win_str = "YOU WIN!";
         int win_w = Draw::text_width(win_str, 2, &font);
@@ -571,6 +571,15 @@ void MainScene::draw_hud() {
             screen_height / 2 - font.size,
             win_str,
             0xFF00FF88, 2, Layer::HUD_Text, &font
+        );
+    } else if (m_paused) {
+        std::string_view pause_str = "PAUSED";
+        int pause_w = Draw::text_width(pause_str, 2, &font);
+        Draw::text(
+            screen_width / 2 - pause_w / 2,
+            screen_height / 2 - font.size,
+            pause_str,
+            0xFFFFCC00, 2, Layer::HUD_Text, &font
         );
     } else if (m_twilight_level < 0.01f) {
         int remaining_sec = std::max(0, static_cast<int>(std::ceil(60.0f - m_victory_hold_timer)));
@@ -625,7 +634,7 @@ void MainScene::draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, floa
     m_network.draw(
         min_tx, max_tx, min_ty, max_ty,
         m_player.transform, progress,
-        m_particle_system, m_last_dt, SIM_TICK_RATE
+        m_paused ? nullptr : &m_particle_system, m_last_dt, SIM_TICK_RATE
     );
 }
 
