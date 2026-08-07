@@ -166,8 +166,10 @@ bool Network::damage_fixture(GridPos pos, int amount, float& out_twilight_increa
     if (root_fix.hp <= 0) {
         FixtureType t = root_fix.type;
         if (t == FixtureType::Pipe) {
+            // TODO: make this a constant
             out_twilight_increase = 0.05f;
         } else if (t == FixtureType::Refiner || t == FixtureType::Spire) {
+            // TODO: make this a constant
             out_twilight_increase = 0.15f;
         }
         remove_fixture(root_pos);

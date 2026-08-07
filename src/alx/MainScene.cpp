@@ -43,7 +43,7 @@ void MainScene::load_level(int level_id) {
         m_tiles = Tiles(60, 30);
         m_network = Network(60, 30);
         m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
-        m_twilight_level = 0.75f;
+        m_twilight_level = 0.99f;
 
         seeps = { {15, 12} };
         refiners = { {10, 8} };

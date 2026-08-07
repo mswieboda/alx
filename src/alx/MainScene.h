@@ -14,8 +14,8 @@ namespace alx {
 class MainScene : public Scene {
 private:
     // --- CONSTANTS ---
-    static constexpr float TWILIGHT_MAX = 0.9f;
-    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.010f;
+    static constexpr float TWILIGHT_MAX = 0.99f;
+    static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.030f;
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
     static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
     static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;

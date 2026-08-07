@@ -23,7 +23,6 @@ namespace Game {
     inline constexpr uint8_t REFINER_PROCESSING_TICKS_REQUIRED = 5;
     inline constexpr uint8_t REFINER_CONSUMING_WAIT_TICKS = 1;
     inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
-    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 25;
-    inline constexpr uint8_t SEEP_OVERPRESSURE_THRESHOLD_TICKS = 10; // consider removing this mechanic
+    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 20;
 }
 

@@ -41,15 +41,15 @@ namespace DarkTowerConstants {
     static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
 
     // Twilight Scaling Curve Thresholds & Exponent
-    static constexpr float TWILIGHT_LOW_THRESHOLD = 0.10f;
-    static constexpr float TWILIGHT_HIGH_THRESHOLD = 0.75f;
+    static constexpr float TWILIGHT_LOW_THRESHOLD = 0.05f;
+    static constexpr float TWILIGHT_HIGH_THRESHOLD = 0.90f;
     static constexpr float DEFAULT_CURVE_EXPONENT = 1.0f;
 
     // Pulse & Egg Twilight Bumps
-    static constexpr float PULSE_INTERVAL_MIN = 4.0f;
-    static constexpr float PULSE_INTERVAL_MAX = 5.0f;
-    static constexpr float PULSE_TWILIGHT_INCREASE = 0.04f;
-    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.01f;
+    static constexpr float PULSE_INTERVAL_MIN = 7.0f;
+    static constexpr float PULSE_INTERVAL_MAX = 15.0f;
+    static constexpr float PULSE_TWILIGHT_INCREASE = 0.03f;
+    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.005f;
 
     // Inverse Twilight Cooldown Scaling (Seconds)
     // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
@@ -58,15 +58,15 @@ namespace DarkTowerConstants {
 
     // Low Twilight (0.0 = Purified room): Faster tower spawn cooldown range (escalation)
     static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 10.0f;
-    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 15.0f;
+    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 20.0f;
 
     // Normal Periodic Emergence Settings (for Twilight > 10%)
-    static constexpr float EMERGENCE_COOLDOWN_MIN = 20.0f;
-    static constexpr float EMERGENCE_COOLDOWN_MAX = 35.0f;
+    static constexpr float EMERGENCE_COOLDOWN_MIN = 30.0f;
+    static constexpr float EMERGENCE_COOLDOWN_MAX = 60.0f;
 
     // Low Twilight Crunch Emergence Settings (for Twilight <= 10%)
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 10.0f;
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 20.0f;
+    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 20.0f;
+    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 30.0f;
 }
 
 struct CachedThreatPos {
