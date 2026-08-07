@@ -7,6 +7,8 @@ namespace alx {
 struct ManaSpark {
     static constexpr float DEFAULT_SIZE = 4.0f;
     static constexpr float HALF_SIZE = 2.0f;
+    static constexpr uint32_t COLOR_OUTER = 0xFFFFFFFF; // Opaque white
+    static constexpr uint32_t COLOR_INNER = 0xFF00DDFF; // Opaque cyan/blue
 
     float x = 0.0f;
     float y = 0.0f;

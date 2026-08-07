@@ -369,7 +369,7 @@ namespace alx {
             for (auto& enemy : m_enemies) {
                 if (enemy.is_dead()) continue;
                 float contact_x, contact_y;
-                Collision::Circle spark_c{it->x, it->y, 2.0f};
+                Collision::Circle spark_c{it->x, it->y, ManaSpark::HALF_SIZE};
                 if (Collision::circle_contact_point(spark_c, enemy.hurt_circle(), contact_x, contact_y)) {
                     enemy.take_damage(it->damage, it->vx, it->vy, 50.0f, contact_x - enemy.transform.x, contact_y - enemy.transform.y);
                     if (particles) {
@@ -388,7 +388,7 @@ namespace alx {
             // Check DarkTowers
             for (auto& struct_obj : m_world_structures) {
                 if (struct_obj.type != StructureType::DarkTower) continue;
-                Collision::Circle spark_c{it->x, it->y, 2.0f};
+                Collision::Circle spark_c{it->x, it->y, ManaSpark::HALF_SIZE};
                 if (Collision::circle_vs_aabb(spark_c, struct_obj.ground_aabb())) { 
                     struct_obj.take_damage(it->damage);
                     if (particles) {

@@ -441,16 +441,17 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
     if (is_charging_attack) {
         float cx = world_draw_x + world_draw_w * 0.5f;
         float cy = world_draw_y + world_draw_h * 0.5f;
-        if (charge_timer < 0.5f) {
-            float progress = charge_timer / 0.5f;
-            int r = static_cast<int>(progress * 8.0f);
+        if (charge_timer < CHARGE_FULL_DURATION) {
+            float progress = charge_timer / CHARGE_FULL_DURATION;
+            int r = static_cast<int>(progress * CHARGE_MAX_UNCHARGED_RADIUS);
             if (r > 1) {
-                Draw::rect(cx - r, cy - r, r * 2, r * 2, 0xFF00AAFF, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+                float size = static_cast<float>(r * 2);
+                Draw::rect(cx - static_cast<float>(r), cy - static_cast<float>(r), size, size, CHARGE_AURA_COLOR, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
             }
         } else {
-            // Fully charged! Flash cyan aura ring
-            Draw::rect(cx - 10, cy - 10, 20, 20, 0xFF00FFFF, false, 2, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
-            Draw::rect(cx - 6, cy - 6, 12, 12, 0xFFFFFFFF, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+            // Fully charged! Flash cyan aura ring (25% opacity, decreased size)
+            Draw::rect(cx - CHARGE_FULLY_CHARGED_OUTER_OFF, cy - CHARGE_FULLY_CHARGED_OUTER_OFF, CHARGE_FULLY_CHARGED_OUTER_SZ, CHARGE_FULLY_CHARGED_OUTER_SZ, CHARGE_FULL_OUTER_COLOR, false, 2, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
+            Draw::rect(cx - CHARGE_FULLY_CHARGED_INNER_OFF, cy - CHARGE_FULLY_CHARGED_INNER_OFF, CHARGE_FULLY_CHARGED_INNER_SZ, CHARGE_FULLY_CHARGED_INNER_SZ, CHARGE_FULL_INNER_COLOR, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
         }
     }
 
@@ -557,7 +558,7 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
         if (btn_held) {
             charge_timer += dt;
         } else {
-            if (charge_timer >= 0.5f) {
+            if (charge_timer >= CHARGE_FULL_DURATION) {
                 m_pending_spark = true;
             }
             is_charging_attack = false;
