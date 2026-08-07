@@ -44,4 +44,12 @@ namespace DrawPixels {
         int width, int height
     );
 
+    void vignette(
+        std::vector<uint32_t>& pixel_buffer,
+        float intensity,
+        uint32_t color,
+        float inner_radius,
+        float outer_radius
+    );
+
 } // namespace DrawPixels

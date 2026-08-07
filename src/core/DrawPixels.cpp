@@ -345,4 +345,52 @@ void blend(
     }
 }
 
+void vignette(
+    std::vector<uint32_t>& pixel_buffer,
+    float intensity,
+    uint32_t color,
+    float inner_radius,
+    float outer_radius
+) {
+    float clamped_intensity = std::clamp(intensity, 0.0f, 1.0f);
+    if (clamped_intensity <= 0.0f) return;
+
+    int width = Game::WIDTH;
+    int height = Game::HEIGHT;
+    if (static_cast<int>(pixel_buffer.size()) < width * height) return;
+
+    float center_x = static_cast<float>(width) / 2.0f;
+    float center_y = static_cast<float>(height) / 2.0f;
+
+    float rad_diff = outer_radius - inner_radius;
+    if (rad_diff <= 0.0001f) rad_diff = 0.0001f;
+    float inv_rad_diff = 1.0f / rad_diff;
+
+    uint32_t rgb_color = color & 0x00FFFFFF;
+
+    for (int y = 0; y < height; ++y) {
+        float dy = (static_cast<float>(y) + 0.5f - center_y) / center_y;
+        float dy_sq = dy * dy;
+        int row_offset = y * width;
+
+        for (int x = 0; x < width; ++x) {
+            float dx = (static_cast<float>(x) + 0.5f - center_x) / center_x;
+            float dist = std::sqrt(dx * dx + dy_sq);
+
+            if (dist <= inner_radius) continue;
+
+            float t = std::clamp((dist - inner_radius) * inv_rad_diff, 0.0f, 1.0f);
+            float smooth_t = t * t * (3.0f - 2.0f * t);
+            float pixel_alpha = smooth_t * clamped_intensity;
+
+            uint8_t alpha_byte = static_cast<uint8_t>(std::clamp(pixel_alpha * 255.0f, 0.0f, 255.0f));
+            if (alpha_byte > 0) {
+                uint32_t src_pixel = (static_cast<uint32_t>(alpha_byte) << 24) | rgb_color;
+                int idx = row_offset + x;
+                pixel_buffer[idx] = blend_pixel(pixel_buffer[idx], src_pixel);
+            }
+        }
+    }
+}
+
 } // namespace DrawPixels

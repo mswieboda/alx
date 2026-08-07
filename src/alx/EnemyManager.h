@@ -103,6 +103,7 @@ private:
     std::vector<CachedThreatPos> m_cached_threat_positions;
     bool m_attack_hit_registered = false;
     float m_pending_twilight_increase = 0.0f;
+    bool m_tower_spawned_event = false;
 
 
 public:
@@ -119,6 +120,7 @@ public:
     const std::vector<WorldStructure>& structures() const { return m_world_structures; }
 
     float consume_pending_twilight_increase();
+    [[nodiscard]] bool consume_tower_spawned_event();
 
 
     void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false);

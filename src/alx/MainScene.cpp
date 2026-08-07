@@ -225,6 +225,11 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_time_scale = 10.0f;
     }
 
+    // Temporary Test Hotkey: Press 'V' or 'O' to trigger vignette surge on demand
+    if (Input::is_key_just_pressed(KeyCode::V) || Input::is_key_just_pressed(KeyCode::O)) {
+        trigger_vignette_surge(VIGNETTE_SURGE_DURATION);
+    }
+
     float dt = raw_dt * m_time_scale;
     m_last_dt = dt;
     ++m_sim_tick_count;
@@ -252,6 +257,15 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     }
 
     m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
+    if (m_enemy_manager.consume_tower_spawned_event()) {
+        trigger_vignette_surge(VIGNETTE_SURGE_DURATION);
+    }
+
+    if (m_vignette_surge_timer > 0.0f) {
+        m_vignette_surge_timer -= dt;
+        if (m_vignette_surge_timer < 0.0f) m_vignette_surge_timer = 0.0f;
+    }
+
     m_particle_system.update(dt);
 
     if (m_player.is_attacking()) {
@@ -412,10 +426,26 @@ void MainScene::draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) {
     m_particle_system.draw(&m_camera);
 }
 
+void MainScene::trigger_vignette_surge(float duration) {
+    m_vignette_surge_timer = duration;
+}
+
 void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
     draw_twilight(pixel_buffer, alpha);
+    draw_vignette_surge();
     draw_hud();
     m_enemy_manager.draw_threat_indicators(m_camera);
+}
+
+void MainScene::draw_vignette_surge() {
+    if (m_vignette_surge_timer <= 0.0f) return;
+
+    float progress = std::clamp(1.0f - (m_vignette_surge_timer / VIGNETTE_SURGE_DURATION), 0.0f, 1.0f);
+    constexpr float PI = 3.14159265358979323846f;
+    float pulse_t = std::sin(progress * PI);
+    float current_intensity = pulse_t * VIGNETTE_PEAK_INTENSITY;
+
+    Draw::vignette(current_intensity, VIGNETTE_COLOR, VIGNETTE_INNER_RADIUS, VIGNETTE_OUTER_RADIUS, Layer::WorldOverlay);
 }
 
 void MainScene::draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) {

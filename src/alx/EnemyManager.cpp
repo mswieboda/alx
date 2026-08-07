@@ -80,11 +80,13 @@ namespace alx {
         WorldStructure& dt = m_world_structures.emplace_back(px, py, StructureType::DarkTower);
         dt.corrupted_tile_index = static_cast<int>(tile_index);
         dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
+        m_tower_spawned_event = true;
     }
 
     void EnemyManager::spawn_dark_tower(float x, float y) {
         WorldStructure& dt = m_world_structures.emplace_back(x, y, StructureType::DarkTower);
         dt.next_spawn_cooldown = DarkTowerConstants::INITIAL_SPAWN_DELAY;
+        m_tower_spawned_event = true;
     }
 
     float EnemyManager::calculate_inverse_twilight_cooldown(float twilight_level) const {
@@ -97,6 +99,12 @@ namespace alx {
     float EnemyManager::consume_pending_twilight_increase() {
         float val = m_pending_twilight_increase;
         m_pending_twilight_increase = 0.0f;
+        return val;
+    }
+
+    bool EnemyManager::consume_tower_spawned_event() {
+        bool val = m_tower_spawned_event;
+        m_tower_spawned_event = false;
         return val;
     }
 

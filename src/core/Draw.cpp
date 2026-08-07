@@ -264,6 +264,22 @@ namespace Draw {
         });
     }
 
+    void vignette(
+        float intensity,
+        uint32_t color,
+        float inner_radius,
+        float outer_radius,
+        int z_index,
+        int sort_y_override
+    ) {
+        if (intensity <= 0.0f) return;
+        int override_y = transform_sort_y_override(sort_y_override);
+        int sort_y = calc_sort_y(0, 0, override_y);
+        g_queue.push_back({ 0.0f, 0.0f, z_index, sort_y,
+            VignetteData{ intensity, color, inner_radius, outer_radius }
+        });
+    }
+
     void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color) {
         DrawPixels::clear(buffer, background_color);
 
@@ -325,6 +341,15 @@ namespace Draw {
                         static_cast<int>(arg.x2), static_cast<int>(arg.y2),
                         arg.color,
                         arg.thickness
+                    );
+                }
+                else if constexpr (std::is_same_v<T, VignetteData>) {
+                    DrawPixels::vignette(
+                        buffer,
+                        arg.intensity,
+                        arg.color,
+                        arg.inner_radius,
+                        arg.outer_radius
                     );
                 }
             }, cmd.data);

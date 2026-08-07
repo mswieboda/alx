@@ -78,13 +78,20 @@ namespace Draw {
         int thickness;
     };
 
+    struct VignetteData {
+        float intensity;
+        uint32_t color;
+        float inner_radius;
+        float outer_radius;
+    };
+
     // --- COMMAND ---
     struct Command {
         float x;
         float y;
         int z_index;
         int sort_y;
-        std::variant<TextData, RectData, OvalData, SpriteData, BlendPixelsData, LineData> data;
+        std::variant<TextData, RectData, OvalData, SpriteData, BlendPixelsData, LineData, VignetteData> data;
     };
 
     // --- 3. PUBLIC PIPELINE INTERFACE ---
@@ -139,6 +146,14 @@ namespace Draw {
         const uint32_t* pixel_data, uint32_t pixel_data_size,
         float width, float height,
         int z_index = 1,
+        int sort_y_override = NO_SORT_Y_OVERRIDE
+    );
+    void vignette(
+        float intensity,
+        uint32_t color = 0x00130C1A,
+        float inner_radius = 0.4f,
+        float outer_radius = 1.1f,
+        int z_index = 90,
         int sort_y_override = NO_SORT_Y_OVERRIDE
     );
 

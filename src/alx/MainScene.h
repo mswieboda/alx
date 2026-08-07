@@ -72,16 +72,26 @@ private:
     double m_sum_twilight{0.0};
     float m_time_to_max_twilight{-1.0f};
 
+    static constexpr float VIGNETTE_SURGE_DURATION = 1.0f;
+    static constexpr float VIGNETTE_PEAK_INTENSITY = 0.3f;
+    static constexpr float VIGNETTE_INNER_RADIUS = 0.9f;
+    static constexpr float VIGNETTE_OUTER_RADIUS = 1.3f;
+    static constexpr uint32_t VIGNETTE_COLOR = 0x00CC44FF;
+
+    float m_vignette_surge_timer = 0.0f;
+
     void record_twilight_event(float delta, const char* cause);
     [[nodiscard]] float calculate_rolling_twilight_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
     void update_tick_simulation(float dt);
     void dump_telemetry_snapshot();
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
+    void draw_vignette_surge();
     void draw_hud();
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress);
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size);
 
 public:
+    void trigger_vignette_surge(float duration = VIGNETTE_SURGE_DURATION);
     void print_headless_summary_report(int64_t seed = -1);
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }
