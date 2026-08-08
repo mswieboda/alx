@@ -78,6 +78,12 @@ AI agents operating in this codebase MUST follow these strict engineering standa
   - Always enforce clip rectangle checks (`x >= 0 && x < width && y >= 0 && y < height`) before raw pixel buffer indexing (`y * screen_width + x`) to prevent out-of-bounds memory writes.
   - Update logic should accept explicit delta time (`float dt` or fixed timestep) for frame-rate independent simulation.
 
+### 5. Explicit Comments for Namespaces & Preprocessor Blocks
+- **Annotate Block Closures**:
+  - Always append a descriptive trailing comment to closing braces of namespaces (e.g. `} // namespace alx` or `} // namespace Debug`).
+  - Always append descriptive trailing comments to preprocessor directive endings like `#endif` and `#else` (e.g. `#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY` or `#endif // defined(__APPLE__)`).
+  - This ensures flattened, unindented outer blocks are immediately recognizable and readable.
+
 ---
 
 ## Planning & Documentation

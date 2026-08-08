@@ -3,6 +3,15 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+
 #include "Game.h"
 #include "core/GameWindow.h"
 #include "core/FrameTime.h"
@@ -15,18 +24,52 @@
 #include "alx/Random.h"
 #include "alx/MainScene.h"
 
+namespace {
+
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+pid_t g_telemetry_pid = -1;
+
+void stop_inline_telemetry_viewer() {
+    if (g_telemetry_pid > 0) {
+        kill(-g_telemetry_pid, SIGTERM);
+        kill(-g_telemetry_pid, SIGKILL);
+        waitpid(g_telemetry_pid, nullptr, WNOHANG);
+        g_telemetry_pid = -1;
+        std::printf("\033[?25h\033[0m\n");
+        std::fflush(stdout);
+    }
+}
+
+void handle_telemetry_sigint(int) {
+    stop_inline_telemetry_viewer();
+    std::exit(0);
+}
+
+void start_inline_telemetry_viewer() {
+    std::signal(SIGINT, handle_telemetry_sigint);
+    std::signal(SIGTERM, handle_telemetry_sigint);
+
+    g_telemetry_pid = fork();
+    if (g_telemetry_pid == 0) {
+        setpgid(0, 0);
+        execlp("crystal", "crystal", "run", "toolchain/src/telemetry_viewer.cr", nullptr);
+        _exit(0);
+    }
+}
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+
 // --- CLI ARGUMENT PARSING HELPERS ---
 std::optional<std::string_view> find_cli_arg(int argc, char* argv[], std::string_view name) {
-    std::string flag_space = "--" + std::string(name);
-    std::string flag_eq = flag_space + "=";
-
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];
-        if (arg == flag_space && i + 1 < argc) {
-            return std::string_view(argv[i + 1]);
-        }
-        if (arg.starts_with(flag_eq)) {
-            return arg.substr(flag_eq.length());
+        if (arg.starts_with("--")) {
+            std::string_view flag = arg.substr(2);
+            if (flag == name && i + 1 < argc) {
+                return std::string_view(argv[i + 1]);
+            }
+            if (flag.starts_with(name) && flag.size() > name.size() && flag[name.size()] == '=') {
+                return flag.substr(name.size() + 1);
+            }
         }
     }
     return std::nullopt;
@@ -49,9 +92,11 @@ int64_t parse_cli_int64_arg(int argc, char* argv[], std::string_view name, int64
 }
 
 bool has_cli_flag(int argc, char* argv[], std::string_view name) {
-    std::string flag = "--" + std::string(name);
     for (int i = 1; i < argc; ++i) {
-        if (argv[i] == flag) return true;
+        std::string_view arg = argv[i];
+        if (arg.starts_with("--") && arg.substr(2) == name) {
+            return true;
+        }
     }
     return false;
 }
@@ -97,6 +142,8 @@ void draw(GameWindow& window, FrameTime& frame_time, SceneManager& scene_manager
     window.present(pixel_buffer, Game::WIDTH, Game::HEIGHT);
 }
 
+} // namespace
+
 // --- MAIN --- init window, frame timing management, pixel buffer, scene manager
 // game loop - poll events, updates, draw
 int main(int argc, char* argv[]) {
@@ -109,7 +156,7 @@ int main(int argc, char* argv[]) {
 #  else
 #    define ALX_ENABLE_HEADLESS 0
 #  endif
-#endif
+#endif // !defined(ALX_ENABLE_HEADLESS)
 
     if constexpr (ALX_ENABLE_HEADLESS) {
         if (has_cli_flag(argc, argv, "headless-sim") || has_cli_flag(argc, argv, "headless")) {
@@ -154,7 +201,13 @@ int main(int argc, char* argv[]) {
     } else if (has_cli_flag(argc, argv, "window-left")) {
         game_window.move_to_left_edge();
     }
-#endif
+
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+    if (has_cli_flag(argc, argv, "telemetry")) {
+        start_inline_telemetry_viewer();
+    }
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#endif // defined(__APPLE__)
 
     FrameTime frame_time(Game::TARGET_FPS);
 
@@ -190,6 +243,10 @@ int main(int argc, char* argv[]) {
             draw(game_window, frame_time, scene_manager, pixel_buffer);
         }
     }
+
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+    stop_inline_telemetry_viewer();
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
 
     if constexpr (ALX_ENABLE_HEADLESS) {
         if (has_cli_flag(argc, argv, "report")) {

@@ -285,7 +285,7 @@ void MiniFBWindow::present(const std::vector<uint32_t>& buffer, int target_w, in
     }
 }
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && ALX_ENABLE_DEV_TOOLS
 #include <objc/message.h>
 #include <objc/runtime.h>
 #include <CoreGraphics/CoreGraphics.h>
@@ -294,11 +294,12 @@ namespace {
     struct MfbInternalWindowData {
         void* specific;
     };
-}
-#endif
+} // namespace
+
+#endif // defined(__APPLE__) && ALX_ENABLE_DEV_TOOLS
 
 void MiniFBWindow::move_to_left_edge() {
-#if defined(__APPLE__)
+#if defined(__APPLE__) && ALX_ENABLE_DEV_TOOLS
     if (!m_window) return;
 
     auto* window_data = reinterpret_cast<MfbInternalWindowData*>(m_window);
@@ -330,5 +331,5 @@ void MiniFBWindow::move_to_left_edge() {
 
     typedef void (*SetOriginFunc)(id, SEL, CGPoint);
     reinterpret_cast<SetOriginFunc>(objc_msgSend)(ns_window, sel_set_frame_origin, new_origin);
-#endif
+#endif // defined(__APPLE__) && ALX_ENABLE_DEV_TOOLS
 }

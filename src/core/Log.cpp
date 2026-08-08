@@ -158,7 +158,7 @@ namespace Log {
         vfmt("[ERROR] ", true, format, args);
         va_end(args);
     }
-}
+} // namespace Log
 
-#endif
+#endif // ALX_ENABLE_DEBUG
 

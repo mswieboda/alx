@@ -340,7 +340,14 @@ tasks:
         platforms: [windows]
       - cmd: |
           echo "=> Executable size: {{.binary}}"
-          ls -l '{{.binary}}'
+          echo
+          echo "=> ls -lo bytes:"
+          ls -lo '{{.binary}}'
+          echo
+          echo "=> ls -loh kilobytes or megabytes:"
+          ls -loh '{{.binary}}'
+          echo
+          echo "=> du -h (rounds up):"
           du -h '{{.binary}}'
         platforms: [linux, darwin]
 

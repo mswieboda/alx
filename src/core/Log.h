@@ -7,7 +7,7 @@
 #  else
 #    define ALX_ENABLE_DEBUG 0
 #  endif
-#endif
+#endif // !defined(ALX_ENABLE_DEBUG)
 
 #if ALX_ENABLE_DEBUG
 
@@ -47,9 +47,9 @@ namespace Log {
     void debug_fmt_t(const char* format, ...);
     void warn_fmt_t(const char* format, ...);
     void error_fmt_t(const char* format, ...);
-}
+} // namespace Log
 
-#else
+#else // !ALX_ENABLE_DEBUG
 
 namespace Log {
     inline void msg(const std::string&) {}
@@ -72,6 +72,7 @@ namespace Log {
     inline void debug_fmt_t(const char*, ...) {}
     inline void warn_fmt_t(const char*, ...) {}
     inline void error_fmt_t(const char*, ...) {}
-}
+} // namespace Log
 
-#endif
+#endif // ALX_ENABLE_DEBUG
+

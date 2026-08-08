@@ -32,6 +32,9 @@ module Alx
     end
 
     def self.run
+      Signal::INT.trap { exit }
+      Signal::TERM.trap { exit }
+
       puts "\e[?25l" # Hide cursor
       at_exit { puts "\e[?25h\e[0m" } # Restore cursor on exit
 

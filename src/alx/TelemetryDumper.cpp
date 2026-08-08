@@ -141,4 +141,4 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
 
 } // namespace alx
 
-#endif
+#endif // ALX_ENABLE_TELEMETRY
