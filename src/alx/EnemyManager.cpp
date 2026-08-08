@@ -1,6 +1,7 @@
 #include "alx/EnemyManager.h"
 #include "alx/Random.h"
 #include "alx/ParticleEmitters.h"
+#include "Debug.h"
 #include <algorithm>
 
 namespace {
@@ -560,6 +561,54 @@ namespace alx {
         return best_pos;
     }
 
+    void EnemyManager::update_player_aggro(Enemy& enemy, const Player* player, float dt, const Tiles& tiles) {
+        if (player == nullptr || enemy.state == EnemyState::HitStun || enemy.state == EnemyState::AttackWindup || enemy.state == EnemyState::AttackRecoilRest) {
+            return;
+        }
+
+        if (enemy.aggro_check_timer > 0.0f) {
+            enemy.aggro_check_timer -= dt;
+        }
+
+        float px = player->center_x();
+        float py = player->center_y();
+        float edx = px - enemy.center_x();
+        float edy = py - enemy.center_y();
+        float dist_sq = edx * edx + edy * edy;
+
+        constexpr float aggro_r_sq = EnemyAggroConstants::AGGRO_DETECTION_RADIUS * EnemyAggroConstants::AGGRO_DETECTION_RADIUS;
+        constexpr float leash_r_sq = EnemyAggroConstants::LEASH_RADIUS * EnemyAggroConstants::LEASH_RADIUS;
+
+        if (enemy.state == EnemyState::ChasePlayer) {
+            if (dist_sq > leash_r_sq) {
+                enemy.state = EnemyState::RestlessWander;
+                enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
+                EnemyMovement::reset_wander_state(enemy.move_state);
+                enemy.has_target = false;
+            } else {
+                enemy.set_steering_vector_8way(px, py);
+            }
+        } else if (enemy.aggro_check_timer <= 0.0f) {
+            enemy.aggro_check_timer = Random::get_float(EnemyAggroConstants::AGGRO_CHECK_INTERVAL_MIN, EnemyAggroConstants::AGGRO_CHECK_INTERVAL_MAX);
+
+#if ALX_ENABLE_DEBUG
+            if constexpr (Debug::DRAW_ENEMY_AGGRO_AREAS) {
+                enemy.debug_aggro_pulse_timer = EnemyDebugConstants::AGGRO_PULSE_DURATION;
+            }
+#endif
+
+            if (dist_sq <= aggro_r_sq) {
+                if (WorldCollision::has_line_of_sight(enemy.center_x(), enemy.center_y(), px, py, tiles)) {
+                    float chance = (player->is_attacking()) ? EnemyAggroConstants::ACTION_AGGRO_CHANCE : EnemyAggroConstants::BASE_AGGRO_CHANCE;
+                    if (Random::get_float(0.0f, 1.0f) <= chance) {
+                        enemy.state = EnemyState::ChasePlayer;
+                        enemy.set_steering_vector_8way(px, py);
+                    }
+                }
+            }
+        }
+    }
+
     void EnemyManager::update_enemy_ai(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles ) {
         float tile_size = static_cast<float>(tiles.tile_size());
 
@@ -575,29 +624,16 @@ namespace alx {
             if (enemy.target_lock_timer > 0.0f) {
                 enemy.target_lock_timer -= dt;
             }
-
-            // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [ERET] ---
-            if (player != nullptr && enemy.state != EnemyState::HitStun && enemy.state != EnemyState::AttackWindup && enemy.state != EnemyState::AttackRecoilRest) {
-                float px = player->center_x();
-                float py = player->center_y();
-                float edx = px - enemy.center_x();
-                float edy = py - enemy.center_y();
-                float dist_sq = edx * edx + edy * edy;
-
-                constexpr float aggro_r_sq = Enemy::AGGRO_DETECTION_RADIUS * Enemy::AGGRO_DETECTION_RADIUS;
-                constexpr float leash_r = Enemy::AGGRO_DETECTION_RADIUS * 1.5f;
-                constexpr float leash_r_sq = leash_r * leash_r;
-
-                if (dist_sq <= aggro_r_sq) {
-                    enemy.state = EnemyState::ChasePlayer;
-                    enemy.set_steering_vector_8way(px, py);
-                } else if (enemy.state == EnemyState::ChasePlayer && dist_sq > leash_r_sq) {
-                    enemy.state = EnemyState::RestlessWander;
-                    enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                    EnemyMovement::reset_wander_state(enemy.move_state);
-                    enemy.has_target = false;
+#if ALX_ENABLE_DEBUG
+            if constexpr (Debug::DRAW_ENEMY_AGGRO_AREAS) {
+                if (enemy.debug_aggro_pulse_timer > 0.0f) {
+                    enemy.debug_aggro_pulse_timer = std::max(0.0f, enemy.debug_aggro_pulse_timer - dt);
                 }
             }
+#endif
+
+            // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [EPRN] [ERET] ---
+            update_player_aggro(enemy, player, dt, tiles);
 
 
             switch (enemy.state) {
@@ -693,18 +729,16 @@ namespace alx {
                             float target_cx = enemy.center_x();
                             float target_cy = enemy.center_y();
 
-                            if (player != nullptr) {
+                            if (player != nullptr && !player->state.defeated) {
                                 target_cx = player->center_x();
                                 target_cy = player->center_y();
 
                                 Collision::Circle player_hurt = player->hurt_circle();
-                                Collision::Circle enemy_ground = enemy.ground_circle();
-                                float edx = player_hurt.cx - enemy_ground.cx;
-                                float edy = player_hurt.cy - enemy_ground.cy;
-                                float dist = std::sqrt(edx * edx + edy * edy);
-                                float attack_hit_reach = enemy_ground.radius + player_hurt.radius + 8.0f;
+                                float strike_cx = enemy.center_x() + enemy.facing_dx * Enemy::ATTACK_STRIKE_OFFSET;
+                                float strike_cy = enemy.center_y() + enemy.facing_dy * Enemy::ATTACK_STRIKE_OFFSET;
+                                Collision::Circle strike_circle{ strike_cx, strike_cy, Enemy::ATTACK_STRIKE_RADIUS };
 
-                                if (dist <= attack_hit_reach) {
+                                if (Collision::circle_vs_circle(strike_circle, player_hurt)) {
                                     player->take_damage(1);
                                 }
                             }
@@ -723,10 +757,9 @@ namespace alx {
                             enemy.recoil_dx = rdx;
                             enemy.recoil_dy = rdy;
                             enemy.recoil_dist_remaining = Enemy::RECOIL_DIST;
-                            enemy.target_is_player = false;
 
                             enemy.state = EnemyState::AttackRecoilRest;
-                            enemy.state_timer = Random::get_float(Enemy::RECOVERY_REST_MIN_TIME, Enemy::RECOVERY_REST_MAX_TIME);
+                            enemy.state_timer = 0.5f;
                             break;
                         }
 
@@ -786,6 +819,25 @@ namespace alx {
                     }
 
                     if (enemy.state_timer <= 0.0f) {
+                        if (enemy.target_is_player) {
+                            enemy.target_is_player = false;
+                            if (player != nullptr && !player->state.defeated) {
+                                float edx = player->center_x() - enemy.center_x();
+                                float edy = player->center_y() - enemy.center_y();
+                                float dist_sq = edx * edx + edy * edy;
+                                if (dist_sq <= EnemyAggroConstants::LEASH_RADIUS * EnemyAggroConstants::LEASH_RADIUS) {
+                                    enemy.state = EnemyState::ChasePlayer;
+                                    enemy.set_steering_vector_8way(player->center_x(), player->center_y());
+                                    break;
+                                }
+                            }
+                            enemy.state = EnemyState::RestlessWander;
+                            enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
+                            EnemyMovement::reset_wander_state(enemy.move_state);
+                            enemy.has_target = false;
+                            break;
+                        }
+
                         if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos) && !network.fixture(enemy.target_fixture_pos).is_empty()) {
                             enemy.state = EnemyState::SeekTarget;
                             enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;

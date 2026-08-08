@@ -18,6 +18,23 @@ struct EnemyThreatConstants {
     static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Lock duration before re-evaluating target
 };
 
+struct EnemyAggroConstants {
+    static constexpr float AGGRO_DETECTION_RADIUS   = 40.0f;  // ~2.5 tiles (40px)
+    static constexpr float AGGRO_CHECK_INTERVAL_MIN = 0.50f;  // Min check interval (sec)
+    static constexpr float AGGRO_CHECK_INTERVAL_MAX = 2.00f;  // Max check interval (sec)
+    static constexpr float BASE_AGGRO_CHANCE        = 0.50f;  // 30% baseline aggro roll
+    static constexpr float ACTION_AGGRO_CHANCE      = 0.75f;  // 60% aggro roll when player attacks
+    static constexpr float LEASH_RADIUS             = 32.0f;  // ~2 tiles leash drop radius
+};
+
+struct EnemyDebugConstants {
+    static constexpr float AGGRO_PULSE_DURATION = 0.5f; // 0.5s visual pulse when aggro check occurs
+    static constexpr int NORMAL_AGGRO_THICKNESS = 1;
+    static constexpr int PULSE_AGGRO_THICKNESS  = 3;
+    static constexpr uint32_t COLOR_AGGRO_DEFAULT = 0xCCFF9900; // Light Orange
+    static constexpr uint32_t COLOR_AGGRO_CHASING = 0xCCFF0000; // Bright Red when chasing player
+};
+
 enum class EnemyState : uint8_t {
     Wander,
     SeekTarget,
@@ -70,6 +87,8 @@ struct Enemy : public Entity {
     static constexpr float RECOVERY_REST_MIN_TIME    = 1.0f;  // Recoil rest min time
     static constexpr float RECOVERY_REST_MAX_TIME    = 2.0f;  // Recoil rest max time
     static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Target lock duration to prevent flickering
+    static constexpr float ATTACK_STRIKE_OFFSET       = 10.0f; // Melee swipe directional offset
+    static constexpr float ATTACK_STRIKE_RADIUS       = 14.0f; // Melee swipe hit detection radius
 
     int hp = DEFAULT_MAX_HP;
     float speed = SPEED;
@@ -87,8 +106,13 @@ struct Enemy : public Entity {
     float state_timer = WANDER_DURATION;
     float reeval_timer = 0.0f;
     float target_lock_timer = 0.0f;
+    float aggro_check_timer = 0.0f;
     float stuck_timer = 0.0f;
     bool is_moving = false;
+
+#if ALX_ENABLE_DEBUG
+    float debug_aggro_pulse_timer = 0.0f;
+#endif
 
     // [EBS]: Multi-wave continuous bleed tracking fields
     float hit_wound_offset_x = 0.0f;

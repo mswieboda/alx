@@ -18,7 +18,8 @@ Enemy::Enemy(float px, float py, float w, float h, uint32_t col, int max_hp)
         true,
         "enemy"
       ),
-      hp(max_hp)
+      hp(max_hp),
+      aggro_check_timer(Random::get_float(EnemyAggroConstants::AGGRO_CHECK_INTERVAL_MIN, EnemyAggroConstants::AGGRO_CHECK_INTERVAL_MAX))
 {}
 
 float Enemy::center_x(float alpha) const {
@@ -177,17 +178,27 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
         );
     }
 
-    // Enemy player aggro detection area (dark red debug circle)
+    // Enemy player aggro detection area (light orange default, red when chasing/aggro)
     if constexpr (Debug::DRAW_ENEMY_AGGRO_AREAS) {
         float cx = draw_x + draw_w * 0.5f;
         float cy = draw_y + draw_h * 0.5f;
+        int line_thickness = EnemyDebugConstants::NORMAL_AGGRO_THICKNESS;
+#if ALX_ENABLE_DEBUG
+        if (debug_aggro_pulse_timer > 0.0f) {
+            line_thickness = EnemyDebugConstants::PULSE_AGGRO_THICKNESS;
+        }
+#endif
+        uint32_t aggro_color = (state == EnemyState::ChasePlayer || target_is_player)
+            ? EnemyDebugConstants::COLOR_AGGRO_CHASING
+            : EnemyDebugConstants::COLOR_AGGRO_DEFAULT;
+
         Draw::circle(
             cx,
             cy,
-            AGGRO_DETECTION_RADIUS,
-            0xCCAA0000, // Dark Red debug outline
-            false,      // fill = false (outline only)
-            1,          // thickness = 1
+            EnemyAggroConstants::AGGRO_DETECTION_RADIUS,
+            aggro_color,    // Light Orange by default, Red when chasing player
+            false,          // fill = false (outline only)
+            line_thickness, // 3 during 0.5s aggro check pulse, 1 normally
             transform.z_index + 1,
             sort_y
         );

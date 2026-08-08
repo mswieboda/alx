@@ -156,4 +156,37 @@ bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& 
     return false;
 }
 
+bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tiles) {
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    float dist = std::sqrt(dx * dx + dy * dy);
+
+    if (dist < 0.001f) {
+        return true;
+    }
+
+    constexpr float step_size = 4.0f;
+    int steps = static_cast<int>(std::ceil(dist / step_size));
+    float step_dx = dx / static_cast<float>(steps);
+    float step_dy = dy / static_cast<float>(steps);
+    float tile_size = static_cast<float>(tiles.tile_size());
+
+    float curr_x = x1;
+    float curr_y = y1;
+
+    for (int i = 0; i <= steps; ++i) {
+        int tx = static_cast<int>(std::floor(curr_x / tile_size));
+        int ty = static_cast<int>(std::floor(curr_y / tile_size));
+
+        if (tiles.in_bounds(tx, ty) && tiles.is_wall(tx, ty)) {
+            return false;
+        }
+
+        curr_x += step_dx;
+        curr_y += step_dy;
+    }
+
+    return true;
+}
+
 } // namespace alx::WorldCollision
