@@ -165,12 +165,16 @@ namespace Audio {
         config.dataCallback      = audio_data_callback;
 
         if (ma_device_init(NULL, &config, &g_audio_device) != MA_SUCCESS) {
-            Log::error("Failed to initialize miniaudio device!");
+            if constexpr (ALX_ENABLE_DEBUG) {
+                Log::error("Failed to initialize miniaudio device!");
+            }
             return false;
         }
 
         if (ma_device_start(&g_audio_device) != MA_SUCCESS) {
-            Log::error("Failed to start miniaudio device!");
+            if constexpr (ALX_ENABLE_DEBUG) {
+                Log::error("Failed to start miniaudio device!");
+            }
             ma_device_uninit(&g_audio_device);
             return false;
         }
