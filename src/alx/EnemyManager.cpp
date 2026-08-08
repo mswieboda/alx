@@ -488,6 +488,22 @@ namespace alx {
     //     WorldCollision::enforce_solid_ground_ejection(enemy.transform.x, enemy.transform.y, enemy.ground_circle(), tiles, network, 2.0f, enemy.tag);
     // }
 
+    float EnemyManager::calculate_fixture_threat(const Fixture& fixture) const {
+        if (fixture.type == FixtureType::Refiner || fixture.type == FixtureType::Spire) {
+            if (fixture.mana_state == ManaState::Light || fixture.is_powered) {
+                return EnemyThreatConstants::THREAT_LIGHT_SPIRE_REFINER;
+            }
+            return EnemyThreatConstants::THREAT_DARK_SPIRE_REFINER;
+        }
+        if (fixture.type == FixtureType::Pipe) {
+            if (fixture.mana_state == ManaState::Light) {
+                return EnemyThreatConstants::THREAT_LIGHT_PIPE;
+            }
+            return EnemyThreatConstants::THREAT_DARK_PIPE;
+        }
+        return 0.0f;
+    }
+
     GridPos EnemyManager::find_priority_target(const Enemy& enemy, const Network& network) const {
         float tile_size = static_cast<float>(network.tile_size());
         float enemy_cx = enemy.center_x();
@@ -497,38 +513,47 @@ namespace alx {
         float max_score = -1e9f;
 
         for (int32_t idx : network.active_indices()) {
-            int tx = idx % network.width();
-            int ty = idx / network.width();
-            const Fixture& fixture = network.fixture(tx, ty);
+            int root_tx = idx % network.width();
+            int root_ty = idx / network.width();
+            const Fixture& fixture = network.fixture(root_tx, root_ty);
             if (fixture.type == FixtureType::None || fixture.type == FixtureType::Seep) {
                 continue;
             }
 
-            GridPos pos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) };
-            float fcx = pos.x * tile_size + tile_size * 0.5f;
-            float fcy = pos.y * tile_size + tile_size * 0.5f;
-
-            float dist = std::sqrt((fcx - enemy_cx) * (fcx - enemy_cx) + (fcy - enemy_cy) * (fcy - enemy_cy));
-            dist = std::max(dist, 1.0f);
-
-            float base_value = (fixture.type == FixtureType::Pipe) ? 100.0f : 300.0f;
-            float score = base_value / dist;
-
-            if (fixture.type == FixtureType::Pipe && fixture.mana_state == ManaState::Dark) {
-                score += 50.0f;
+            float base_threat = calculate_fixture_threat(fixture);
+            if (base_threat <= 0.0f) {
+                continue;
             }
 
-            int crowd_count = 0;
-            for (const auto& other : m_enemies) {
-                if (other.active && other.has_target && other.target_fixture_pos == pos) {
-                    crowd_count++;
+            MultiTileFootprint footprint = get_fixture_footprint(fixture.type);
+
+            for (int fy = 0; fy < footprint.height; ++fy) {
+                for (int fx = 0; fx < footprint.width; ++fx) {
+                    int tx = root_tx + fx;
+                    int ty = root_ty + fy;
+                    GridPos pos{ static_cast<int16_t>(tx), static_cast<int16_t>(ty) };
+
+                    float fcx = pos.x * tile_size + tile_size * 0.5f;
+                    float fcy = pos.y * tile_size + tile_size * 0.5f;
+
+                    float dist = std::sqrt((fcx - enemy_cx) * (fcx - enemy_cx) + (fcy - enemy_cy) * (fcy - enemy_cy));
+                    dist = std::max(dist, 1.0f);
+
+                    float score = base_threat / dist;
+
+                    int crowd_count = 0;
+                    for (const auto& other : m_enemies) {
+                        if (other.active && other.has_target && other.target_fixture_pos == pos) {
+                            crowd_count++;
+                        }
+                    }
+                    score -= (crowd_count * EnemyThreatConstants::CROWD_PENALTY_PER_ENEMY);
+
+                    if (score > max_score) {
+                        max_score = score;
+                        best_pos = pos;
+                    }
                 }
-            }
-            score -= (crowd_count * 80.0f);
-
-            if (score > max_score) {
-                max_score = score;
-                best_pos = pos;
             }
         }
 
@@ -546,6 +571,9 @@ namespace alx {
 
             if (enemy.state_timer > 0.0f) {
                 enemy.state_timer -= dt;
+            }
+            if (enemy.target_lock_timer > 0.0f) {
+                enemy.target_lock_timer -= dt;
             }
 
             // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [ERET] ---
@@ -583,6 +611,7 @@ namespace alx {
                             enemy.target_fixture_pos = target;
                             enemy.has_target = true;
                             enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
+                            enemy.target_lock_timer = Enemy::TARGET_LOCK_DURATION;
 
                             enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                             enemy.stuck_timer = 0.0f;
@@ -617,11 +646,12 @@ namespace alx {
                         target_valid = (!fix.is_empty() && fix.type != FixtureType::Seep);
                     }
 
-                    if (!target_valid || enemy.reeval_timer <= 0.0f) {
+                    if (!target_valid || (enemy.reeval_timer <= 0.0f && enemy.target_lock_timer <= 0.0f)) {
                         GridPos new_target = find_priority_target(enemy, network);
                         if (new_target.x >= 0 && new_target.y >= 0) {
                             enemy.target_fixture_pos = new_target;
                             enemy.has_target = true;
+                            enemy.target_lock_timer = Enemy::TARGET_LOCK_DURATION;
                             enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
                         } else if (!target_valid) {
                             enemy.state = EnemyState::Wander;

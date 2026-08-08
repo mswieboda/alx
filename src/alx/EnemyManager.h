@@ -179,8 +179,9 @@ public:
     const std::vector<ShadowEgg>& shadow_eggs() const { return m_shadow_eggs; }
 
 private:
-    void update_threat_cache() ;
-    void spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network) ;
+    void update_threat_cache();
+    void spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network);
+    [[nodiscard]] float calculate_fixture_threat(const Fixture& fixture) const;
 };
 
 } // namespace alx

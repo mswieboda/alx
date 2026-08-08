@@ -4,9 +4,19 @@
 #include "core/Entity.h"
 #include "core/Collision.h"
 #include "alx/EnemyMovement.h"
+#include "alx/GridPos.h"
 #include "Game.h"
 
 namespace alx {
+
+struct EnemyThreatConstants {
+    static constexpr float THREAT_LIGHT_SPIRE_REFINER = 400.0f; // Top threat: Active Light Spires / Refiners
+    static constexpr float THREAT_DARK_SPIRE_REFINER  = 300.0f; // Inactive / Dark Spires / Refiners
+    static constexpr float THREAT_LIGHT_PIPE          = 200.0f; // Active Light Mana Conduit
+    static constexpr float THREAT_DARK_PIPE           = 100.0f; // Inactive / Dark Pipe
+    static constexpr float CROWD_PENALTY_PER_ENEMY    = 80.0f;  // Score penalty per enemy targeting same cell
+    static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Lock duration before re-evaluating target
+};
 
 enum class EnemyState : uint8_t {
     Wander,
@@ -59,6 +69,7 @@ struct Enemy : public Entity {
     static constexpr float RECOIL_SLIDE_SPEED        = 50.0f; // Recoil slide speed (px/s)
     static constexpr float RECOVERY_REST_MIN_TIME    = 1.0f;  // Recoil rest min time
     static constexpr float RECOVERY_REST_MAX_TIME    = 2.0f;  // Recoil rest max time
+    static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Target lock duration to prevent flickering
 
     int hp = DEFAULT_MAX_HP;
     float speed = SPEED;
@@ -75,6 +86,7 @@ struct Enemy : public Entity {
     float initial_knockback_speed = 0.0f;
     float state_timer = WANDER_DURATION;
     float reeval_timer = 0.0f;
+    float target_lock_timer = 0.0f;
     float stuck_timer = 0.0f;
     bool is_moving = false;
 
