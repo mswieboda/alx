@@ -86,7 +86,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     // Allows characters standing alongside middle/lower tiles to render in front of body walls
     int roof_sort_y = static_cast<int>(world_draw_y + 16.0f);
 
-    if (Debug::DRAW_WORLD_STRUCTURE_TEST) {
+    if constexpr (Debug::DRAW_WORLD_STRUCTURE_TEST) {
         // world_bottom_y debug indicator line
         Draw::rect(
             world_draw_x - 8,
@@ -182,7 +182,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     );
 
     // Ground footprint debug outline if DRAW_WORLD_STRUCTURE_COLLISION_AREAS enabled
-    if (Debug::DRAW_WORLD_STRUCTURE_COLLISION_AREAS) {
+    if constexpr (Debug::DRAW_WORLD_STRUCTURE_COLLISION_AREAS) {
         Collision::AABB g_aabb = ground_aabb();
         Draw::rect(
             g_aabb.x, g_aabb.y, g_aabb.w, g_aabb.h,

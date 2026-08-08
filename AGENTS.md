@@ -13,6 +13,14 @@
 
 ---
 
+## Git & Version Control Protocol
+
+- **Strict Limitation to Read-Only Git Commands**: AI agents are strictly permitted to run ONLY read-only git commands (such as `git status`, `git diff`, `git log`, `git show`).
+- **Prohibition of Write/Modifying Git Commands**: AI agents MUST NEVER run any git write or state-modifying commands (such as `git add`, `git commit`, `git restore`, `git reset`, `git checkout`, `git stash`, `git push`, `git branch`, etc.) unless the user explicitly instructs them to do so during the active turn. The user maintains sole responsibility and management over git staging and commits as part of their preferred workflow.
+- **Mandatory Confirmation Protocol**: Even if the user explicitly requests a non-read-only git command, the AI agent MUST ask a second confirmation question (e.g., asking: *"Do you want me to execute `[git command]` even though it is a write/modifying git command?"*) and receive explicit confirmation before executing it.
+
+---
+
 ## Codebase Standards & Engineering Guidelines
 
 AI agents operating in this codebase MUST follow these strict engineering standards at all times.

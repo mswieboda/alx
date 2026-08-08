@@ -1,4 +1,7 @@
 #include "Log.h"
+
+#if ALX_ENABLE_DEBUG
+
 #include <iostream>
 #include <chrono>
 #include <iomanip>
@@ -156,3 +159,6 @@ namespace Log {
         va_end(args);
     }
 }
+
+#endif
+

@@ -148,7 +148,7 @@ void Enemy::draw_body(float draw_x, float draw_y, float draw_w, float draw_h, in
 
 void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y) const {
     // Ground feet collision circle outline (cyan debug)
-    if (Debug::DRAW_GROUND_AREAS) {
+    if constexpr (Debug::DRAW_GROUND_AREAS) {
         Collision::Circle ground = ground_circle(draw_x, draw_y);
         Draw::circle(
             ground.cx,
@@ -163,7 +163,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
     }
 
     // Ground hurt collision circle outline
-    if (Debug::DRAW_HURT_AREAS) {
+    if constexpr (Debug::DRAW_HURT_AREAS) {
         Collision::Circle hurt = hurt_circle();
         Draw::circle(
             hurt.cx,
@@ -178,7 +178,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
     }
 
     // Enemy player aggro detection area (dark red debug circle)
-    if (Debug::DRAW_ENEMY_AGGRO_AREAS) {
+    if constexpr (Debug::DRAW_ENEMY_AGGRO_AREAS) {
         float cx = draw_x + draw_w * 0.5f;
         float cy = draw_y + draw_h * 0.5f;
         Draw::circle(
@@ -194,7 +194,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
     }
 
     // Enemy facing direction arrow (lime green 2px thick line + arrowhead - always drawn when debug enabled)
-    if (Debug::DRAW_ENEMY_FACING) {
+    if constexpr (Debug::DRAW_ENEMY_FACING) {
         float cx = draw_x + draw_w * 0.5f;
         float cy = draw_y + draw_h * 0.5f;
         float arrow_len = 12.0f;

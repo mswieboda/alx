@@ -49,13 +49,26 @@ struct HeadlessSummaryStats {
     float spires_cleanse_rate_per_sec{0.0f};
 };
 
+#ifndef ALX_ENABLE_TELEMETRY
+#  ifdef DEBUG
+#    define ALX_ENABLE_TELEMETRY 1
+#  else
+#    define ALX_ENABLE_TELEMETRY 0
+#  endif
+#endif
+
 class TelemetryDumper {
 public:
     static constexpr const char* TELEMETRY_FILE_PATH = "/tmp/alx_telemetry.json";
     static constexpr const char* TELEMETRY_TMP_PATH  = "/tmp/alx_telemetry.tmp";
 
+#if ALX_ENABLE_TELEMETRY
     static bool dump_snapshot(const TelemetrySnapshot& snapshot);
     static void print_summary_report(const HeadlessSummaryStats& stats);
+#else
+    static inline bool dump_snapshot(const TelemetrySnapshot&) noexcept { return true; }
+    static inline void print_summary_report(const HeadlessSummaryStats&) noexcept {}
+#endif
 };
 
 } // namespace alx

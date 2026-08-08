@@ -122,32 +122,28 @@ tasks:
     internal: true
     vars:
       build_dir: 'build/{{.build}}'
-    sources:
-      - 'CMakeLists.txt'
-    generates:
-      - '{{.build_dir}}/CMakeCache.txt'
-      - '{{.build_dir}}/CMakeFiles/TargetDirectories.txt'
+      dev_flags: '{{if .dev}}-DALX_ENABLE_DEV_TOOLS={{.dev}}{{end}} {{if .headless}}-DALX_ENABLE_HEADLESS={{.headless}}{{end}} {{if .telemetry}}-DALX_ENABLE_TELEMETRY={{.telemetry}}{{end}}'
     cmds:
       - echo "=> Configuring ({{.build}}) CMake..."
       # If Ninja exists on system, use -G Ninja, otherwise fall back to CMake's default
       - cmd: |
           powershell -Command "
             if (Get-Command ninja -ErrorAction SilentlyContinue) {
-              cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+              cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} {{.dev_flags}}
             } else {
               Write-Host '[NOTE] Ninja generator not found. Falling back to default generator.' -ForegroundColor Yellow;
               Write-Host '       For faster & consistent builds, see README to install Ninja.' -ForegroundColor Yellow;
-              cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+              cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} {{.dev_flags}}
             }
           "
         platforms: [windows]
       - cmd: |
           if command -v ninja >/dev/null 2>&1; then
-            cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+            cmake -B {{.build_dir}} -G Ninja -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} {{.dev_flags}}
           else
             echo "\033[0;33m[NOTE] Ninja generator not found. Falling back to default generator.\033[0m"
             echo "\033[0;33m       For faster & consistent builds, see README to install Ninja.\033[0m"
-            cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}}
+            cmake -B {{.build_dir}} -DCMAKE_BUILD_TYPE={{.build}} -DGAME_BIN={{.name}} {{.dev_flags}}
           fi
         platforms: [linux, darwin]
 
@@ -164,7 +160,7 @@ tasks:
       - assets
     cmds:
       - task: cmake-build-config
-        vars: { build: '{{.build}}' }
+        vars: { build: '{{.build}}', dev: '{{.dev}}', headless: '{{.headless}}', telemetry: '{{.telemetry}}' }
       - echo "=> Building ({{.build}}) game executable..."
       - cmake --build {{.build_dir}} -j
 
@@ -284,7 +280,7 @@ tasks:
         vars: { build: Release }
 
   run-headless:
-    desc: Run Debug game executable in headless simulation mode
+    desc: Run game executable in headless simulation mode
     interactive: true
     silent: true
     vars:
@@ -292,7 +288,7 @@ tasks:
       binary: 'build/{{.build}}/{{.name}}{{.exe}}'
     cmds:
       - task: build
-        vars: { build: '{{.build}}' }
+        vars: { build: '{{.build}}', headless: 'ON' }
       - echo "=> Running {{.build}} {{.name}} (Headless Sim)..."
       - ./{{.binary}} --headless-sim {{.CLI_ARGS}}
 

@@ -155,6 +155,7 @@ float MainScene::calculate_rolling_twilight_rate(float duration_sec) const {
     return total_delta / total_dt;
 }
 
+#if ALX_ENABLE_TELEMETRY
 void MainScene::dump_telemetry_snapshot() {
     TelemetrySnapshot snap;
     snap.ticks = m_sim_tick_count;
@@ -207,10 +208,13 @@ void MainScene::dump_telemetry_snapshot() {
 
     TelemetryDumper::dump_snapshot(snap);
 }
+#endif
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
-    if (Debug::CAN_PAUSE && (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P))) {
-        m_paused = !m_paused;
+    if constexpr (Debug::CAN_PAUSE) {
+        if (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P)) {
+            m_paused = !m_paused;
+        }
     }
     if (m_paused) return;
 
@@ -254,11 +258,13 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     update_twilight_metrics(dt, prev_twilight);
 
+#if ALX_ENABLE_TELEMETRY
     m_telemetry_dump_timer += raw_dt;
     if (m_telemetry_dump_timer >= TELEMETRY_DUMP_INTERVAL) {
         m_telemetry_dump_timer = 0.0f;
         dump_telemetry_snapshot();
     }
+#endif
 }
 
 void MainScene::update_victory_condition(float raw_dt) {
@@ -374,6 +380,7 @@ void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
     }
 }
 
+#if ALX_ENABLE_HEADLESS
 void MainScene::update_headless_defense(float dt) {
     m_headless_defend_timer += dt;
     if (m_headless_defend_timer >= HeadlessConstants::DEFEND_INTERVAL_SEC) {
@@ -429,6 +436,7 @@ void MainScene::print_headless_summary_report(int64_t seed) {
 
     TelemetryDumper::print_summary_report(stats);
 }
+#endif
 
 void MainScene::update_tick_simulation(float dt) {
     if (m_paused) return;

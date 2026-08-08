@@ -59,7 +59,7 @@ void draw_player_sprite(const AnimatedSpriteRender& anim, float world_draw_x, fl
 }
 
 void draw_debug_outlines(const Player& player, float world_draw_x, float world_draw_y, float alpha, float world_bottom_y) {
-    if (Debug::DRAW_GROUND_AREAS) {
+    if constexpr (Debug::DRAW_GROUND_AREAS) {
         Collision::Circle ground = player.ground_circle(world_draw_x, world_draw_y);
         Draw::circle(
             ground.cx, ground.cy, ground.radius,
@@ -68,7 +68,7 @@ void draw_debug_outlines(const Player& player, float world_draw_x, float world_d
         );
     }
 
-    if (Debug::DRAW_HURT_AREAS) {
+    if constexpr (Debug::DRAW_HURT_AREAS) {
         Collision::Circle hurt = player.hurt_circle();
         Draw::circle(
             hurt.cx, hurt.cy, hurt.radius,
@@ -77,13 +77,15 @@ void draw_debug_outlines(const Player& player, float world_draw_x, float world_d
         );
     }
 
-    if (player.is_attacking() && Debug::DRAW_MELEE_ARCS) {
-        Collision::Circle hit_c = player.attack_hit_circle(alpha);
-        Draw::circle(
-            hit_c.cx, hit_c.cy, hit_c.radius,
-            0xFF00FFFF, false, 1,
-            player.transform.z_index + 2, static_cast<int>(world_bottom_y)
-        );
+    if constexpr (Debug::DRAW_MELEE_ARCS) {
+        if (player.is_attacking()) {
+            Collision::Circle hit_c = player.attack_hit_circle(alpha);
+            Draw::circle(
+                hit_c.cx, hit_c.cy, hit_c.radius,
+                0xFF00FFFF, false, 1,
+                player.transform.z_index + 2, static_cast<int>(world_bottom_y)
+            );
+        }
     }
 }
 

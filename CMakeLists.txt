@@ -63,10 +63,31 @@ add_executable(
 # Build Profiles Configuration (Debug vs Release)
 # ----------------------------------------------------
 
-# Target compile definitions (Debug vs Release)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(DEV_TOOLS_DEFAULT ON)
+else()
+    set(DEV_TOOLS_DEFAULT OFF)
+endif()
+
+option(ALX_ENABLE_DEV_TOOLS "Master toggle for all development/debug tools" ${DEV_TOOLS_DEFAULT})
+
+if(ALX_ENABLE_DEV_TOOLS)
+    set(SUB_DEV_TOOLS_DEFAULT ON)
+else()
+    set(SUB_DEV_TOOLS_DEFAULT OFF)
+endif()
+
+option(ALX_ENABLE_DEBUG "Enable debug overlays" ${SUB_DEV_TOOLS_DEFAULT})
+option(ALX_ENABLE_TELEMETRY "Enable telemetry dumper" ${SUB_DEV_TOOLS_DEFAULT})
+option(ALX_ENABLE_HEADLESS "Enable headless simulation runner" ${SUB_DEV_TOOLS_DEFAULT})
+
 target_compile_definitions(${GAME_BIN} PRIVATE
     $<$<CONFIG:Debug>:DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
+    ALX_ENABLE_DEV_TOOLS=$<BOOL:${ALX_ENABLE_DEV_TOOLS}>
+    ALX_ENABLE_DEBUG=$<BOOL:${ALX_ENABLE_DEBUG}>
+    ALX_ENABLE_TELEMETRY=$<BOOL:${ALX_ENABLE_TELEMETRY}>
+    ALX_ENABLE_HEADLESS=$<BOOL:${ALX_ENABLE_HEADLESS}>
 )
 
 if(MSVC)

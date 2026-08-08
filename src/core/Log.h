@@ -1,6 +1,16 @@
 #pragma once
 #include <string>
 
+#ifndef ALX_ENABLE_DEBUG
+#  ifdef DEBUG
+#    define ALX_ENABLE_DEBUG 1
+#  else
+#    define ALX_ENABLE_DEBUG 0
+#  endif
+#endif
+
+#if ALX_ENABLE_DEBUG
+
 namespace Log {
     // Standard text logger
     void msg(const std::string& message);
@@ -38,3 +48,30 @@ namespace Log {
     void warn_fmt_t(const char* format, ...);
     void error_fmt_t(const char* format, ...);
 }
+
+#else
+
+namespace Log {
+    inline void msg(const std::string&) {}
+    inline void msg_t(const std::string&) {}
+    inline void fmt(const char*, ...) {}
+    inline void fmt_t(const char*, ...) {}
+    inline void info(const std::string&) {}
+    inline void debug(const std::string&) {}
+    inline void warn(const std::string&) {}
+    inline void error(const std::string&) {}
+    inline void info_t(const std::string&) {}
+    inline void debug_t(const std::string&) {}
+    inline void warn_t(const std::string&) {}
+    inline void error_t(const std::string&) {}
+    inline void info_fmt(const char*, ...) {}
+    inline void debug_fmt(const char*, ...) {}
+    inline void warn_fmt(const char*, ...) {}
+    inline void error_fmt(const char*, ...) {}
+    inline void info_fmt_t(const char*, ...) {}
+    inline void debug_fmt_t(const char*, ...) {}
+    inline void warn_fmt_t(const char*, ...) {}
+    inline void error_fmt_t(const char*, ...) {}
+}
+
+#endif

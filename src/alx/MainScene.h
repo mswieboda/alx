@@ -101,13 +101,11 @@ private:
     void record_twilight_event(float delta, const char* cause);
     [[nodiscard]] float calculate_rolling_twilight_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
     void update_tick_simulation(float dt);
-    void update_headless_defense(float dt);
     void update_victory_condition(float raw_dt);
     void update_time_dilation_hotkeys();
     void update_player_respawn();
     void update_sword_slash_trail();
     void update_twilight_metrics(float dt, float prev_twilight);
-    void dump_telemetry_snapshot();
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
     void draw_vignette_surge();
     void draw_hud();
@@ -121,9 +119,23 @@ public:
         float shake_intensity = CAMERA_SHAKE_PEAK_INTENSITY,
         float shake_duration = CAMERA_SHAKE_DURATION
     );
+#if ALX_ENABLE_HEADLESS
+    void update_headless_defense(float dt);
     void print_headless_summary_report(int64_t seed = -1);
     void set_headless(bool headless) noexcept { m_is_headless = headless; }
     [[nodiscard]] bool is_headless() const noexcept { return m_is_headless; }
+#else
+    inline void update_headless_defense(float) {}
+    inline void print_headless_summary_report(int64_t = -1) {}
+    inline void set_headless(bool) noexcept {}
+    [[nodiscard]] constexpr bool is_headless() const noexcept { return false; }
+#endif
+
+#if ALX_ENABLE_TELEMETRY
+    void dump_telemetry_snapshot();
+#else
+    inline void dump_telemetry_snapshot() {}
+#endif
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }
 

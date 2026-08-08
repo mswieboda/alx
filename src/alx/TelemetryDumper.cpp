@@ -1,4 +1,7 @@
 #include "alx/TelemetryDumper.h"
+
+#if ALX_ENABLE_TELEMETRY
+
 #include "core/Log.h"
 #include <cstdio>
 #include <filesystem>
@@ -137,3 +140,5 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
 }
 
 } // namespace alx
+
+#endif
