@@ -22,9 +22,10 @@ struct EnemyAggroConstants {
     static constexpr float AGGRO_DETECTION_RADIUS   = 40.0f;  // ~2.5 tiles (40px)
     static constexpr float AGGRO_CHECK_INTERVAL_MIN = 0.50f;  // Min check interval (sec)
     static constexpr float AGGRO_CHECK_INTERVAL_MAX = 2.00f;  // Max check interval (sec)
-    static constexpr float BASE_AGGRO_CHANCE        = 0.50f;  // 30% baseline aggro roll
-    static constexpr float ACTION_AGGRO_CHANCE      = 0.75f;  // 60% aggro roll when player attacks
-    static constexpr float LEASH_RADIUS             = 32.0f;  // ~2 tiles leash drop radius
+    static constexpr float BASE_AGGRO_CHANCE        = 0.45f;  // % baseline aggro roll
+    static constexpr float ACTION_AGGRO_CHANCE      = 0.65f;  // % aggro roll when player attacks
+    static constexpr float LEASH_RADIUS             = 48.0f;  // ~3 tiles (48px) leash drop radius
+    static constexpr float PROVOKED_AGGRO_DURATION  = 3.0f;   // 3.0s provoked aggro decay timer
 };
 
 struct EnemyDebugConstants {
@@ -109,6 +110,8 @@ struct Enemy : public Entity {
     float aggro_check_timer = 0.0f;
     float stuck_timer = 0.0f;
     bool is_moving = false;
+    bool is_provoked = false;
+    float provoked_timer = 0.0f;
 
 #if ALX_ENABLE_DEBUG
     float debug_aggro_pulse_timer = 0.0f;

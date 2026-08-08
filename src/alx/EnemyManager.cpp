@@ -562,6 +562,10 @@ namespace alx {
     }
 
     void EnemyManager::update_player_aggro(Enemy& enemy, const Player* player, float dt, const Tiles& tiles) {
+        if (enemy.is_provoked && enemy.provoked_timer > 0.0f) {
+            enemy.provoked_timer = std::max(0.0f, enemy.provoked_timer - dt);
+        }
+
         if (player == nullptr || enemy.state == EnemyState::HitStun || enemy.state == EnemyState::AttackWindup || enemy.state == EnemyState::AttackRecoilRest) {
             return;
         }
@@ -580,11 +584,15 @@ namespace alx {
         constexpr float leash_r_sq = EnemyAggroConstants::LEASH_RADIUS * EnemyAggroConstants::LEASH_RADIUS;
 
         if (enemy.state == EnemyState::ChasePlayer) {
-            if (dist_sq > leash_r_sq) {
-                enemy.state = EnemyState::RestlessWander;
-                enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                EnemyMovement::reset_wander_state(enemy.move_state);
+            bool drop_aggro = (dist_sq > leash_r_sq) || (enemy.is_provoked && enemy.provoked_timer <= 0.0f) || player->state.defeated;
+            if (drop_aggro) {
+                enemy.is_provoked = false;
+                enemy.provoked_timer = 0.0f;
+                enemy.state = EnemyState::SeekTarget;
+                enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
+                enemy.target_is_player = false;
                 enemy.has_target = false;
+                enemy.target_lock_timer = 0.0f;
             } else {
                 enemy.set_steering_vector_8way(px, py);
             }
@@ -821,21 +829,28 @@ namespace alx {
                     if (enemy.state_timer <= 0.0f) {
                         if (enemy.target_is_player) {
                             enemy.target_is_player = false;
+                            bool keep_chasing = false;
                             if (player != nullptr && !player->state.defeated) {
                                 float edx = player->center_x() - enemy.center_x();
                                 float edy = player->center_y() - enemy.center_y();
                                 float dist_sq = edx * edx + edy * edy;
-                                if (dist_sq <= EnemyAggroConstants::LEASH_RADIUS * EnemyAggroConstants::LEASH_RADIUS) {
-                                    enemy.state = EnemyState::ChasePlayer;
-                                    enemy.set_steering_vector_8way(player->center_x(), player->center_y());
-                                    break;
+                                keep_chasing = (dist_sq <= EnemyAggroConstants::LEASH_RADIUS * EnemyAggroConstants::LEASH_RADIUS);
+                                if (enemy.is_provoked && enemy.provoked_timer <= 0.0f) {
+                                    keep_chasing = false;
                                 }
                             }
-                            enemy.state = EnemyState::RestlessWander;
-                            enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                            EnemyMovement::reset_wander_state(enemy.move_state);
-                            enemy.has_target = false;
-                            break;
+                            if (keep_chasing) {
+                                enemy.state = EnemyState::ChasePlayer;
+                                enemy.set_steering_vector_8way(player->center_x(), player->center_y());
+                                break;
+                            } else {
+                                enemy.is_provoked = false;
+                                enemy.provoked_timer = 0.0f;
+                                enemy.state = EnemyState::SeekTarget;
+                                enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
+                                enemy.has_target = false;
+                                break;
+                            }
                         }
 
                         if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos) && !network.fixture(enemy.target_fixture_pos).is_empty()) {
@@ -876,9 +891,10 @@ namespace alx {
 
                         enemy.set_steering_vector_8way(pcx, pcy);
                     } else {
-                        enemy.state = EnemyState::RestlessWander;
-                        enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
-                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        enemy.is_provoked = false;
+                        enemy.provoked_timer = 0.0f;
+                        enemy.state = EnemyState::SeekTarget;
+                        enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
                         enemy.has_target = false;
                     }
                     break;
@@ -952,8 +968,14 @@ namespace alx {
                     }
 
                     if (enemy.state_timer <= 0.0f && enemy.knockback_speed <= 0.0f) {
-                        enemy.state = EnemyState::Wander;
-                        enemy.state_timer = 0.0f;
+                        if (enemy.is_provoked && enemy.provoked_timer > 0.0f) {
+                            enemy.state = EnemyState::ChasePlayer;
+                            enemy.state_timer = 0.0f;
+                        } else {
+                            enemy.state = EnemyState::SeekTarget;
+                            enemy.state_timer = Enemy::SIEGE_MARCH_DURATION;
+                            enemy.has_target = false;
+                        }
                     }
                     break;
                 }

@@ -91,6 +91,8 @@ void Enemy::take_damage(int amount, float kb_dx, float kb_dy, float kb_speed, fl
     hit_wound_offset_y = wound_oy;
     bleed_waves_left = 2; // Wave 1 emitted immediately; Waves 2 & 3 remaining
     bleed_timer = 0.07f;
+    is_provoked = true;
+    provoked_timer = EnemyAggroConstants::PROVOKED_AGGRO_DURATION;
 }
 
 void Enemy::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
