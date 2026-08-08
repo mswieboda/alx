@@ -16,6 +16,7 @@ struct EnemyThreatConstants {
     static constexpr float THREAT_DARK_PIPE           = 100.0f; // Inactive / Dark Pipe
     static constexpr float CROWD_PENALTY_PER_ENEMY    = 80.0f;  // Score penalty per enemy targeting same cell
     static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Lock duration before re-evaluating target
+    static constexpr float TARGET_HYSTERESIS_MULTIPLIER = 1.20f; // +20% stickiness multiplier for current target
 };
 
 struct EnemyAggroConstants {
@@ -32,8 +33,9 @@ struct EnemyDebugConstants {
     static constexpr float AGGRO_PULSE_DURATION = 0.5f; // 0.5s visual pulse when aggro check occurs
     static constexpr int NORMAL_AGGRO_THICKNESS = 1;
     static constexpr int PULSE_AGGRO_THICKNESS  = 3;
-    static constexpr uint32_t COLOR_AGGRO_DEFAULT = 0xCCFF9900; // Light Orange
-    static constexpr uint32_t COLOR_AGGRO_CHASING = 0xCCFF0000; // Bright Red when chasing player
+    static constexpr uint32_t COLOR_AGGRO_DEFAULT = 0x99FF9900; // Light Orange
+    static constexpr uint32_t COLOR_AGGRO_CHASING = 0x99CC0000; // Red when chasing player
+    static constexpr uint32_t COLOR_ATTACK_TILE   = 0x99990000; // Dark Red when attacking a tile
 };
 
 enum class EnemyState : uint8_t {
@@ -72,12 +74,13 @@ struct Enemy : public Entity {
     static constexpr float MAX_MOVE_TIME = 2.5f;
 
     // Movement & Combat
-    static constexpr float WANDER_DURATION           = 5.0f;  // Initial spawn delay / wander duration
+    static constexpr float WANDER_DURATION           = 5.0f;  // Wander duration when no network fixtures exist
+    static constexpr float FIXTURE_PRESENT_WANDER_DURATION = 2.0f; // Micro-wander searching delay when network fixtures exist
     static constexpr float POST_DESTROY_WANDER_TIME  = 2.0f;  // Search pause when target fixture is destroyed
-    static constexpr float MARCH_INTERMISSION_WANDER_TIME = 1.5f; // Intermission micro-wander when march timer expires
+    static constexpr float MARCH_INTERMISSION_WANDER_TIME = 2.0f; // Intermission micro-wander when march timer expires
     static constexpr float SIEGE_MARCH_DURATION      = 7.0f;  // Active march duration toward target fixture
     static constexpr float RESTLESS_WANDER_DURATION  = 2.5f;  // Intermission wander duration
-    static constexpr float OBSTACLE_STUCK_THRESHOLD  = 1.5f;  // Seconds spent against obstacle before detour wander
+    static constexpr float OBSTACLE_STUCK_THRESHOLD  = 1.0f;  // Seconds spent against obstacle before detour wander
     static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
     static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
     static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
@@ -90,6 +93,7 @@ struct Enemy : public Entity {
     static constexpr float TARGET_LOCK_DURATION       = 5.0f;  // Target lock duration to prevent flickering
     static constexpr float ATTACK_STRIKE_OFFSET       = 10.0f; // Melee swipe directional offset
     static constexpr float ATTACK_STRIKE_RADIUS       = 14.0f; // Melee swipe hit detection radius
+    static constexpr float ATTACK_TRIGGER_PADDING    = 0.5f;  // Outer reach padding (px) to trigger attack on solid AABB contact
 
     int hp = DEFAULT_MAX_HP;
     float speed = SPEED;
@@ -157,4 +161,3 @@ private:
 };
 
 } // namespace alx
-

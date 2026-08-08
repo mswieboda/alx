@@ -286,7 +286,12 @@ namespace alx {
 
             Enemy& enemy = m_enemies.emplace_back(final_x, final_y);
             enemy.state = EnemyState::Wander;
-            enemy.state_timer = Random::get_float(4.0f, 6.0f);
+            GridPos initial_target = (network != nullptr) ? find_priority_target(enemy, *network) : GridPos{-1, -1};
+            if (initial_target.x >= 0 && initial_target.y >= 0) {
+                enemy.state_timer = Enemy::FIXTURE_PRESENT_WANDER_DURATION;
+            } else {
+                enemy.state_timer = Enemy::WANDER_DURATION;
+            }
             EnemyMovement::reset_wander_state(enemy.move_state);
         }
 
@@ -541,6 +546,9 @@ namespace alx {
                     dist = std::max(dist, 1.0f);
 
                     float score = base_threat / dist;
+                    if (enemy.has_target && enemy.target_fixture_pos == pos) {
+                        score *= EnemyThreatConstants::TARGET_HYSTERESIS_MULTIPLIER;
+                    }
 
                     int crowd_count = 0;
                     for (const auto& other : m_enemies) {
@@ -661,8 +669,8 @@ namespace alx {
                             enemy.stuck_timer = 0.0f;
                             EnemyMovement::reset_wander_state(enemy.move_state);
                         } else {
-                            enemy.state = EnemyState::RestlessWander;
-                            enemy.state_timer = Enemy::RESTLESS_WANDER_DURATION;
+                            enemy.state = EnemyState::Wander;
+                            enemy.state_timer = Enemy::WANDER_DURATION;
                             enemy.has_target = false;
                             EnemyMovement::update_wander_step(enemy, enemy.move_state, dt, tiles, network, {}, &m_world_structures);
                         }
@@ -690,29 +698,40 @@ namespace alx {
                         target_valid = (!fix.is_empty() && fix.type != FixtureType::Seep);
                     }
 
-                    if (!target_valid || (enemy.reeval_timer <= 0.0f && enemy.target_lock_timer <= 0.0f)) {
+                    if (!target_valid) {
+                        enemy.state = EnemyState::Wander;
+                        enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
+                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        enemy.has_target = false;
+                        enemy.target_lock_timer = 0.0f;
+                        break;
+                    }
+
+                    if (enemy.reeval_timer <= 0.0f && enemy.target_lock_timer <= 0.0f) {
                         GridPos new_target = find_priority_target(enemy, network);
                         if (new_target.x >= 0 && new_target.y >= 0) {
                             enemy.target_fixture_pos = new_target;
                             enemy.has_target = true;
                             enemy.target_lock_timer = Enemy::TARGET_LOCK_DURATION;
                             enemy.reeval_timer = Random::get_float(Enemy::TARGET_REEVAL_MIN_TIME, Enemy::TARGET_REEVAL_MAX_TIME);
-                        } else if (!target_valid) {
-                            enemy.state = EnemyState::Wander;
-                            enemy.state_timer = Enemy::POST_DESTROY_WANDER_TIME;
-                            EnemyMovement::reset_wander_state(enemy.move_state);
-                            enemy.has_target = false;
-                            break;
                         }
                     }
 
                     if (enemy.has_target) {
-                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
+                        const Fixture& target_fix = network.fixture(enemy.target_fixture_pos);
+                        int root_tx = enemy.target_fixture_pos.x - target_fix.root_offset_x;
+                        int root_ty = enemy.target_fixture_pos.y - target_fix.root_offset_y;
+                        Collision::AABB fix_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, target_fix.type);
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
 
-                        // Fix 3: Outer Reach Padding (+2.0px) so mobs trigger attack before penetrating solid AABB
-                        Collision::AABB padded_aabb{ fix_aabb.x - 2.0f, fix_aabb.y - 2.0f, fix_aabb.w + 4.0f, fix_aabb.h + 4.0f };
+                        // Outer Reach Padding so mobs trigger attack when touching solid AABB contact
+                        Collision::AABB padded_aabb{
+                            fix_aabb.x - Enemy::ATTACK_TRIGGER_PADDING,
+                            fix_aabb.y - Enemy::ATTACK_TRIGGER_PADDING,
+                            fix_aabb.w + (Enemy::ATTACK_TRIGGER_PADDING * 2.0f),
+                            fix_aabb.h + (Enemy::ATTACK_TRIGGER_PADDING * 2.0f)
+                        };
                         if (Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb)) {
                             enemy.state = EnemyState::AttackWindup;
                             enemy.state_timer = Enemy::ATTACK_WINDUP_TIME;
@@ -721,9 +740,20 @@ namespace alx {
                             enemy.move_dy = 0.0f;
                             enemy.stuck_timer = 0.0f;
                             enemy.target_is_player = false;
+
+                            float fdx = target_cx - enemy.center_x();
+                            float fdy = target_cy - enemy.center_y();
+                            float flen = std::sqrt(fdx * fdx + fdy * fdy);
+                            if (flen > 0.001f) {
+                                enemy.facing_dx = fdx / flen;
+                                enemy.facing_dy = fdy / flen;
+                            }
                             break;
                         }
 
+                        // [MWND]: Line-of-sight tracking toward target fixture
+                        bool has_los = WorldCollision::has_line_of_sight(enemy.center_x(), enemy.center_y(), target_cx, target_cy, tiles);
+                        (void)has_los;
                         enemy.set_steering_vector_8way(target_cx, target_cy);
                     }
                     break;
@@ -777,7 +807,10 @@ namespace alx {
                             m_pending_twilight_increase += twilight_inc;
                         }
 
-                        Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
+                        const Fixture& target_fix = network.fixture(enemy.target_fixture_pos);
+                        int root_tx = enemy.target_fixture_pos.x - target_fix.root_offset_x;
+                        int root_ty = enemy.target_fixture_pos.y - target_fix.root_offset_y;
+                        Collision::AABB fix_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, target_fix.type);
                         float target_cx = fix_aabb.x + fix_aabb.w * 0.5f;
                         float target_cy = fix_aabb.y + fix_aabb.h * 0.5f;
                         float rdx = enemy.center_x() - target_cx;
@@ -886,6 +919,10 @@ namespace alx {
                             enemy.move_dy = 0.0f;
                             enemy.stuck_timer = 0.0f;
                             enemy.target_is_player = true;
+                            if (dist > 0.001f) {
+                                enemy.facing_dx = edx / dist;
+                                enemy.facing_dy = edy / dist;
+                            }
                             break;
                         }
 
@@ -1008,7 +1045,10 @@ namespace alx {
                         // Fix 2: If enemy is already within reach of its target fixture, ignore stuck counting
                         bool near_target = false;
                         if (enemy.has_target && network.in_bounds(enemy.target_fixture_pos)) {
-                            Collision::AABB fix_aabb = fixture_ground_aabb(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y, tile_size, network.fixture(enemy.target_fixture_pos.x, enemy.target_fixture_pos.y).type);
+                            const Fixture& target_fix = network.fixture(enemy.target_fixture_pos);
+                            int root_tx = enemy.target_fixture_pos.x - target_fix.root_offset_x;
+                            int root_ty = enemy.target_fixture_pos.y - target_fix.root_offset_y;
+                            Collision::AABB fix_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, target_fix.type);
                             Collision::AABB padded_aabb{ fix_aabb.x - 4.0f, fix_aabb.y - 4.0f, fix_aabb.w + 8.0f, fix_aabb.h + 8.0f };
                             near_target = Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb);
                         }
@@ -1019,6 +1059,8 @@ namespace alx {
                             enemy.stuck_timer += dt;
                             if (enemy.stuck_timer >= Enemy::OBSTACLE_STUCK_THRESHOLD) {
                                 enemy.stuck_timer = 0.0f;
+                                enemy.has_target = false;
+                                enemy.target_lock_timer = 0.0f;
                                 enemy.state = EnemyState::DetourWander;
                                 enemy.state_timer = Enemy::DETOUR_WANDER_DURATION;
                                 EnemyMovement::reset_wander_state(enemy.move_state);

@@ -241,7 +241,41 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
             Draw::line(end_x, end_y, right_x, right_y, arrow_color, 2, transform.z_index + 2, sort_y);
         }
     }
+
+    // Exact attacked tile light orange debug outline (only drawn when actively attacking)
+    if constexpr (Debug::DRAW_ENEMY_ATTACK_TILE) {
+        if (state == EnemyState::AttackWindup || state == EnemyState::AttackRecoilRest) {
+            int tile_x = -1;
+            int tile_y = -1;
+
+            if (target_is_player) {
+                float strike_cx = (draw_x + draw_w * 0.5f) + facing_dx * ATTACK_STRIKE_OFFSET;
+                float strike_cy = (draw_y + draw_h * 0.5f) + facing_dy * ATTACK_STRIKE_OFFSET;
+                tile_x = static_cast<int>(std::floor(strike_cx / static_cast<float>(Game::TILE_SIZE)));
+                tile_y = static_cast<int>(std::floor(strike_cy / static_cast<float>(Game::TILE_SIZE)));
+            } else if (has_target && target_fixture_pos.x >= 0 && target_fixture_pos.y >= 0) {
+                tile_x = target_fixture_pos.x;
+                tile_y = target_fixture_pos.y;
+            }
+
+            if (tile_x >= 0 && tile_y >= 0) {
+                float tx = static_cast<float>(tile_x * Game::TILE_SIZE);
+                float ty = static_cast<float>(tile_y * Game::TILE_SIZE);
+                constexpr float ts = static_cast<float>(Game::TILE_SIZE);
+                Draw::rect(
+                    tx,
+                    ty,
+                    ts,
+                    ts,
+                    EnemyDebugConstants::COLOR_ATTACK_TILE, // Dark Red
+                    false, // fill = false (outline only)
+                    1,     // thickness = 1
+                    transform.z_index + 1,
+                    sort_y
+                );
+            }
+        }
+    }
 }
 
 } // namespace alx
-

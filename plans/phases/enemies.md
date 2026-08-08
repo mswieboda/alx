@@ -8,12 +8,12 @@ This document outlines the detailed roadmap and design decisions for player weap
 
 ### [EP-EMBT]: Enemy Aggro, Network Targeting & Player Defeat Overhaul
 
-#### [PH-EPRI]: Phase 4A - Enemy Network Priority & Threat Logic (IN-PROGRESS)
+#### [PH-EPRI]: Phase 4A - Enemy Network Priority & Threat Logic (COMPLETED)
 - [x] `[EPNW]`: Network-First Threat Hierarchy - Re-architect enemy target selection algorithm (`alx::Enemy`) to weight active mana conduits (`FixtureType::Pipe`, `Refiner`, `Spire`) 80% over the player. Enemies prioritize network targets and will ignore the player unless provoked or within a small chance threshold.
 - [x] `[EPRN]`: Probabilistic Player Aggro Roll - Replace static aggressive player interception with a probabilistic roll (checked every 2.0s–4.0s). Enemies only attempt player aggro if within a 40px (~2.5 tiles) radius AND a 20% random aggro roll succeeds.
 - [x] `[ERET]`: Provoked Retaliation & Aggro Decay - On taking player damage (`take_damage()`), the enemy becomes provoked, exiting `HitStun` directly into `EnemyState::ChasePlayer` to attack the player. If the player escapes beyond 48px (~3 tiles) OR 3.0s elapses without taking new damage, the enemy drops player aggro and returns to hunting network fixtures (`EnemyState::SeekTarget`).
-- [ ] `[TSLC]`: Fixture Target Stickiness & Anti-Oscillation - Fix target switching bug where enemies switch targets too frequently while marching. Implement target lock timer (`static constexpr float TARGET_LOCK_DURATION = 5.0f;`) so enemies retain their designated network target unless destroyed or pathing is fully blocked.
-- [ ] `[MWND]`: Combat Pathing & Reduced March Wandering - Reduce excessive wandering during `EnemyState::SeekTarget`. Increase direct line-of-sight tracking toward targeted network fixtures and reduce wander duration while near valid fixtures.
+- [x] `[TSLC]`: Fixture Target Stickiness & Anti-Oscillation - Fix target switching bug where enemies switch targets too frequently while marching. Implement target lock timer (`static constexpr float TARGET_LOCK_DURATION = 5.0f;`) so enemies retain their designated network target unless destroyed or pathing is fully blocked.
+- [x] `[MWND]`: Combat Pathing & Reduced March Wandering - Reduce excessive wandering during `EnemyState::SeekTarget`. Increase direct line-of-sight tracking toward targeted network fixtures and reduce wander duration while near valid fixtures.
 
 #### [PH-FBAL]: Phase 4B - Infrastructure Vulnerability & Fixture Balancing
 * `[FDAM]`: Measured Fixture Damage - Adjust enemy melee damage against static fixtures (`FixtureType::Pipe`, `Refiner`, `Spire`) so enemies require 3–5 strikes to destroy a pipe segment, giving the player enough time to react while still creating localized repair needs.
@@ -26,7 +26,7 @@ This document outlines the detailed roadmap and design decisions for player weap
 
 ---
 
-### [EP-PRJT]: Directional Mana Spark Rites Epic
+### [EP-PRJT]: Directional Mana Spark Rites Epic (COMPLETE? double check)
 
 #### [PH-PRJT]: Phase 5 - Directional Mana Spark Projectiles
 * `[HCT]`: Hold Charge Timer - Implement 0.5s Hold Charge Timer on `Action::Attack`.

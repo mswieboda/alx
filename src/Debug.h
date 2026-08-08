@@ -18,6 +18,7 @@ namespace Debug {
     inline constexpr bool SHOW_SEED = false;
     inline constexpr bool DRAW_ENEMY_FACING = true;
     inline constexpr bool DRAW_ENEMY_AGGRO_AREAS = true;
+    inline constexpr bool DRAW_ENEMY_ATTACK_TILE = true;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = false;
     inline constexpr bool CAN_PAUSE = true;
@@ -29,9 +30,9 @@ namespace Debug {
     inline constexpr bool SHOW_SEED = false;
     inline constexpr bool DRAW_ENEMY_FACING = false;
     inline constexpr bool DRAW_ENEMY_AGGRO_AREAS = false;
+    inline constexpr bool DRAW_ENEMY_ATTACK_TILE = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = false;
     inline constexpr bool CAN_PAUSE = false;
 #endif
 }
-
