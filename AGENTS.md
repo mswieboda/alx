@@ -13,6 +13,16 @@
 
 ---
 
+## Game Jam Binary Size Constraints
+
+This project is a game jam submission due on **September 1st, 2026** (safer target than Sept 4th). The compiled binary size is under a strict limit equivalent to a standard 1.44MB floppy disk. AI agents must focus on keeping the binary size super tiny and tight.
+
+- **Exact Limit (Bytes):** 1,474,560 bytes
+- **Limit in KB (using 1024):** 1,440 KB
+- **Limit in MB (using 1024):** 1.40625 MB
+
+---
+
 ## Git & Version Control Protocol
 
 - **Strict Limitation to Read-Only Git Commands**: AI agents are strictly permitted to run ONLY read-only git commands (such as `git status`, `git diff`, `git log`, `git show`).

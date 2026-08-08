@@ -4,6 +4,12 @@ Aetherlux - a 1.44Mb (floppy disk 💾 size) game jam submission.
 
 ([1.44Mb game jam](https://2pgarcade.com/contest-144mb.html) site)
 
+### 💾 Binary Size Constraints
+To qualify for the game jam submission (due by **September 1st, 2026**), our compiled release binary must stay strictly under the 1.44MB floppy disk limit. We must keep the binary size super tiny and tight.
+- **Exact Bytes:** 1,474,560 bytes
+- **Kilobytes (KB):** 1,440 KB (using 1024)
+- **Megabytes (MB):** 1.40625 MB (using 1024)
+
 A 2D adventure and partial factory/automation, part puzzle game with GBA style aesthetic.
 
 ## 🧰 Toolchain & Dependencies
