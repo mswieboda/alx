@@ -69,17 +69,23 @@ else()
     set(DEV_TOOLS_DEFAULT OFF)
 endif()
 
-option(ALX_ENABLE_DEV_TOOLS "Master toggle for all development/debug tools" ${DEV_TOOLS_DEFAULT})
-
-if(ALX_ENABLE_DEV_TOOLS)
-    set(SUB_DEV_TOOLS_DEFAULT ON)
-else()
-    set(SUB_DEV_TOOLS_DEFAULT OFF)
+# Master toggle for development/debug tools
+if(NOT DEFINED ALX_ENABLE_DEV_TOOLS)
+    set(ALX_ENABLE_DEV_TOOLS ${DEV_TOOLS_DEFAULT})
 endif()
 
-option(ALX_ENABLE_DEBUG "Enable debug overlays" ${SUB_DEV_TOOLS_DEFAULT})
-option(ALX_ENABLE_TELEMETRY "Enable telemetry dumper" ${SUB_DEV_TOOLS_DEFAULT})
-option(ALX_ENABLE_HEADLESS "Enable headless simulation runner" ${SUB_DEV_TOOLS_DEFAULT})
+# Sub-feature toggles cascade from ALX_ENABLE_DEV_TOOLS unless explicitly overridden
+if(NOT DEFINED ALX_ENABLE_DEBUG)
+    set(ALX_ENABLE_DEBUG ${ALX_ENABLE_DEV_TOOLS})
+endif()
+
+if(NOT DEFINED ALX_ENABLE_TELEMETRY)
+    set(ALX_ENABLE_TELEMETRY ${ALX_ENABLE_DEV_TOOLS})
+endif()
+
+if(NOT DEFINED ALX_ENABLE_HEADLESS)
+    set(ALX_ENABLE_HEADLESS ${ALX_ENABLE_DEV_TOOLS})
+endif()
 
 target_compile_definitions(${GAME_BIN} PRIVATE
     $<$<CONFIG:Debug>:DEBUG>

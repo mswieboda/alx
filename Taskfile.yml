@@ -340,6 +340,7 @@ tasks:
         platforms: [windows]
       - cmd: |
           echo "=> Executable size: {{.binary}}"
+          ls -l '{{.binary}}'
           du -h '{{.binary}}'
         platforms: [linux, darwin]
 
