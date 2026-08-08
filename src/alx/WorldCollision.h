@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include "core/Collision.h"
 #include "alx/Tiles.h"
 #include "alx/Network.h"
@@ -26,6 +27,6 @@ MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Cir
 
 // DEPRECATED: Do not use. Kept for extreme fallback cases only.
 [[deprecated("Use WorldCollision::try_move instead")]]
-bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& ground, const Tiles& tiles, const Network& network, float nudge_dist = 2.0f, std::string tag = "?");
+bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& ground, const Tiles& tiles, const Network& network, float nudge_dist = 2.0f, std::string_view tag = "?");
 
 } // namespace alx::WorldCollision

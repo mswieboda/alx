@@ -1,7 +1,6 @@
 #include "alx/Action.h"
 #include <unordered_map>
 #include <algorithm>
-#include "core/Log.h"
 #include "minigamepad.h"
 
 namespace alx {

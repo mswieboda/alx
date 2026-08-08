@@ -42,11 +42,15 @@ void MainScene::load_level(int level_id) {
     if (level_id == 1) {
         m_tiles = Tiles(60, 30);
         m_network = Network(60, 30);
+#if ALX_ENABLE_HEADLESS
         if (m_is_headless) {
             m_player = Player(HeadlessConstants::OFFSCREEN_PLAYER_POS, HeadlessConstants::OFFSCREEN_PLAYER_POS);
         } else {
             m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
         }
+#else
+        m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
+#endif
         m_twilight_level = 0.9f;
 
         seeps = { {15, 12} };
@@ -69,17 +73,18 @@ void MainScene::load_level(int level_id) {
     m_enemy_manager.clear();
     m_enemy_manager.register_corrupted_tiles(corrupted_tile_coords, m_tiles);
 
+    m_time_to_zero_twilight = -1.0f;
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
     m_initial_twilight = m_twilight_level;
     m_peak_twilight = m_twilight_level;
     m_min_twilight = m_twilight_level;
     m_sum_twilight = 0.0;
-    m_time_to_zero_twilight = -1.0f;
-
     m_rolling_sample_head = 0;
     m_rolling_sample_count = 0;
     m_last_event_delta = 0.0f;
     m_last_event_cause = "None";
     m_last_event_timestamp = 0.0f;
+#endif
 }
 
 void MainScene::load_tiles_and_network(
@@ -129,6 +134,7 @@ void MainScene::update_camera_map_boundary() {
     m_camera.set_limits(0, 0, bound_width, bound_height);
 }
 
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 void MainScene::record_twilight_event(float delta, const char* cause) {
     m_last_event_delta = delta;
     m_last_event_cause = cause ? cause : "Unknown";
@@ -154,6 +160,7 @@ float MainScene::calculate_rolling_twilight_rate(float duration_sec) const {
     if (total_dt <= 0.0001f) return 0.0f;
     return total_delta / total_dt;
 }
+#endif
 
 #if ALX_ENABLE_TELEMETRY
 void MainScene::dump_telemetry_snapshot() {
@@ -232,9 +239,11 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     m_camera.update(dt);
     m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
 
+#if ALX_ENABLE_HEADLESS
     if (m_is_headless) {
         update_headless_defense(raw_dt);
     }
+#endif
 
     update_player_respawn();
 
@@ -283,14 +292,16 @@ void MainScene::update_victory_condition(float raw_dt) {
 }
 
 void MainScene::update_time_dilation_hotkeys() {
-    if (Input::is_key_just_pressed(KeyCode::Key1)) {
-        m_time_scale = 1.0f;
-    } else if (Input::is_key_just_pressed(KeyCode::Key2)) {
-        m_time_scale = 2.0f;
-    } else if (Input::is_key_just_pressed(KeyCode::Key3)) {
-        m_time_scale = 5.0f;
-    } else if (Input::is_key_just_pressed(KeyCode::Key4)) {
-        m_time_scale = 10.0f;
+    if constexpr (ALX_ENABLE_DEBUG) {
+        if (Input::is_key_just_pressed(KeyCode::Key1)) {
+            m_time_scale = 1.0f;
+        } else if (Input::is_key_just_pressed(KeyCode::Key2)) {
+            m_time_scale = 2.0f;
+        } else if (Input::is_key_just_pressed(KeyCode::Key3)) {
+            m_time_scale = 5.0f;
+        } else if (Input::is_key_just_pressed(KeyCode::Key4)) {
+            m_time_scale = 10.0f;
+        }
     }
 }
 
@@ -300,8 +311,13 @@ void MainScene::update_player_respawn() {
         m_player.state.defeated = false;
         m_player.state.iframe_timer = Player::State::IFRAME_DURATION;
 
+#if ALX_ENABLE_HEADLESS
         const float spawn_x = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
         const float spawn_y = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
+#else
+        const float spawn_x = 9.0f * m_tiles.tile_size();
+        const float spawn_y = 9.0f * m_tiles.tile_size();
+#endif
         m_player.transform.x = spawn_x;
         m_player.transform.y = spawn_y;
         m_player.sync_prev_transforms();
@@ -349,35 +365,38 @@ void MainScene::update_sword_slash_trail() {
 }
 
 void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
-    if (Action::is_just_pressed(Action::DebugEnemyWave)) {
-        m_enemy_manager.spawn_enemy_wave(m_tiles, &m_network, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
+    if constexpr (ALX_ENABLE_DEBUG) {
+        if (Action::is_just_pressed(Action::DebugEnemyWave)) {
+            m_enemy_manager.spawn_enemy_wave(m_tiles, &m_network, -1, m_player.center_x(1.0f), m_player.center_y(1.0f), false);
+        }
+
+        if (Action::is_pressed(Action::DebugTwUp)) {
+            m_twilight_level += 1 * dt;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            record_twilight_event(1.0f * dt, "Debug TwUp");
+        } else if (Action::is_pressed(Action::DebugTwDown)) {
+            m_twilight_level -= 1 * dt;
+            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            record_twilight_event(-1.0f * dt, "Debug TwDown");
+        }
     }
 
-    if (Action::is_pressed(Action::DebugTwUp)) {
-        m_twilight_level += 1 * dt;
-        m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
-        record_twilight_event(1.0f * dt, "Debug TwUp");
-    } else if (Action::is_pressed(Action::DebugTwDown)) {
-        m_twilight_level -= 1 * dt;
-        m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
-        record_twilight_event(-1.0f * dt, "Debug TwDown");
-    }
-
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
     m_peak_twilight = std::max(m_peak_twilight, m_twilight_level);
     m_min_twilight = std::min(m_min_twilight, m_twilight_level);
     m_sum_twilight += m_twilight_level;
-    if ((m_twilight_level <= 0.0f || m_twilight_level < VICTORY_TWILIGHT_THRESHOLD || m_victory_achieved) && m_time_to_zero_twilight < 0.0f) {
-        m_time_to_zero_twilight = m_sim_elapsed_sec;
-    }
 
     const float frame_delta = m_twilight_level - prev_twilight;
     m_twilight_delta_per_sec = (dt > 0.0001f) ? (frame_delta / dt) : 0.0f;
+#endif
 
+#if ALX_ENABLE_TELEMETRY
     m_rolling_samples[m_rolling_sample_head] = RollingSample{ dt, frame_delta };
     m_rolling_sample_head = (m_rolling_sample_head + 1) % ROLLING_BUFFER_MAX_SAMPLES;
     if (m_rolling_sample_count < ROLLING_BUFFER_MAX_SAMPLES) {
         ++m_rolling_sample_count;
     }
+#endif
 }
 
 #if ALX_ENABLE_HEADLESS

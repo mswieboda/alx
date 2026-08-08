@@ -4,7 +4,6 @@
 #include "Debug.h"
 #include "Layer.h"
 #include "core/Draw.h"
-#include "core/Log.h"
 #include "core/Transform.h"
 #include "DrawFixtures.h"
 #include "Random.h"

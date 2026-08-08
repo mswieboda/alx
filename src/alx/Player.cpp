@@ -579,8 +579,10 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
             }
         }
 
-        if (Action::is_just_pressed(Action::DebugResource)) {
-            m_cursed_alloy += 10;
+        if constexpr (ALX_ENABLE_DEBUG) {
+            if (Action::is_just_pressed(Action::DebugResource)) {
+                m_cursed_alloy += 10;
+            }
         }
 
         if (Action::is_build_tile()) {

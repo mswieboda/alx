@@ -32,8 +32,10 @@ private:
     float m_last_dt = 0.016f;
     const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     bool m_paused = false;
+#if ALX_ENABLE_HEADLESS
     bool m_is_headless = false;
     float m_headless_defend_timer = 0.0f;
+#endif
     float m_victory_hold_timer = 0.0f;
     bool m_victory_achieved = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
@@ -48,11 +50,19 @@ private:
     float m_slash_prev_tip_y = 0.0f;
     bool m_slash_was_attacking = false;
 
-    // Telemetry & Time Dilation
+    // Time Dilation & Simulation Tracking
+    float m_time_scale{1.0f};
+    int64_t m_sim_tick_count{0};
+    float m_sim_elapsed_sec{0.0f};
+    float m_last_twilight_level{TWILIGHT_MAX};
+    float m_time_to_zero_twilight{-1.0f};
+
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
+    // Telemetry Rolling Buffer & Event Tracking
     static constexpr float ROLLING_WINDOW_SHORT_SEC = 3.0f;
     static constexpr float ROLLING_WINDOW_LONG_SEC = 15.0f;
     static constexpr size_t ROLLING_BUFFER_MAX_SAMPLES = 960; // 16s @ 60fps
-    
+
     struct RollingSample {
         float dt{0.0f};
         float delta{0.0f};
@@ -61,12 +71,7 @@ private:
     size_t m_rolling_sample_head{0};
     size_t m_rolling_sample_count{0};
 
-    float m_time_scale{1.0f};
-    int64_t m_sim_tick_count{0};
-    float m_sim_elapsed_sec{0.0f};
-    float m_last_twilight_level{TWILIGHT_MAX};
     float m_twilight_delta_per_sec{0.0f};
-    float m_telemetry_dump_timer{0.0f};
 
     // Last Event Tracking
     float m_last_event_delta{0.0f};
@@ -78,7 +83,11 @@ private:
     float m_peak_twilight{0.0f};
     float m_min_twilight{1.0f};
     double m_sum_twilight{0.0};
-    float m_time_to_zero_twilight{-1.0f};
+#endif
+
+#if ALX_ENABLE_TELEMETRY
+    float m_telemetry_dump_timer{0.0f};
+#endif
 
     static constexpr float VIGNETTE_SURGE_DURATION = 1.0f;
     static constexpr float VIGNETTE_PEAK_INTENSITY = 0.33f;
@@ -98,8 +107,13 @@ private:
         static constexpr float OFFSCREEN_PLAYER_POS = -100.0f;
     };
 
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
     void record_twilight_event(float delta, const char* cause);
     [[nodiscard]] float calculate_rolling_twilight_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
+#else
+    inline void record_twilight_event(float, const char*) {}
+    [[nodiscard]] constexpr float calculate_rolling_twilight_rate(float = 3.0f) const { return 0.0f; }
+#endif
     void update_tick_simulation(float dt);
     void update_victory_condition(float raw_dt);
     void update_time_dilation_hotkeys();

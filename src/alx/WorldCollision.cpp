@@ -86,7 +86,7 @@ MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Cir
     return res;
 }
 
-bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& ground, const Tiles& tiles, const Network& network, float nudge_dist, std::string tag) {
+bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& ground, const Tiles& tiles, const Network& network, float nudge_dist, std::string_view tag) {
     float tile_size = static_cast<float>(tiles.tile_size());
 
     int min_tx = static_cast<int>(std::floor((ground.cx - ground.radius) / tile_size));
@@ -116,7 +116,9 @@ bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& 
             }
 
             if (solid && Collision::circle_vs_aabb(ground, obs_aabb)) {
-                Log::warn_fmt_t("enforce_solid_ground_ejection SOLID && COLLIDE:\n  t: %s x: %.1f y: %.1f gcx: %.1f gcy: %.1f gr: %f\n  rtxy: {%d..%d}, {%d, %d}", tag.c_str(), x, y, ground.cx, ground.cy, ground.radius, min_tx, max_tx, min_ty, max_ty);
+                if constexpr (ALX_ENABLE_DEBUG) {
+                    Log::warn_fmt_t("enforce_solid_ground_ejection SOLID && COLLIDE:\n  t: %.*s x: %.1f y: %.1f gcx: %.1f gcy: %.1f gr: %f\n  rtxy: {%d..%d}, {%d, %d}", static_cast<int>(tag.size()), tag.data(), x, y, ground.cx, ground.cy, ground.radius, min_tx, max_tx, min_ty, max_ty);
+                }
                 float obs_cx = obs_aabb.x + obs_aabb.w * 0.5f;
                 float obs_cy = obs_aabb.y + obs_aabb.h * 0.5f;
                 float push_x = ground.cx - obs_cx;

@@ -1,7 +1,6 @@
 #include "Input.h"
 #include <cstring>
 #include <algorithm>
-#include "core/Log.h"
 
 #define MG_IMPLEMENTATION
 #include "minigamepad.h"
