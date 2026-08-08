@@ -145,6 +145,17 @@ int main(int argc, char* argv[]) {
         // game size
         Game::WIDTH, Game::HEIGHT
     );
+
+#if defined(__APPLE__)
+    if constexpr (ALX_ENABLE_DEV_TOOLS) {
+        if (!has_cli_flag(argc, argv, "window-center")) {
+            game_window.move_to_left_edge();
+        }
+    } else if (has_cli_flag(argc, argv, "window-left")) {
+        game_window.move_to_left_edge();
+    }
+#endif
+
     FrameTime frame_time(Game::TARGET_FPS);
 
     if (!Audio::init()) {

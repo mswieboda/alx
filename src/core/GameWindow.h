@@ -19,6 +19,7 @@ public:
 
     void set_key_callback(IWindow::KeyCallback cb);
     void set_active_callback(IWindow::ActiveCallback cb);
+    void move_to_left_edge();
 
 private:
     std::unique_ptr<IWindow> m_window;

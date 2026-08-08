@@ -52,3 +52,9 @@ void GameWindow::set_active_callback(IWindow::ActiveCallback cb) {
         m_window->set_active_callback(cb);
     }
 }
+
+void GameWindow::move_to_left_edge() {
+    if (m_window) {
+        m_window->move_to_left_edge();
+    }
+}

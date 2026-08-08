@@ -21,4 +21,5 @@ public:
 
     virtual void set_key_callback(KeyCallback cb) = 0;
     virtual void set_active_callback(ActiveCallback cb) = 0;
+    virtual void move_to_left_edge() = 0;
 };

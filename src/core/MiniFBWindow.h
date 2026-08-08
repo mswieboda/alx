@@ -20,6 +20,7 @@ public:
 
     void set_key_callback(KeyCallback cb) override;
     void set_active_callback(ActiveCallback cb) override;
+    void move_to_left_edge() override;
 
     void dispatch_key_callback(KeyCode key, KeyModifier mod, bool is_pressed);
     void dispatch_active_callback(bool is_active);

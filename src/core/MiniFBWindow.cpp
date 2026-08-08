@@ -284,3 +284,51 @@ void MiniFBWindow::present(const std::vector<uint32_t>& buffer, int target_w, in
         m_running = false;
     }
 }
+
+#if defined(__APPLE__)
+#include <objc/message.h>
+#include <objc/runtime.h>
+#include <CoreGraphics/CoreGraphics.h>
+
+namespace {
+    struct MfbInternalWindowData {
+        void* specific;
+    };
+}
+#endif
+
+void MiniFBWindow::move_to_left_edge() {
+#if defined(__APPLE__)
+    if (!m_window) return;
+
+    auto* window_data = reinterpret_cast<MfbInternalWindowData*>(m_window);
+    if (!window_data || !window_data->specific) return;
+
+    id ns_window = *reinterpret_cast<id*>(window_data->specific);
+    if (!ns_window) return;
+
+    Class ns_screen_class = reinterpret_cast<Class>(objc_getClass("NSScreen"));
+    if (!ns_screen_class) return;
+
+    SEL sel_main_screen = sel_registerName("mainScreen");
+    SEL sel_visible_frame = sel_registerName("visibleFrame");
+    SEL sel_frame = sel_registerName("frame");
+    SEL sel_set_frame_origin = sel_registerName("setFrameOrigin:");
+
+    id main_screen = reinterpret_cast<id(*)(Class, SEL)>(objc_msgSend)(ns_screen_class, sel_main_screen);
+    if (!main_screen) return;
+
+    typedef CGRect (*FrameSendFunc)(id, SEL);
+    FrameSendFunc frame_send = reinterpret_cast<FrameSendFunc>(objc_msgSend);
+
+    CGRect visible_frame = frame_send(main_screen, sel_visible_frame);
+    CGRect window_frame = frame_send(ns_window, sel_frame);
+
+    CGPoint new_origin;
+    new_origin.x = visible_frame.origin.x;
+    new_origin.y = visible_frame.origin.y + visible_frame.size.height - window_frame.size.height;
+
+    typedef void (*SetOriginFunc)(id, SEL, CGPoint);
+    reinterpret_cast<SetOriginFunc>(objc_msgSend)(ns_window, sel_set_frame_origin, new_origin);
+#endif
+}
