@@ -751,9 +751,6 @@ namespace alx {
                             break;
                         }
 
-                        // [MWND]: Line-of-sight tracking toward target fixture
-                        bool has_los = WorldCollision::has_line_of_sight(enemy.center_x(), enemy.center_y(), target_cx, target_cy, tiles);
-                        (void)has_los;
                         enemy.set_steering_vector_8way(target_cx, target_cy);
                     }
                     break;
@@ -797,7 +794,7 @@ namespace alx {
                             enemy.recoil_dist_remaining = Enemy::RECOIL_DIST;
 
                             enemy.state = EnemyState::AttackRecoilRest;
-                            enemy.state_timer = 0.5f;
+                            enemy.state_timer = Enemy::PLAYER_ATTACK_RECOIL_REST_TIME;
                             break;
                         }
 
@@ -909,7 +906,7 @@ namespace alx {
                         float edx = player_hurt.cx - enemy_ground.cx;
                         float edy = player_hurt.cy - enemy_ground.cy;
                         float dist = std::sqrt(edx * edx + edy * edy);
-                        float attack_reach = enemy_ground.radius + player_hurt.radius + 4.0f;
+                        float attack_reach = enemy_ground.radius + player_hurt.radius + Enemy::PLAYER_ATTACK_REACH_PADDING;
 
                         if (dist <= attack_reach) {
                             enemy.state = EnemyState::AttackWindup;
@@ -1049,7 +1046,12 @@ namespace alx {
                             int root_tx = enemy.target_fixture_pos.x - target_fix.root_offset_x;
                             int root_ty = enemy.target_fixture_pos.y - target_fix.root_offset_y;
                             Collision::AABB fix_aabb = fixture_ground_aabb(root_tx, root_ty, tile_size, target_fix.type);
-                            Collision::AABB padded_aabb{ fix_aabb.x - 4.0f, fix_aabb.y - 4.0f, fix_aabb.w + 8.0f, fix_aabb.h + 8.0f };
+                            Collision::AABB padded_aabb{
+                                fix_aabb.x - Enemy::NEAR_TARGET_PADDING,
+                                fix_aabb.y - Enemy::NEAR_TARGET_PADDING,
+                                fix_aabb.w + (Enemy::NEAR_TARGET_PADDING * 2.0f),
+                                fix_aabb.h + (Enemy::NEAR_TARGET_PADDING * 2.0f)
+                            };
                             near_target = Collision::circle_vs_aabb(enemy.ground_circle(), padded_aabb);
                         }
 

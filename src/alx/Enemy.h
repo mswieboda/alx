@@ -36,6 +36,9 @@ struct EnemyDebugConstants {
     static constexpr uint32_t COLOR_AGGRO_DEFAULT = 0x99FF9900; // Light Orange
     static constexpr uint32_t COLOR_AGGRO_CHASING = 0x99CC0000; // Red when chasing player
     static constexpr uint32_t COLOR_ATTACK_TILE   = 0x99990000; // Dark Red when attacking a tile
+    static constexpr uint32_t COLOR_GROUND_DEBUG  = 0xFF00FFFF; // Bright Cyan debug outline
+    static constexpr uint32_t COLOR_HURT_DEBUG    = 0xFFFFFF00; // Bright Yellow debug outline
+    static constexpr uint32_t COLOR_FACING_ARROW  = 0xFF00FF00; // Lime green facing arrow
 };
 
 enum class EnemyState : uint8_t {
@@ -84,7 +87,6 @@ struct Enemy : public Entity {
     static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
     static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
     static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
-    static constexpr float AGGRO_DETECTION_RADIUS    = 64.0f; // 4 tiles (64px)
     static constexpr float ATTACK_WINDUP_TIME        = 0.3f;  // Attack windup telegraph
     static constexpr float RECOIL_DIST               = 8.0f;  // Recoil step-back distance (px)
     static constexpr float RECOIL_SLIDE_SPEED        = 50.0f; // Recoil slide speed (px/s)
@@ -94,6 +96,9 @@ struct Enemy : public Entity {
     static constexpr float ATTACK_STRIKE_OFFSET       = 10.0f; // Melee swipe directional offset
     static constexpr float ATTACK_STRIKE_RADIUS       = 14.0f; // Melee swipe hit detection radius
     static constexpr float ATTACK_TRIGGER_PADDING    = 0.5f;  // Outer reach padding (px) to trigger attack on solid AABB contact
+    static constexpr float NEAR_TARGET_PADDING       = 4.0f;  // Outer reach padding (px) to detect proximity to target fixture
+    static constexpr float PLAYER_ATTACK_REACH_PADDING = 4.0f; // Extra reach padding (px) for melee attack trigger on player
+    static constexpr float PLAYER_ATTACK_RECOIL_REST_TIME = 0.5f; // Recoil rest time after attacking player
 
     int hp = DEFAULT_MAX_HP;
     float speed = SPEED;

@@ -157,7 +157,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
             ground.cx,
             ground.cy,
             ground.radius,
-            0xFF00FFFF, // Bright Cyan debug outline
+            EnemyDebugConstants::COLOR_GROUND_DEBUG, // Bright Cyan debug outline
             false,      // fill = false (outline only)
             1,          // thickness = 1
             transform.z_index + 1,
@@ -172,7 +172,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
             hurt.cx,
             hurt.cy,
             hurt.radius,
-            0xFFFFFF00, // Bright Yellow debug outline
+            EnemyDebugConstants::COLOR_HURT_DEBUG, // Bright Yellow debug outline
             false,      // fill = false (outline only)
             1,          // thickness = 1
             transform.z_index + 1,
@@ -217,7 +217,7 @@ void Enemy::draw_debug_overlays(float draw_x, float draw_y, float draw_w, float 
 
         float end_x = cx + fdx * arrow_len;
         float end_y = cy + fdy * arrow_len;
-        constexpr uint32_t arrow_color = 0xFF00FF00; // Lime green
+        constexpr uint32_t arrow_color = EnemyDebugConstants::COLOR_FACING_ARROW; // Lime green
 
         // Shaft
         Draw::line(cx, cy, end_x, end_y, arrow_color, 2, transform.z_index + 2, sort_y);
