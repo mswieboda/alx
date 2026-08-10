@@ -113,11 +113,11 @@ namespace SFX {
     inline SfxrParams spire_burn() {
         SfxrParams p;
         p.wave_type = NOISE;
-        p.attack_time = 0.002f;
-        p.sustain_time = 0.040f;
-        p.decay_time = 0.080f;
-        p.start_frequency = 0.650f;
-        p.min_frequency = 0.100f;
+        p.attack_time = 0.01f;
+        p.sustain_time = 0.30f;
+        p.decay_time = 0.050f;
+        p.start_frequency = 0.050f;
+        p.min_frequency = 0.0100f;
         p.slide = 0.100f;
         return p;
     }
