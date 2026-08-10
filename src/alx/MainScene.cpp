@@ -588,47 +588,51 @@ void MainScene::draw_hud() {
     int screen_width = Game::WIDTH;
     int screen_height = Game::HEIGHT;
 
-    const char* selected_name = "pipe";
+    // TODO: in future switch to tiny icons
+    const char* selected_name = "p";
     FixtureType sel_type = m_player.selected_fixture_type();
     int cost = Player::fixture_cost(sel_type);
     if (sel_type == FixtureType::Wall) {
-        selected_name = "wall";
+        selected_name = "w";
     } else if (sel_type == FixtureType::Refiner) {
-        selected_name = "refiner";
+        selected_name = "ref";
     } else if (sel_type == FixtureType::Spire) {
-        selected_name = "spire";
+        selected_name = "spr";
     }
 
+    const uint32_t text_color = 0xFF00CCCC;
+    const uint32_t shadow_color = 0xFF003344;
     const FontData& font = Assets::Fonts::fant_8;
     const int line_h_padding = 4;
     int ly = line_h_padding;
 
-    Draw::text(
+    // \x03 = Heart icon, \x04 = Gem/Alloy icon
+    Draw::text_shadow(
         6, ly,
-        Draw::fmt("hp: %d/%d  alloy: %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
-        0xFF00CCCC, 1, Layer::HUD_Text, &font
+        Draw::fmt("\x03 %d/%d  \x04 %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
+        text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
 
+    // \x0F = Twilight starburst icon
     int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
-    std::string_view twilight_str = Draw::fmt("tw: %d%%", twilight_pct);
+    std::string_view twilight_str = Draw::fmt("\x0F %d%%", twilight_pct);
     int twilight_width = Draw::text_width(twilight_str, 1, &font);
-    Draw::text(
+    Draw::text_shadow(
         screen_width / 2 - twilight_width / 2, ly,
         twilight_str,
-        0xFF00CCCC, 1, Layer::HUD_Text, &font
+        text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
 
+    // selected build fixture
     std::string_view build_str = Draw::fmt("%s (%d)", selected_name, cost);
     int build_width = Draw::text_width(build_str, 1, &font);
-    Draw::text(
+    Draw::text_shadow(
         screen_width - 6 - build_width, ly,
         build_str,
-        0xFF00CCCC, 1, Layer::HUD_Text, &font
+        text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
 
-    ly += font.size;
-    const int rect_height = ly + line_h_padding;
-    Draw::rect(0, 0, screen_width, rect_height, 0xAA101019, true, 1, Layer::HUD_BG);
+    ly += font.size + line_h_padding;
 
     if constexpr (Debug::SHOW_SEED) {
         std::string_view seed_str = Draw::fmt(Random::is_custom_seeded() ? "seed: %u (custom)" : "seed: %u", Random::active_seed());
@@ -636,7 +640,7 @@ void MainScene::draw_hud() {
         Draw::text(
             6, bottom_y,
             seed_str,
-            0x9900CCCC, 1, Layer::HUD_Text, &font
+            text_color, 1, Layer::HUD_Text, &font
         );
     }
 

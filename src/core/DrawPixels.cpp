@@ -209,6 +209,9 @@ void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t c
 }
 
 void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr) {
+    uint32_t alpha = (color >> 24) & 0xFF;
+    if (alpha == 0) return;
+
     if (!font_ptr) {
         font_ptr = &Font::DEFAULT_BLANK;
     }
@@ -245,7 +248,12 @@ void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint3
                             int current_x = base_x + sx;
                             if (current_x < 0 || current_x >= Game::WIDTH) continue;
 
-                            buf[current_y * Game::WIDTH + current_x] = color;
+                            uint32_t idx = current_y * Game::WIDTH + current_x;
+                            if (alpha == 0xFF) {
+                                buf[idx] = color;
+                            } else {
+                                buf[idx] = blend_pixel(buf[idx], color);
+                            }
                         }
                     }
                 }
@@ -254,6 +262,14 @@ void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint3
 
         cursor_x += font.spacing * scale;
     }
+}
+
+void text_shadow(std::vector<uint32_t>& buf, int x, int y, std::string_view text_str, uint32_t color, uint32_t shadow_color, int scale, const FontData* font_ptr) {
+    uint32_t shadow_alpha = (shadow_color >> 24) & 0xFF;
+    if (shadow_alpha > 0) {
+        text(buf, x + 1, y + 1, text_str, shadow_color, scale, font_ptr);
+    }
+    text(buf, x, y, text_str, color, scale, font_ptr);
 }
 
 void sprite_frame(

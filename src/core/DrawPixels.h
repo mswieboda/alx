@@ -20,6 +20,8 @@ namespace DrawPixels {
 
     void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr);
 
+    void text_shadow(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, uint32_t shadow_color, int scale, const FontData* font_ptr);
+
     void sprite_frame(
         std::vector<uint32_t>& buf,
         int x, int y,

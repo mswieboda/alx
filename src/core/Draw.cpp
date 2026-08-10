@@ -173,14 +173,22 @@ namespace Draw {
         return 0;
     }
 
-    void text(float x, float y, std::string_view text, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override) {
+    void text(float x, float y, std::string_view text_str, uint32_t color, int scale, int z_index, const FontData* font, int sort_y_override, uint32_t shadow_color) {
         float draw_x = transform_x(x);
         float draw_y = transform_y(y);
         int override_y = transform_sort_y_override(sort_y_override);
-
         const FontData* f = font ? font : &Font::DEFAULT_BLANK;
-        int sort_y = calc_sort_y(static_cast<int>(draw_y), f->size * scale, override_y);
-        g_queue.push_back({ draw_x, draw_y, z_index, sort_y, TextData{ text, color, scale, f } });
+        int main_sort_y = calc_sort_y(static_cast<int>(draw_y), f->size * scale, override_y);
+
+        if ((shadow_color >> 24) & 0xFF) {
+            text(x + 1.0f, y + 1.0f, text_str, shadow_color, scale, z_index, font, main_sort_y - 1, 0x00000000);
+        }
+
+        g_queue.push_back({ draw_x, draw_y, z_index, main_sort_y, TextData{ text_str, color, scale, f } });
+    }
+
+    void text_shadow(float x, float y, std::string_view text_str, uint32_t color, uint32_t shadow_color, int scale, int z_index, const FontData* font, int sort_y_override) {
+        text(x, y, text_str, color, scale, z_index, font, sort_y_override, shadow_color);
     }
 
     void rect(float x, float y, float width, float height, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {

@@ -117,7 +117,13 @@ namespace Draw {
     void text(float x, float y, std::string_view text, uint32_t color,
               int scale = 1, int z_index = 1,
               const FontData* font = &Font::DEFAULT_BLANK,
-              int sort_y_override = NO_SORT_Y_OVERRIDE);
+              int sort_y_override = NO_SORT_Y_OVERRIDE,
+              uint32_t shadow_color = 0x00000000);
+    void text_shadow(float x, float y, std::string_view text, uint32_t color,
+                     uint32_t shadow_color = 0xFF000000,
+                     int scale = 1, int z_index = 1,
+                     const FontData* font = &Font::DEFAULT_BLANK,
+                     int sort_y_override = NO_SORT_Y_OVERRIDE);
     void rect(float x, float y, float width, float height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void circle(float cx, float cy, float radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
