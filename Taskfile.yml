@@ -66,6 +66,7 @@ tasks:
       - fonts
       - images
       - music
+      - levels
 
   fonts:
     desc: Pack font assets
@@ -102,6 +103,18 @@ tasks:
       - '{{.assets_headers_dir}}/Music.h'
     cmds:
       - '{{.pack_assets_bin}} --only=music'
+
+  levels:
+    desc: Pack level assets
+    deps:
+      - pack-assets-bin
+    method: timestamp
+    sources:
+      - '{{.assets_dir}}/levels/**/*'
+    generates:
+      - '{{.assets_headers_dir}}/Levels.h'
+    cmds:
+      - '{{.pack_assets_bin}} --only=levels'
 
   # ==========================================
   # SUBMODULE MANAGEMENT

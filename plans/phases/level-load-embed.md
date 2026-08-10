@@ -82,82 +82,71 @@ Decouple tile/wall layout from hardcoded map borders, moving wall placement defi
 
 ---
 
-### [PH-YP]: Phase 5 - YAML Level Source Format (Design & Spec)
+### [PH-YP]: Phase 5 - YAML Level Source Format (Design & Spec) (COMPLETED)
 
-Define the YAML authoring format for level data to be processed by `pack_assets.cr`.
-Two candidate formats are under consideration — final choice to be made before
-implementation of Phase 5.
+Define the full visual ASCII grid YAML format for level data to be processed by `pack_assets.cr`.
 
-**Option A — Text Grid Map:**
+Canonical Level Format (`assets/levels/level_01.yml`):
 ```yaml
-# levels/level_01.yml
 id: 1
 map_width: 60
 map_height: 30
 player_spawn: { x: 9, y: 9 }
 initial_twilight: 0.9
-# Grid uses characters to place fixtures and spawn zones.
-# S=Seep (3x2), R=Refiner (3x3), L=Spire (2x3), P=Pipe (1x1), D=DarkTowerSpawn
-# Top-left corner of multi-tile fixtures is their anchor GridPos.
+
+# 60x30 ASCII string grid.
+# Character Legend:
+#   . = Floor (TileType::Floor)
+#   # = Wall  (TileType::Wall -> WallPlacement)
+#   P = Pipe  (1x1 FixtureType::Pipe; drawn contiguously like 'PPPPPP')
+#   R = Refiner   (3x3 footprint block of 'R's -> FixtureType::Refiner)
+#   S = Spire     (2x3 footprint block of 'S's -> FixtureType::Spire)
+#   s = Seep      (3x2 footprint block of 's's -> FixtureType::Seep)
+#   D = DarkTower (3x4 footprint block of 'D's -> DarkTowerSpawn)
 grid: |
-  ............................................................
-  ............................................................
-  ......L.....R..............S........................D.......
-  ............................................................
-  ...P.P.P.P.P.P.............................D.D.D...........
-  ............................................................
-  ....................................D......D................
-  ............................................................
+  ############################################################
+  #..........................................................#
+  #......SS....RRR..............sss...................DDD....#
+  #......SS....RRR..............sss...................DDD....#
+  #......SS....RRR....................................DDD....#
+  #...PPPPPPPPPPPP....................................DDD....#
+  #..........................................................#
+  ############################################################
 ```
-- Pros: Extremely visual and spatial — easy to see layout at a glance
-- Cons: Harder to parse multi-tile fixtures correctly (anchor vs. body cells); sparse grids are mostly dots; less obvious for non-grid entities like spawn zones
 
-**Option B — Key-Value Lists:**
-```yaml
-# levels/level_01.yml
-id: 1
-map_width: 60
-map_height: 30
-player_spawn: { x: 9, y: 9 }
-initial_twilight: 0.9
-fixtures:
-  - { x: 15, y: 12, type: seep }
-  - { x: 10, y:  8, type: refiner }
-  - { x:  6, y:  6, type: spire }
-  - { x: 16, y: 11, type: pipe }
-  - { x: 16, y: 10, type: pipe }
-  - { x: 16, y:  9, type: pipe }
-  - { x: 15, y:  9, type: pipe }
-  - { x: 14, y:  9, type: pipe }
-  - { x: 13, y:  9, type: pipe }
-  - { x:  9, y:  9, type: pipe }
-  - { x:  8, y:  9, type: pipe }
-  - { x:  7, y:  9, type: pipe }
-dark_tower_spawns:
-  - { x: 25, y: 10 }
-  - { x: 40, y: 12 }
-  - { x: 15, y: 20 }
-  - { x: 45, y:  8 }
-```
-- Pros: Direct 1-to-1 mapping to `FixturePlacement` and `DarkTowerSpawn` structs; simple to parse; easy to add new fields per entry in the future
-- Cons: Less visual — requires mental mapping to understand layout; verbose for many pipes
-
-- [ ] `[YFD]`: YAML Format Decision - pick Option A, Option B, or a hybrid (e.g. text grid for fixtures, key-value list for spawn zones) and document the canonical format
-- [ ] `[YFS]`: YAML File Structure - finalize directory (`_assets/levels/` or `assets/levels/`), naming convention (`level_01.yml`), and whether one file per level or one combined file
+- [x] `[YFD]`: YAML Format Decision - Adopt Option A Full ASCII Grid Painting with strict multi-tile footprint validation (3x3 `R`, 2x3 `S`, 3x2 `s`, 3x4 `D`).
+- [x] `[YFS]`: YAML File Structure - Finalize directory (`assets/levels/`) and zero-padded file naming (`level_01.yml`, `level_02.yml`, `level_03.yml`).
+- [x] `[YCS]`: Character Legend & Footprint Spec - Document character mapping (`#`, `.`, `P`, `R`, `S`, `s`, `D`) and validation bounds in `plans/phases/level-load-embed.md`.
+- [x] `[YLS1]`: Level 1 YAML Authoring - Create `assets/levels/level_01.yml` converting Level 1 constants into full visual ASCII grid format.
+- [x] `[YLS2]`: Level 2 & 3 YAML Stubs - Create baseline `assets/levels/level_02.yml` and `assets/levels/level_03.yml` stub YAML files.
+- [x] `[RDME]`: README Asset Documentation - Document `assets/levels/*.yml` -> `src/assets/Levels.h` in `README.md`.
 
 ---
 
-### [PH-YE]: Phase 6 - YAML Parsing & C++ Header Embedding
+### [PH-YE]: Phase 6 - YAML Parsing & C++ Header Embedding (COMPLETED)
 
 Implement the `pack_assets.cr` pipeline step that reads YAML level files and generates
 `src/assets/Levels.h` with embedded `constexpr` level data replacing the hand-authored
 `Levels.cpp` constants.
 
-- [ ] `[PAL]`: pack_assets.cr Level Parser - add a level YAML parsing step to `pack_assets.cr` that reads all `level_*.yml` files, validates required fields, and builds an in-memory level representation
-- [ ] `[CGN]`: C++ Code Generation - emit `src/assets/Levels.h` containing:
+- [x] `[PAL]`: pack_assets.cr Level Parser - add a level YAML parsing step to `pack_assets.cr` supporting `--only=levels` that reads all `assets/levels/level_*.yml` files, validates required fields and footprints, and builds an in-memory level representation
+- [x] `[CGN]`: C++ Code Generation - emit `src/assets/Levels.h` under `namespace Assets::Levels` containing:
   - `constexpr FixturePlacement k_level{N}_fixtures[]` arrays
   - `constexpr DarkTowerSpawn k_level{N}_spawns[]` arrays
+  - `constexpr WallPlacement k_level{N}_walls[]` arrays
   - `constexpr Level k_level{N}` instances using designated initializers
   - `constexpr std::array<const Level*, N> k_all_levels` for iteration
-- [ ] `[MIG]`: Levels.cpp Migration - once `src/assets/Levels.h` is generated and verified, remove `src/alx/Levels.cpp` hand-authored constants; `get_level()` implementation moves to include the generated header and index into `k_all_levels`
-- [ ] `[VLD]`: Validation & Build Integration - wire the YAML parsing step into `Taskfile.yml` asset pipeline so `task build` auto-regenerates `src/assets/Levels.h` when any `level_*.yml` is modified; add bounds checks in the parser (fixture coords within `map_width/height`, no duplicate grid positions, etc.)
+- [x] `[TKFL]`: Taskfile Asset Integration - add `levels` task to `Taskfile.yml` watching `assets/levels/**/*`, emitting `src/assets/Levels.h`, and registered under `assets-parallel` dependencies
+- [x] `[MIG]`: Levels.cpp Migration - once `src/assets/Levels.h` is generated and verified, remove `src/alx/Levels.cpp` hand-authored constants; `get_level()` implementation moves to include the generated header and index into `k_all_levels`
+- [x] `[VLD]`: Validation & Build Integration - verify `task build` auto-regenerates `src/assets/Levels.h` when any `level_*.yml` is modified; add bounds and footprint checks in the parser (fixture coords within `map_width/height`, no duplicate grid positions, etc.)
+
+---
+
+### [PH-TG]: Phase 7 - Tileset & Ground GFX Enhancement
+
+Enhance tile visuals and introduce custom floor/ground variations leveraging `assets/images/tileset.aseprite` and sparse `TilePlacement` arrays.
+
+- [ ] `[TETY]`: TileType Expansion - add `Water`, `Stone`, `Dirt` to `enum class TileType` in `src/alx/Tile.h`
+- [ ] `[YCTM]`: YAML Tile Character Legend - update `pack_assets.cr` level parser character legend to support `~` (Water), `o` (Stone), `,` (Dirt) in ASCII string grids and emit `std::span<const TilePlacement> custom_tiles`
+- [ ] `[TSAT]`: Tileset Aseprite Asset - create `assets/images/tileset.aseprite` with tagged frames (`"floor"`, `"water"`, `"stone"`, `"wall"`) auto-exported to `Assets::Images::tileset_frames[]` and `Assets::Images::tileset_tags[]` by `pack_assets.cr`
+- [ ] `[TTRN]`: Tile Render Refactor - update `MainScene::draw_terrain_tile` to blit tileset RLE frames from `Assets::Images` instead of primitive rectangle borders

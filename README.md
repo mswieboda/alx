@@ -170,6 +170,7 @@ The asset system uses a **Crystal** asset packer (`toolchain/src/pack_assets.cr`
 | `assets/images/` | `.aseprite` | `src/assets/Images.h` |
 | `assets/fonts/` | `.psf`, `.txt` | `src/assets/Fonts.h` |
 | `assets/audio/` | `.mod`| `src/assets/Music.h` |
+| `assets/levels/` | `.yml` | `src/assets/Levels.h` |
 
 The asset packer runs automatically during `task build` whenever changes to raw assets or toolchain scripts are detected.
 

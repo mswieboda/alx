@@ -3,11 +3,12 @@ require "./export/fonts/font_txt"
 require "./export/fonts/font_psf"
 require "./export/music/music"
 require "./export/images/image"
+require "./export/levels/level"
 
 output_dir = "src/assets"
 Dir.mkdir_p(output_dir) unless Dir.exists?(output_dir)
 
-# Parse optional filter flag (e.g. --only=fonts, --only=images, --only=music)
+# Parse optional filter flag (e.g. --only=fonts, --only=images, --only=music, --only=levels)
 target_filter = nil
 ARGV.each do |arg|
   if arg.starts_with?("--only=")
@@ -209,6 +210,21 @@ if should_run?("music", target_filter)
 
     File.write(File.join(output_dir, "Music.h"), music_header)
     puts "Generated -> src/assets/Music.h"
+  end
+end
+
+# -------------------------------------------------------------
+# LEVELS -> src/assets/Levels.h
+# -------------------------------------------------------------
+if should_run?("levels", target_filter)
+  level_files = Dir.glob("assets/levels/*.yml") + Dir.glob("assets/levels/*.yaml")
+  if level_files.any?
+    level_files.each do |f|
+      puts "  [Level] #{f}"
+    end
+    levels_header = LevelExporter.export_all(level_files)
+    File.write(File.join(output_dir, "Levels.h"), levels_header)
+    puts "Generated -> src/assets/Levels.h"
   end
 end
 
