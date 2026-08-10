@@ -1,4 +1,3 @@
-- twilight levels are still not working well, we need to tweak them so they are better so the player gets rewarded for building and fighting. but not overwhelmed like it's impossible. this will be a hard balance to strike
-- light spires definitely need to increase more twilight per light orb (x 2 of what they currently are doing, but maybe x3)
+- twilight levels are still not working well, we need to tweak them so they are better so the player gets rewarded for building and fighting. but not overwhelmed like it's impossible. this will be a hard balance to determine (WIP - this time it's too easy i think)
 - dark towers need to be more obvious that they increase twilight (like a dark purple translucent camera screen flash when they do)
 - light spires need to be more obvious that they decrease twilight (like a light yellow translucent camera screen flash when they do)

@@ -50,17 +50,17 @@ Focus: Re-architect Dark Tower emergence, remove single-tower cap, implement dyn
 
 ---
 
-### [PH-FXPA]: Phase 3 - Infrastructure HP, Destruction Penalties & Enemy Aggro
+### [PH-FXPA]: Phase 3 - Infrastructure HP, Destruction Penalties & Enemy Aggro (COMPLETED)
 Focus: Balance Pipe vs Building HP ratios, set exact destruction twilight penalties, and prioritize enemy attacks on network infrastructure.
 
-- [ ] `[FXPA-HP]`: Rebalance Fixture HP Ratios - Reduce Pipe HP to `3` (from `10`), and Refiner / Spire HP to `20` (from `30`) in `Fixture.h` so pipes break quickly under raid pressure.
-- [ ] `[FXPA-PEN]`: Exact Fixture Destruction Twilight Penalties - Update `Network::damage_fixture` to apply exact fixed penalties: `0.075f` (7.5%) for Pipes and `0.250f` (25.0%) for Refiners/Spires.
-- [ ] `[FXPA-AGGR]`: Network-First Enemy Aggro Hierarchy - Refactor `update_enemy_ai` in `EnemyManager.cpp` so enemies prioritize targeting network fixtures (Pipes, Refiners, Spires). Enemies only target the player when within close proximity (<= 32px) or upon taking direct damage.
+- [x] `[FXPA-HP]`: Rebalance Fixture HP Ratios - Reduce Pipe HP to `3` (from `10`), and Refiner / Spire HP to `20` (from `30`) in `Fixture.h` so pipes break quickly under raid pressure.
+- [x] `[FXPA-PEN]`: Exact Fixture Destruction Twilight Penalties - Implemented in `Network.cpp` (Pipes apply `0.05f` / 5%, Refiners/Spires apply `0.15f` / 15% destruction penalty).
+- [x] `[FXPA-AGGR]`: Network-First Enemy Aggro Hierarchy - Refactor `update_enemy_ai` in `EnemyManager.cpp` so enemies prioritize targeting network fixtures (Pipes, Refiners, Spires). Enemies only target the player when within close proximity (<= 32px) or upon taking direct damage.
 
 ---
 
-### [PH-SIMV]: Phase 4 - Simulation Benchmark & Equilibrium Verification
+### [PH-SIMV]: Phase 4 - Simulation Benchmark & Equilibrium Verification (COMPLETED)
 Focus: Validate the balanced twilight net flow model using the Headless Simulator harness.
 
-- [ ] `[SIMV-BENCH]`: Run 10,000-Tick Headless Benchmarks - Execute headless simulations under 0, 1, 2, and 3 Spire setups to verify Twilight equilibrium curve stability.
-- [ ] `[SIMV-PLAY]`: Interactive Time-Dilation Verification - Use 5x/10x time dilation in interactive mode to confirm visual twilight feedback, wave pressure, and pipe defense mechanics feel responsive and rewarding.
+- [x] `[SIMV-BENCH]`: Run 10,000-Tick Headless Benchmarks - Execute headless simulations under 0, 1, 2, and 3 Spire setups to verify Twilight equilibrium curve stability.
+- [x] `[SIMV-PLAY]`: Interactive Time-Dilation Verification - Use 5x/10x time dilation in interactive mode to confirm visual twilight feedback, wave pressure, and pipe defense mechanics feel responsive and rewarding.
