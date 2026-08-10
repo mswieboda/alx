@@ -72,6 +72,7 @@ bool Network::place_fixture(GridPos pos, FixtureType type) {
 
     int max_hp = 0;
     if (type == FixtureType::Pipe) max_hp = FixtureHPConstants::PIPE_MAX_HP;
+    else if (type == FixtureType::Wall) max_hp = FixtureHPConstants::WALL_MAX_HP;
     else if (type == FixtureType::Refiner) max_hp = FixtureHPConstants::REFINER_MAX_HP;
     else if (type == FixtureType::Spire) max_hp = FixtureHPConstants::SPIRE_MAX_HP;
 
@@ -180,7 +181,7 @@ bool Network::damage_fixture(GridPos pos, int amount, float& out_twilight_increa
 bool Network::is_solid(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return false;
     FixtureType t = fixture(pos).type;
-    return t == FixtureType::Refiner || t == FixtureType::Spire;
+    return t == FixtureType::Refiner || t == FixtureType::Spire || t == FixtureType::Wall;
 }
 
 bool Network::is_solid(int x, int y) const noexcept {
@@ -919,6 +920,8 @@ void Network::draw(
 
             if (type == FixtureType::Pipe) {
                 DrawFixtures::pipe(*this, ps, root_fix, root_gx, root_gy, world_x, world_y, m_tile_size, progress, last_dt, sim_tick_rate);
+            } else if (type == FixtureType::Wall) {
+                DrawFixtures::wall(world_x, world_y, m_tile_size);
             } else if (is_building(type)) {
                 DrawFixtures::building(
                     *this, ps, root_fix,

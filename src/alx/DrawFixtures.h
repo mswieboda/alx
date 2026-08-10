@@ -25,5 +25,6 @@ namespace DrawFixtures {
     );
 
     void seep(const Fixture& fix, int world_x, int world_y, int tile_size);
+    void wall(int world_x, int world_y, int tile_size);
 } // namespace DrawFixtures
 } // namespace alx

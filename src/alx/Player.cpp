@@ -495,6 +495,7 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
 int Player::fixture_cost(FixtureType type) {
     switch (type) {
         case FixtureType::Pipe: return 1;
+        case FixtureType::Wall: return 2;
         case FixtureType::Refiner: return 5;
         case FixtureType::Spire: return 10;
         default: return 0;
@@ -609,6 +610,8 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
     if (!is_attacking()) {
         if (Action::is_build_cycle()) {
             if (m_selected_fixture_type == FixtureType::Pipe) {
+                m_selected_fixture_type = FixtureType::Wall;
+            } else if (m_selected_fixture_type == FixtureType::Wall) {
                 m_selected_fixture_type = FixtureType::Refiner;
             } else if (m_selected_fixture_type == FixtureType::Refiner) {
                 m_selected_fixture_type = FixtureType::Spire;

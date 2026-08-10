@@ -7,7 +7,6 @@ namespace alx {
 enum class TileType : uint8_t {
     Empty = 0,
     Floor,
-    Wall,
     Water,
     Stone,
     Dirt

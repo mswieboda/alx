@@ -12,6 +12,7 @@ struct FixtureConstants {
 
 struct FixtureHPConstants {
     static constexpr int PIPE_MAX_HP = 10;
+    static constexpr int WALL_MAX_HP = 15;
     static constexpr int REFINER_MAX_HP = 30;
     static constexpr int SPIRE_MAX_HP = 30;
 };
@@ -19,6 +20,7 @@ struct FixtureHPConstants {
 enum class FixtureType : uint8_t {
     None = 0,
     Pipe,
+    Wall,
     Refiner,
     Spire,
     Seep

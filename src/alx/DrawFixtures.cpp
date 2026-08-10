@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include "core/Draw.h"
+#include "assets/Images.h"
 #include "Game.h"
 #include "Layer.h"
 #include "DrawFixtures.h"
@@ -697,6 +698,17 @@ void seep(const Fixture& fix, int world_x, int world_y, int tile_size) {
 
     // seep_mana
     seep_mana(fix, world_x, world_y, tile_size, STREAM_WIDTH);
+}
+
+void wall(int world_x, int world_y, int tile_size) {
+    const auto& frame = Assets::Images::tileset_frames[1]; // "wall" frame index 1
+    Draw::sprite(
+        static_cast<float>(world_x), static_cast<float>(world_y),
+        Assets::Images::tileset + frame.offset, static_cast<uint32_t>(frame.len),
+        static_cast<float>(tile_size), static_cast<float>(tile_size),
+        Layer::WorldObj,
+        world_y + tile_size
+    );
 }
 
 } // namespace DrawFixtures

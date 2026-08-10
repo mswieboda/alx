@@ -574,7 +574,7 @@ namespace alx {
         return best_pos;
     }
 
-    void EnemyManager::update_player_aggro(Enemy& enemy, const Player* player, float dt, const Tiles& tiles) {
+    void EnemyManager::update_player_aggro(Enemy& enemy, const Player* player, float dt, const Tiles& tiles, const Network* network) {
         if (enemy.is_provoked && enemy.provoked_timer > 0.0f) {
             enemy.provoked_timer = std::max(0.0f, enemy.provoked_timer - dt);
         }
@@ -619,7 +619,7 @@ namespace alx {
 #endif
 
             if (dist_sq <= aggro_r_sq) {
-                if (WorldCollision::has_line_of_sight(enemy.center_x(), enemy.center_y(), px, py, tiles)) {
+                if (WorldCollision::has_line_of_sight(enemy.center_x(), enemy.center_y(), px, py, tiles, network)) {
                     float chance = (player->is_attacking()) ? EnemyAggroConstants::ACTION_AGGRO_CHANCE : EnemyAggroConstants::BASE_AGGRO_CHANCE;
                     if (Random::get_float(0.0f, 1.0f) <= chance) {
                         enemy.state = EnemyState::ChasePlayer;
@@ -654,7 +654,7 @@ namespace alx {
 #endif
 
             // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [EPRN] [ERET] ---
-            update_player_aggro(enemy, player, dt, tiles);
+            update_player_aggro(enemy, player, dt, tiles, &network);
 
             const float map_w = tiles.world_width();
             const float map_h = tiles.world_height();

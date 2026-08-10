@@ -156,7 +156,7 @@ bool enforce_solid_ground_ejection(float& x, float& y, const Collision::Circle& 
     return false;
 }
 
-bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tiles) {
+bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tiles, const Network* network) {
     float dx = x2 - x1;
     float dy = y2 - y1;
     float dist = std::sqrt(dx * dx + dy * dy);
@@ -179,6 +179,10 @@ bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tile
         int ty = static_cast<int>(std::floor(curr_y / tile_size));
 
         if (tiles.in_bounds(tx, ty) && tiles.is_wall(tx, ty)) {
+            return false;
+        }
+
+        if (network != nullptr && network->in_bounds(tx, ty) && network->is_solid(tx, ty)) {
             return false;
         }
 

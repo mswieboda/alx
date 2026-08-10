@@ -25,8 +25,8 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
 // Shared Axis-Separated Movement Helper
 MoveResult try_move(float& x, float& y, float dx, float dy, const Collision::Circle& ground, const Tiles& tiles, const Network& network, const std::vector<WorldStructure>* structures = nullptr);
 
-// Line-of-sight raycast check through solid wall tiles
-[[nodiscard]] bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tiles);
+// Line-of-sight raycast check through solid wall tiles and solid network fixtures
+[[nodiscard]] bool has_line_of_sight(float x1, float y1, float x2, float y2, const Tiles& tiles, const Network* network = nullptr);
 
 // DEPRECATED: Do not use. Kept for extreme fallback cases only.
 [[deprecated("Use WorldCollision::try_move instead")]]

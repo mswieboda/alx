@@ -38,6 +38,7 @@ int max_fixture_footprint_dimension() noexcept {
     int max_dim = 1;
     constexpr FixtureType all_types[] = {
         FixtureType::Pipe,
+        FixtureType::Wall,
         FixtureType::Refiner,
         FixtureType::Spire,
         FixtureType::Seep

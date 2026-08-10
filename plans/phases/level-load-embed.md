@@ -154,24 +154,23 @@ Enhance tile visuals and introduce custom floor/ground variations leveraging `as
 
 ---
 
-### [PH-WF]: Phase 8 - Wall Fixture & Line-of-Sight (LOS) Refactor
-
-Refactor `Wall` from a terrain `TileType` into a solid, buildable/placeable 1x1 `FixtureType::Wall` with 15 HP, 2 Alloy cost, player shadow occlusion, and Enemy Line-of-Sight (LOS) blocking.
-
-- [ ] `[WFEX]`: FixtureType Expansion & Constants - add `Wall` to `enum class FixtureType` in `src/alx/Fixture.h`, define `WALL_MAX_HP = 15`, set 1x1 footprint, 0 ports, and 100% tile ground AABB in `Fixture.cpp`; remove `TileType::Wall` from `src/alx/Tile.h`
-- [ ] `[WFNT]`: Network Fixture Integration - update `Network::is_solid`, `Network::place_fixture`, and `Network::draw` in `src/alx/Network.cpp` to recognize and register `FixtureType::Wall`
-- [ ] `[WFLOS]`: Enemy Line-of-Sight (LOS) Raycasting - update `WorldCollision::has_line_of_sight` signature in `WorldCollision.h`/`.cpp` to accept `const Network* network` and return `false` when stepping through a `FixtureType::Wall` cell; update `EnemyManager::update_player_aggro` invocation
-- [ ] `[WFPL]`: Player Build & Placement Integration - add `Wall` to player build selection cycle (`Pipe` -> `Refiner` -> `Spire` -> `Wall`), set Alloy build cost = 2 in `Player::fixture_cost`, and update placement preview box rendering
-- [ ] `[WFYM]`: YAML Parser & Asset Exporter Update - update `toolchain/src/export/levels/level.cr` to parse `#` in grid strings into `fixtures` as `FixtureType::Wall` (omitting from `custom_tiles`), re-generating `src/assets/Levels.h`
-- [ ] `[WFRN]`: Wall Fixture Rendering - implement `DrawFixtures::wall()` in `DrawFixtures.h`/`.cpp` blitting the `"wall"` frame from `Assets::Images::tileset` at `Layer::WorldObj` with Y-sorting, ensuring player shadows are occluded behind wall structures
-
----
-
-### [PH-DL]: Phase 9 - Dual-Layer YAML Level Grid (`tiles:` & `objects:`) & Multi-Terrain Support
+### [PH-DL]: Phase 8 - Dual-Layer YAML Level Grid (`tiles:` & `objects:`) & Multi-Terrain Support (COMPLETED)
 
 Refactor YAML level source format from a single `grid:` block into aligned `tiles:` (ground layer) and `objects:` (overlay layer) ASCII string grids, enabling fixtures, walls, and structures to be placed on top of stone, dirt, and water surfaces without erasing ground terrain GFX.
 
-- [ ] `[DLFS]`: Dual-Layer Level Format Spec - update `assets/levels/*.yml` files to replace single `grid:` with dual `tiles:` (ground surface) and `objects:` (fixtures, walls, spawns) ASCII blocks
-- [ ] `[DLCR]`: Dual-Layer Crystal Parser Refactor - update `LevelExporter` in `toolchain/src/export/levels/level.cr` to parse `tiles:` into `custom_tiles` (`~`, `o`, `,`) and `objects:` into `fixtures` (`P`, `R`, `S`, `s`, `#`) and `dark_tower_spawns` (`D`)
-- [ ] `[DLVR]`: Grid Alignment & Footprint Validation - add validation in `level.cr` ensuring `tiles:` and `objects:` have identical line and char dimensions (`map_width` x `map_height`), validating object footprints across layers
-- [ ] `[DLMT]`: Multi-Terrain Rendering Verification - verify `task assets` and `task build` auto-regenerate `src/assets/Levels.h`, enabling fixtures and walls to render cleanly on top of dirt, stone, and water terrain surfaces
+- [x] `[DLFS]`: Dual-Layer Level Format Spec - update `assets/levels/*.yml` files to replace single `grid:` with dual `tiles:` (ground surface: `.`, `~`, `o`, `,`) and `objects:` (overlay entities: `.`, `P`, `R`, `S`, `s`, `D`, `#`) ASCII blocks
+- [x] `[DLCR]`: Dual-Layer Crystal Parser Refactor - update `LevelExporter` in `toolchain/src/export/levels/level.cr` to parse `tiles:` into `custom_tiles` (`~`, `o`, `,`) and `objects:` into `fixtures` (`P`, `R`, `S`, `s`, `#`) and `dark_tower_spawns` (`D`)
+- [x] `[DLVR]`: Grid Alignment & Footprint Validation - add validation in `level.cr` ensuring `tiles:` and `objects:` have identical line and char dimensions (`map_width` x `map_height`), validating object footprints across layers
+- [x] `[DLMT]`: Multi-Terrain Rendering Verification - verify `task assets` and `task build` auto-regenerate `src/assets/Levels.h`, enabling fixtures and walls to render cleanly on top of dirt, stone, and water terrain surfaces
+
+---
+
+### [PH-WF]: Phase 9 - Wall Fixture & Line-of-Sight (LOS) Refactor (COMPLETED)
+
+Refactor `Wall` from a terrain `TileType` into a solid, buildable/placeable 1x1 `FixtureType::Wall` with 15 HP, 2 Alloy cost, player shadow occlusion, and Enemy Line-of-Sight (LOS) blocking.
+
+- [x] `[WFEX]`: FixtureType Expansion & Constants - add `Wall` to `enum class FixtureType` in `src/alx/Fixture.h`, define `WALL_MAX_HP = 15`, set 1x1 footprint, 0 ports, and 100% tile ground AABB in `Fixture.cpp`; remove `TileType::Wall` from `src/alx/Tile.h`
+- [x] `[WFNT]`: Network Fixture Integration - update `Network::is_solid`, `Network::place_fixture`, and `Network::draw` in `src/alx/Network.cpp` to recognize and register `FixtureType::Wall`
+- [x] `[WFLOS]`: Enemy Line-of-Sight (LOS) Raycasting - update `WorldCollision::has_line_of_sight` signature in `WorldCollision.h`/`.cpp` to accept `const Network* network` and return `false` when stepping through a `FixtureType::Wall` cell; update `EnemyManager::update_player_aggro` invocation
+- [x] `[WFPL]`: Player Build & Placement Integration - add `Wall` to player build selection cycle (`Pipe` -> `Refiner` -> `Spire` -> `Wall`), set Alloy build cost = 2 in `Player::fixture_cost`, and update placement preview box rendering
+- [x] `[WFRN]`: Wall Fixture Rendering - implement `DrawFixtures::wall()` in `DrawFixtures.h`/`.cpp` blitting the `"wall"` frame from `Assets::Images::tileset` at `Layer::WorldObj` with Y-sorting (`world_y + tile_size`), ensuring player shadows are occluded behind wall structures

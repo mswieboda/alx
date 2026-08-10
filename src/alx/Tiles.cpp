@@ -53,13 +53,13 @@ void Tiles::set_tile(int x, int y, TileType type) noexcept {
 bool Tiles::is_wall(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return true;
     const TileType t = tile(pos).type;
-    return t == TileType::Wall || t == TileType::Water;
+    return t == TileType::Water;
 }
 
 bool Tiles::is_wall(int x, int y) const noexcept {
     if (!in_bounds(x, y)) return true;
     const TileType t = tile(x, y).type;
-    return t == TileType::Wall || t == TileType::Water;
+    return t == TileType::Water;
 }
 
 bool Tiles::is_floor(GridPos pos) const noexcept {

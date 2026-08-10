@@ -50,64 +50,82 @@ module LevelExporter
     player_spawn_y = data["player_spawn"]["y"].as_i
     initial_twilight = data["initial_twilight"]?.try(&.as_f) || 0.9
 
-    grid_raw = data["grid"].as_s
-    lines = grid_raw.lines.map(&.chomp)
+    tiles_raw = data["tiles"].as_s
+    objects_raw = data["objects"].as_s
 
-    if lines.size != map_height
-      raise "Error in #{file_path}: grid has #{lines.size} lines, expected #{map_height}"
-    end
+    tile_lines = tiles_raw.lines.map(&.chomp)
+    object_lines = objects_raw.lines.map(&.chomp)
 
-    lines.each_with_index do |line, y|
-      if line.size != map_width
-        raise "Error in #{file_path}: line #{y} has length #{line.size}, expected #{map_width}"
-      end
-    end
+    validate_layer_dimensions(file_path, "tiles", tile_lines, map_width, map_height)
+    validate_layer_dimensions(file_path, "objects", object_lines, map_width, map_height)
 
     parsed = ParsedLevel.new(id, map_width, map_height, player_spawn_x, player_spawn_y, initial_twilight)
 
-    visited = Array.new(map_height) { Array.new(map_width, false) }
-
-    lines.each_with_index do |line, y|
+    # 1. Parse ground terrain layer (tiles:)
+    tile_lines.each_with_index do |line, y|
       line.chars.each_with_index do |char, x|
-        next if visited[y][x]
+        case char
+        when '.'
+          # Default ground floor
+        when '~'
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Water")
+        when 'o'
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Stone")
+        when ','
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Dirt")
+        else
+          raise "Error in #{file_path} (tiles layer): unknown character '#{char}' at (#{x}, #{y})"
+        end
+      end
+    end
+
+    # 2. Parse overlay entity layer (objects:)
+    visited_objects = Array.new(map_height) { Array.new(map_width, false) }
+
+    object_lines.each_with_index do |line, y|
+      line.chars.each_with_index do |char, x|
+        next if visited_objects[y][x]
 
         case char
         when '.'
-          visited[y][x] = true
+          visited_objects[y][x] = true
         when '#'
-          parsed.custom_tiles << TilePlacementData.new(x, y, "Wall")
-          visited[y][x] = true
-        when '~'
-          parsed.custom_tiles << TilePlacementData.new(x, y, "Water")
-          visited[y][x] = true
-        when 'o'
-          parsed.custom_tiles << TilePlacementData.new(x, y, "Stone")
-          visited[y][x] = true
-        when ','
-          parsed.custom_tiles << TilePlacementData.new(x, y, "Dirt")
-          visited[y][x] = true
+          parsed.fixtures << FixturePlacementData.new(x, y, "Wall")
+          visited_objects[y][x] = true
         when 'P'
           parsed.fixtures << FixturePlacementData.new(x, y, "Pipe")
-          visited[y][x] = true
+          visited_objects[y][x] = true
         when 'R'
-          check_footprint(file_path, lines, visited, x, y, 3, 3, 'R', "Refiner")
+          check_footprint(file_path, object_lines, visited_objects, x, y, 3, 3, 'R', "Refiner")
           parsed.fixtures << FixturePlacementData.new(x, y, "Refiner")
         when 'S'
-          check_footprint(file_path, lines, visited, x, y, 2, 3, 'S', "Spire")
+          check_footprint(file_path, object_lines, visited_objects, x, y, 2, 3, 'S', "Spire")
           parsed.fixtures << FixturePlacementData.new(x, y, "Spire")
         when 's'
-          check_footprint(file_path, lines, visited, x, y, 3, 2, 's', "Seep")
+          check_footprint(file_path, object_lines, visited_objects, x, y, 3, 2, 's', "Seep")
           parsed.fixtures << FixturePlacementData.new(x, y, "Seep")
         when 'D'
-          check_footprint(file_path, lines, visited, x, y, 3, 4, 'D', "DarkTower")
+          check_footprint(file_path, object_lines, visited_objects, x, y, 3, 4, 'D', "DarkTower")
           parsed.spawns << DarkTowerSpawnData.new(x, y)
         else
-          raise "Error in #{file_path}: unknown grid character '#{char}' at (#{x}, #{y})"
+          raise "Error in #{file_path} (objects layer): unknown character '#{char}' at (#{x}, #{y})"
         end
       end
     end
 
     parsed
+  end
+
+  private def self.validate_layer_dimensions(file_path : String, layer_name : String, lines : Array(String), expected_width : Int32, expected_height : Int32)
+    if lines.size != expected_height
+      raise "Error in #{file_path}: #{layer_name} layer has #{lines.size} lines, expected #{expected_height}"
+    end
+
+    lines.each_with_index do |line, y|
+      if line.size != expected_width
+        raise "Error in #{file_path}: #{layer_name} layer line #{y} has length #{line.size}, expected #{expected_width}"
+      end
+    end
   end
 
   private def self.check_footprint(file_path : String, lines : Array(String), visited : Array(Array(Bool)), start_x : Int32, start_y : Int32, width : Int32, height : Int32, expected_char : Char, name : String)

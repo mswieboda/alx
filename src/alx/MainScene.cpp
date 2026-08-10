@@ -557,7 +557,9 @@ void MainScene::draw_hud() {
     const char* selected_name = "pipe";
     FixtureType sel_type = m_player.selected_fixture_type();
     int cost = Player::fixture_cost(sel_type);
-    if (sel_type == FixtureType::Refiner) {
+    if (sel_type == FixtureType::Wall) {
+        selected_name = "wall";
+    } else if (sel_type == FixtureType::Refiner) {
         selected_name = "refiner";
     } else if (sel_type == FixtureType::Spire) {
         selected_name = "spire";
@@ -691,7 +693,6 @@ void MainScene::draw_terrain_tile(const Tile& tile, int world_x, int world_y, in
     size_t frame_index = 0;
     switch (tile.type) {
         case TileType::Floor:  frame_index = 0; break;
-        case TileType::Wall:   frame_index = 1; break;
         case TileType::Water:  frame_index = 2; break;
         case TileType::Stone:  frame_index = 3; break;
         case TileType::Dirt:   frame_index = 4; break;
