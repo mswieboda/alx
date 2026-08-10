@@ -230,10 +230,12 @@ namespace Draw {
     void sprite(float x, float y, const uint8_t* pixel_data, uint32_t pixel_data_size, float width, float height, int z_index, int sort_y_override, bool is_flip_h, bool is_flip_v) {
         auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
+        int int_w = static_cast<int>(width);
+        int int_h = static_cast<int>(height);
 
         int sort_y = calc_sort_y(dy, dh, override_y);
         g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y,
-            SpriteData{ pixel_data, pixel_data_size, dw, dh, 0, 0, dw, dh, is_flip_h, is_flip_v }
+            SpriteData{ pixel_data, pixel_data_size, int_w, int_h, dw, dh, 0, 0, int_w, int_h, is_flip_h, is_flip_v }
         });
     }
 
@@ -249,10 +251,12 @@ namespace Draw {
     ) {
         auto [dx, dy, dw, dh] = transform_rect(screen_x, screen_y, width, height);
         int override_y = transform_sort_y_override(sort_y_override);
+        int int_w = static_cast<int>(width);
+        int int_h = static_cast<int>(height);
 
         int sort_y = calc_sort_y(dy, src_h, override_y);
         g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y,
-            SpriteData{ pixels, pixels_size, dw, dh, src_x, src_y, src_w, src_h, is_flip_h, is_flip_v }
+            SpriteData{ pixels, pixels_size, int_w, int_h, dw, dh, src_x, src_y, src_w, src_h, is_flip_h, is_flip_v }
         });
     }
 
@@ -321,8 +325,10 @@ namespace Draw {
                         static_cast<int>(cmd.x), static_cast<int>(cmd.y),
                         arg.pixel_data,
                         arg.pixel_data_size,
-                        arg.width,
-                        arg.height,
+                        arg.tex_w,
+                        arg.tex_h,
+                        arg.dest_w,
+                        arg.dest_h,
                         arg.src_x,
                         arg.src_y,
                         arg.src_w,

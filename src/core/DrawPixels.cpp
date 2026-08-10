@@ -272,13 +272,123 @@ void text_shadow(std::vector<uint32_t>& buf, int x, int y, std::string_view text
     text(buf, x, y, text_str, color, scale, font_ptr);
 }
 
+namespace {
+
+constexpr size_t MAX_DECODED_SPRITE_PIXELS = 128 * 128;
+
+inline void decode_rle_sprite(
+    const uint8_t* pixel_data,
+    uint32_t pixel_data_size,
+    uint8_t* out_pixels,
+    uint32_t out_max_pixels
+) {
+    uint32_t px_idx = 0;
+    uint32_t cursor = 0;
+
+    while (cursor < pixel_data_size && px_idx < out_max_pixels) {
+        uint8_t run = pixel_data[cursor++];
+        uint8_t pal_idx = pixel_data[cursor++];
+
+        for (uint8_t i = 0; i < run && px_idx < out_max_pixels; ++i) {
+            out_pixels[px_idx++] = pal_idx;
+        }
+    }
+}
+
+void draw_sprite_frame_unscaled(
+    std::vector<uint32_t>& buf,
+    int x, int y,
+    const uint8_t* decoded_pixels,
+    int tex_w,
+    int src_x, int src_y, int src_w, int src_h,
+    const uint32_t* palette,
+    bool is_flip_h,
+    bool is_flip_v
+) {
+    for (int ly = 0; ly < src_h; ++ly) {
+        int sample_y = is_flip_v ? (src_h - 1 - ly) : ly;
+        int tex_y = src_y + sample_y;
+        int ty = y + ly;
+
+        if (ty < 0 || ty >= Game::HEIGHT) continue;
+
+        int row_tex_offset = tex_y * tex_w;
+
+        for (int lx = 0; lx < src_w; ++lx) {
+            int sample_x = is_flip_h ? (src_w - 1 - lx) : lx;
+            int tex_x = src_x + sample_x;
+            int tx = x + lx;
+
+            if (tx < 0 || tx >= Game::WIDTH) continue;
+
+            uint8_t pal_idx = decoded_pixels[row_tex_offset + tex_x];
+            uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;
+
+            if ((color & 0xFF000000) != 0x00000000) {
+                uint32_t dest_idx = ty * Game::WIDTH + tx;
+                buf[dest_idx] = blend_pixel(buf[dest_idx], color);
+            }
+        }
+    }
+}
+
+void draw_sprite_frame_scaled(
+    std::vector<uint32_t>& buf,
+    int x, int y,
+    const uint8_t* decoded_pixels,
+    int tex_w,
+    int dest_w, int dest_h,
+    int src_x, int src_y, int src_w, int src_h,
+    const uint32_t* palette,
+    bool is_flip_h,
+    bool is_flip_v
+) {
+    float scale_u = static_cast<float>(src_w) / static_cast<float>(dest_w);
+    float scale_v = static_cast<float>(src_h) / static_cast<float>(dest_h);
+
+    for (int dy = 0; dy < dest_h; ++dy) {
+        int ty = y + dy;
+        if (ty < 0 || ty >= Game::HEIGHT) continue;
+
+        int sample_local_y = std::clamp(static_cast<int>(std::floor((static_cast<float>(dy) + 0.5f) * scale_v)), 0, src_h - 1);
+        if (is_flip_v) {
+            sample_local_y = (src_h - 1) - sample_local_y;
+        }
+        int tex_y = src_y + sample_local_y;
+        int row_tex_offset = tex_y * tex_w;
+
+        for (int dx = 0; dx < dest_w; ++dx) {
+            int tx = x + dx;
+            if (tx < 0 || tx >= Game::WIDTH) continue;
+
+            int sample_local_x = std::clamp(static_cast<int>(std::floor((static_cast<float>(dx) + 0.5f) * scale_u)), 0, src_w - 1);
+            if (is_flip_h) {
+                sample_local_x = (src_w - 1) - sample_local_x;
+            }
+            int tex_x = src_x + sample_local_x;
+
+            uint8_t pal_idx = decoded_pixels[row_tex_offset + tex_x];
+            uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;
+
+            if ((color & 0xFF000000) != 0x00000000) {
+                uint32_t dest_idx = ty * Game::WIDTH + tx;
+                buf[dest_idx] = blend_pixel(buf[dest_idx], color);
+            }
+        }
+    }
+}
+
+} // namespace
+
 void sprite_frame(
     std::vector<uint32_t>& buf,
     int x, int y,
     const uint8_t* pixel_data,
     uint32_t pixel_data_size,
-    int width,
-    int height,
+    int tex_w,
+    int tex_h,
+    int dest_w,
+    int dest_h,
     int src_x,
     int src_y,
     int src_w,
@@ -287,49 +397,18 @@ void sprite_frame(
     bool is_flip_h,
     bool is_flip_v
 ) {
-    int px_idx = 0;
-    uint32_t cursor = 0;
+    if (tex_w <= 0 || tex_h <= 0 || dest_w <= 0 || dest_h <= 0) return;
 
-    while (cursor < pixel_data_size) {
-        uint8_t run = pixel_data[cursor++];
-        uint8_t pal_idx = pixel_data[cursor++];
+    size_t total_pixels = static_cast<size_t>(tex_w) * static_cast<size_t>(tex_h);
+    if (total_pixels > MAX_DECODED_SPRITE_PIXELS) return;
 
-        for (uint8_t i = 0; i < run; ++i) {
-            int lx = px_idx % width;
-            int ly = px_idx / width;
+    uint8_t decoded_pixels[MAX_DECODED_SPRITE_PIXELS];
+    decode_rle_sprite(pixel_data, pixel_data_size, decoded_pixels, static_cast<uint32_t>(total_pixels));
 
-            if (ly >= src_y + src_h) {
-                return;
-            }
-
-            px_idx++;
-
-            if (lx >= src_x && lx < src_x + src_w &&
-                ly >= src_y && ly < src_y + src_h) {
-
-                int local_x = lx - src_x;
-                int local_y = ly - src_y;
-
-                if (is_flip_h) {
-                    local_x = (src_w - 1) - local_x;
-                }
-                if (is_flip_v) {
-                    local_y = (src_h - 1) - local_y;
-                }
-
-                int tx = x + local_x;
-                int ty = y + local_y;
-
-                if (tx >= 0 && tx < Game::WIDTH && ty >= 0 && ty < Game::HEIGHT) {
-                    uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;
-
-                    if ((color & 0xFF000000) != 0x00000000) {
-                        uint32_t dest_idx = ty * Game::WIDTH + tx;
-                        buf[dest_idx] = blend_pixel(buf[dest_idx], color);
-                    }
-                }
-            }
-        }
+    if (dest_w == src_w && dest_h == src_h) {
+        draw_sprite_frame_unscaled(buf, x, y, decoded_pixels, tex_w, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
+    } else {
+        draw_sprite_frame_scaled(buf, x, y, decoded_pixels, tex_w, dest_w, dest_h, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
     }
 }
 

@@ -54,8 +54,10 @@ namespace Draw {
     struct SpriteData {
         const uint8_t* pixel_data;
         uint32_t pixel_data_size;
-        int width;
-        int height;
+        int tex_w;
+        int tex_h;
+        int dest_w;
+        int dest_h;
         int src_x;
         int src_y;
         int src_w;
