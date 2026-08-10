@@ -7,7 +7,7 @@ The primary objective of **Phase 1** is to resolve pervasive Header (`.h`) vs. S
 Resolving these violations will:
 1. Drastically reduce translation unit compilation times and symbol bloat.
 2. Prevent cyclic header dependencies and header namespace pollution.
-3. Enforce strict One Definition Rule (ODR) compliance as mandated by `AGENTS.md` and `targeted-cpp-refactoring` standards.
+3. Enforce strict One Definition Rule (ODR) compliance as mandated by `AGENTS.md` and `refactor-alx` standards.
 
 ---
 

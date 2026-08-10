@@ -49,13 +49,15 @@ enum class EnemyState : uint8_t {
     HitStun,
     AttackWindup,
     AttackRecoilRest,
-    ChasePlayer
+    ChasePlayer,
+    ReturnToMap
 };
 
 struct Enemy : public Entity {
     // Default size, color
     static constexpr float DEFAULT_WIDTH = 16.0f;
     static constexpr float DEFAULT_HEIGHT = 16.0f;
+    static constexpr float MAP_BOUNDARY_PADDING = 16.0f; // Inner map boundary target padding for returning enemies
     static constexpr uint32_t COLOR = 0xFF800080; // Dusky Purple
 
     // Speed

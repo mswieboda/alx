@@ -415,9 +415,14 @@ namespace alx {
         }
         
         // Process ManaSparks
+        const float map_w = tiles.world_width();
+        const float map_h = tiles.world_height();
+
         for (auto it = m_mana_sparks.begin(); it != m_mana_sparks.end(); ) {
             it->update(dt);
-            if (it->lifetime <= 0.0f) {
+            if (it->lifetime <= 0.0f ||
+                it->x < -ManaSpark::BOUNDARY_PADDING || it->x > (map_w + ManaSpark::BOUNDARY_PADDING) ||
+                it->y < -ManaSpark::BOUNDARY_PADDING || it->y > (map_h + ManaSpark::BOUNDARY_PADDING)) {
                 it = m_mana_sparks.erase(it);
                 continue;
             }
@@ -651,8 +656,31 @@ namespace alx {
             // --- Player Aggro Interception & Dynamic Retargeting [EPAT] [EPRN] [ERET] ---
             update_player_aggro(enemy, player, dt, tiles);
 
+            const float map_w = tiles.world_width();
+            const float map_h = tiles.world_height();
+            Collision::Circle eg = enemy.ground_circle();
+            bool is_out_of_bounds = (eg.cx < 0.0f || eg.cx > map_w || eg.cy < 0.0f || eg.cy > map_h);
+
+            if (is_out_of_bounds && enemy.state != EnemyState::HitStun && enemy.state != EnemyState::ReturnToMap) {
+                enemy.state = EnemyState::ReturnToMap;
+                enemy.has_target = false;
+                enemy.is_moving = true;
+            }
 
             switch (enemy.state) {
+                case EnemyState::ReturnToMap: {
+                    if (!is_out_of_bounds) {
+                        enemy.state = EnemyState::Wander;
+                        enemy.state_timer = Enemy::WANDER_DURATION;
+                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        break;
+                    }
+                    float target_inside_x = std::clamp(eg.cx, Enemy::MAP_BOUNDARY_PADDING, map_w - Enemy::MAP_BOUNDARY_PADDING);
+                    float target_inside_y = std::clamp(eg.cy, Enemy::MAP_BOUNDARY_PADDING, map_h - Enemy::MAP_BOUNDARY_PADDING);
+                    enemy.set_steering_vector_8way(target_inside_x, target_inside_y);
+                    break;
+                }
+
                 case EnemyState::Wander:
                 case EnemyState::RestlessWander:
                 case EnemyState::DetourWander: {
@@ -1002,7 +1030,11 @@ namespace alx {
                     }
 
                     if (enemy.state_timer <= 0.0f && enemy.knockback_speed <= 0.0f) {
-                        if (enemy.is_provoked && enemy.provoked_timer > 0.0f) {
+                        if (is_out_of_bounds) {
+                            enemy.state = EnemyState::ReturnToMap;
+                            enemy.has_target = false;
+                            enemy.is_moving = true;
+                        } else if (enemy.is_provoked && enemy.provoked_timer > 0.0f) {
                             enemy.state = EnemyState::ChasePlayer;
                             enemy.state_timer = 0.0f;
                         } else {

@@ -38,6 +38,9 @@ public:
     [[nodiscard]] int width() const noexcept { return m_width; }
     [[nodiscard]] int height() const noexcept { return m_height; }
     [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
+
+    [[nodiscard]] float world_width() const noexcept { return static_cast<float>(m_width * m_tile_size); }
+    [[nodiscard]] float world_height() const noexcept { return static_cast<float>(m_height * m_tile_size); }
 };
 
 } // namespace alx

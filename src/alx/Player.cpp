@@ -18,6 +18,34 @@ namespace alx {
 
 namespace {
 
+void constrain_movement_velocity_to_map(float& move_dx, float& move_dy, const Collision::Circle& ground, float map_w, float map_h) noexcept {
+    if (move_dx < 0.0f && (ground.cx - ground.radius + move_dx) < 0.0f) {
+        move_dx = 0.0f;
+    } else if (move_dx > 0.0f && (ground.cx + ground.radius + move_dx) > map_w) {
+        move_dx = 0.0f;
+    }
+
+    if (move_dy < 0.0f && (ground.cy - ground.radius + move_dy) < 0.0f) {
+        move_dy = 0.0f;
+    } else if (move_dy > 0.0f && (ground.cy + ground.radius + move_dy) > map_h) {
+        move_dy = 0.0f;
+    }
+}
+
+void clamp_transform_to_map_bounds(Transform& transform, float ground_radius_ratio, float ground_offset_y_ratio, float map_w, float map_h) noexcept {
+    const float r = transform.width * ground_radius_ratio;
+    const float cy_offset = (transform.height * ground_offset_y_ratio) - r;
+    const float half_w = transform.width * 0.5f;
+
+    const float min_x = r - half_w;
+    const float max_x = map_w - half_w - r;
+    const float min_y = r - cy_offset;
+    const float max_y = map_h - cy_offset - r;
+
+    transform.x = std::clamp(transform.x, min_x, max_x);
+    transform.y = std::clamp(transform.y, min_y, max_y);
+}
+
 void update_facing_animation(AnimatedSpriteRender& anim, Facing::Type f) {
     switch (f) {
         case Facing::North:     anim.set_frame(0); anim.is_flip_h = false; break;
@@ -518,7 +546,17 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
         dy *= DIAGONAL_SPEED_SCALE;
     }
 
-    WorldCollision::try_move(transform.x, transform.y, dx * speed * dt, dy * speed * dt, ground_circle(), tiles, network, structures);
+    float move_dx = dx * speed * dt;
+    float move_dy = dy * speed * dt;
+
+    const float map_w = tiles.world_width();
+    const float map_h = tiles.world_height();
+
+    constrain_movement_velocity_to_map(move_dx, move_dy, ground_circle(), map_w, map_h);
+
+    WorldCollision::try_move(transform.x, transform.y, move_dx, move_dy, ground_circle(), tiles, network, structures);
+
+    clamp_transform_to_map_bounds(transform, GROUND_RADIUS_RATIO, GROUND_OFFSET_Y_RATIO, map_w, map_h);
 }
 
 void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
