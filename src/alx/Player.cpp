@@ -594,27 +594,39 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
 
     bool btn_just_pressed = Action::is_attack();
     bool btn_held = Action::is_attack_held();
+    bool spark_just_pressed = Action::is_just_pressed(Action::ManaSpark);
+    bool spark_held = Action::is_pressed(Action::ManaSpark);
     
-    if (btn_just_pressed && attack_phase == AttackPhase::Idle && !is_charging_attack) {
-        sync_prev_transforms();
-        attack_phase = AttackPhase::ActiveSweep;
-        attack_timer = 0.0f;
-        swing_progress_prev = 0.0f;
-        swing_progress_curr = 0.0f;
-        current_swing_id++;
-        is_charging_attack = true;
-        charge_timer = 0.0f;
-        Audio::play_sfx(SFX::sword_swipe());
+    if (!is_charging_attack) {
+        if (btn_just_pressed && attack_phase == AttackPhase::Idle) {
+            sync_prev_transforms();
+            attack_phase = AttackPhase::ActiveSweep;
+            attack_timer = 0.0f;
+            swing_progress_prev = 0.0f;
+            swing_progress_curr = 0.0f;
+            current_swing_id++;
+            is_charging_attack = true;
+            m_charging_with_spark = false;
+            charge_timer = 0.0f;
+            Audio::play_sfx(SFX::sword_swipe());
+        } else if (spark_just_pressed) {
+            sync_prev_transforms();
+            is_charging_attack = true;
+            m_charging_with_spark = true;
+            charge_timer = 0.0f;
+        }
     }
     
     if (is_charging_attack) {
-        if (btn_held) {
+        bool still_holding = m_charging_with_spark ? spark_held : btn_held;
+        if (still_holding) {
             charge_timer += dt;
         } else {
             if (charge_timer >= CHARGE_FULL_DURATION) {
                 m_pending_spark = true;
             }
             is_charging_attack = false;
+            m_charging_with_spark = false;
             charge_timer = 0.0f;
         }
     }

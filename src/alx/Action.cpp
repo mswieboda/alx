@@ -25,6 +25,8 @@ static const std::unordered_map<std::string, Type> s_string_to_action_map = {
     {"pan_mode",       PanMode},
     {"menu",           Menu},
     {"map",            Map},
+    {"mana_spark",     ManaSpark},
+    {"dash",           Dash},
     {"debug_resource", DebugResource},
     {"debug_enemy_wave", DebugEnemyWave}
 };
@@ -51,6 +53,8 @@ std::string type_to_string(Type type) {
         case PanMode:       return "pan_mode";
         case Menu:          return "menu";
         case Map:           return "map";
+        case ManaSpark:     return "mana_spark";
+        case Dash:          return "dash";
         case DebugResource: return "debug_resource";
         case DebugEnemyWave: return "debug_enemy_wave";
         default:            return "unknown";
@@ -93,16 +97,18 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(MoveRight)]     = GBA::DPAD_RIGHT;
 
     s_bindings[static_cast<size_t>(ActionBtn)]     = GBA::BUTTON_A;
-    s_bindings[static_cast<size_t>(BuildTile)]     = GBA::BUTTON_A;
+    s_bindings[static_cast<size_t>(BuildTile)]     = { KeyCode::U };
 
     s_bindings[static_cast<size_t>(Cancel)]        = GBA::BUTTON_B;
 
     s_bindings[static_cast<size_t>(PanMode)]       = GBA::L_SHOULDER;
     s_bindings[static_cast<size_t>(Build)]         = GBA::R_SHOULDER;
-    s_bindings[static_cast<size_t>(BuildCycle)]    = GBA::L_SHOULDER;
+    s_bindings[static_cast<size_t>(BuildCycle)]    = { KeyCode::I };
+    s_bindings[static_cast<size_t>(ManaSpark)]     = { KeyCode::P };
+    s_bindings[static_cast<size_t>(Dash)]          = { KeyCode::Space };
 
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
-    s_bindings[static_cast<size_t>(Map)]           = GBA::SELECT;
+    s_bindings[static_cast<size_t>(Map)]           = { KeyCode::Tab };
 
     s_bindings[static_cast<size_t>(DebugResource)] = { KeyCode::Key5 };
     s_bindings[static_cast<size_t>(DebugEnemyWave)] = { KeyCode::Key6 };
@@ -162,15 +168,21 @@ static bool is_gamepad_action_pressed(Type type) {
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_DPAD_RIGHT) ||
                    ::Input::is_gamepad_stick_dir_pressed(3);
         case ActionBtn:
-        case BuildTile:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_SOUTH);
+        case BuildTile:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_WEST);
         case Cancel:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_EAST);
         case Build:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case PanMode:
-        case BuildCycle:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_LEFT_SHOULDER);
+        case BuildCycle:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_NORTH);
+        case ManaSpark:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_TRIGGER);
+        case Dash:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case Menu:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_START);
         case Map:
@@ -199,15 +211,21 @@ static bool is_gamepad_action_just_pressed(Type type) {
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_DPAD_RIGHT) ||
                    ::Input::is_gamepad_stick_dir_just_pressed(3);
         case ActionBtn:
-        case BuildTile:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_SOUTH);
+        case BuildTile:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_WEST);
         case Cancel:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_EAST);
         case Build:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case PanMode:
-        case BuildCycle:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_LEFT_SHOULDER);
+        case BuildCycle:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_NORTH);
+        case ManaSpark:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_TRIGGER);
+        case Dash:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case Menu:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_START);
         case Map:
@@ -253,7 +271,10 @@ bool is_attack_held() {
 }
 
 bool is_build_tile() {
-    return is_pressed(Build) && is_just_pressed(ActionBtn);
+    if (is_pressed(Build) && is_just_pressed(ActionBtn)) {
+        return true;
+    }
+    return is_just_pressed(BuildTile);
 }
 
 bool is_remove_tile() {
@@ -261,7 +282,10 @@ bool is_remove_tile() {
 }
 
 bool is_build_cycle() {
-    return is_pressed(Build) && is_just_pressed(BuildCycle);
+    if (is_pressed(Build) && is_just_pressed(PanMode)) {
+        return true;
+    }
+    return is_just_pressed(BuildCycle);
 }
 
 bool is_pan_mode_active() {

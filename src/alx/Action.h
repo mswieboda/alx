@@ -45,13 +45,15 @@ namespace Action {
         MoveRight,
         ActionBtn,  // Button A (J / Z): Primary Attack / Action
         Attack = ActionBtn, // Alias for Attack
-        BuildTile,  // R-Shoulder (O) + Button A (J / Z): Place buildable tile
-        Cancel,     // Button B (K / X): Cancel / Drain / Demolish
+        BuildTile,  // R-Shoulder (O) + Button A (J / Z) or West (X / U): Place buildable tile
+        Cancel,     // Button B (K / X) or East (B): Cancel / Drain / Demolish
         Build,      // R-Shoulder (O): Modifier for Build commands
-        BuildCycle, // R-Shoulder (O) + L-Shoulder (Q): Cycle build type forward
-        PanMode,    // L-Shoulder (Q): Hold to pan camera scouting
+        BuildCycle, // R-Shoulder (O) + L-Shoulder (Q) or North (Y / I): Cycle build type forward
+        PanMode,    // L-Shoulder (Q) or L1 Bumper: Hold to pan camera scouting
         Menu,       // Enter (Start): Menu / Pause
-        Map,        // Tab / Space (Select): Map
+        Map,        // Tab (Select): Map
+        ManaSpark,  // Right Trigger (R2) or P: Charge/fire mana spark
+        Dash,       // Right Shoulder (R1) or Space: Dash / Dodge
         DebugResource,  // 5: Temporary debug cheat +10 alloy
         DebugEnemyWave, // 6: Temporary debug cheat to spawn 2 enemies
         DebugTwUp,  // plus key
