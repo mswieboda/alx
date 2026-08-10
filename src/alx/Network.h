@@ -85,6 +85,7 @@ public:
     [[nodiscard]] int height() const noexcept { return m_height; }
     [[nodiscard]] int tile_size() const noexcept { return m_tile_size; }
     [[nodiscard]] const std::vector<int32_t>& active_indices() const noexcept { return m_active_indices; }
+    [[nodiscard]] const std::vector<Fixture>& fixtures() const noexcept { return m_fixtures; }
 
     void draw(
         int min_tx, int max_tx, int min_ty, int max_ty,

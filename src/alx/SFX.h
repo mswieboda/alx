@@ -1,21 +1,23 @@
 #pragma once
+#include <algorithm>
 #include "core/Audio.h"
+#include "alx/Random.h"
 
 namespace alx {
 namespace SFX {
 
     // --- COMBAT PRESETS ---
 
-    // Player Sword Swipe: Sharp metallic whip slash
+    // Player Sword Swipe: Bright metallic whip / air swoosh
     inline SfxrParams sword_swipe() {
         SfxrParams p;
-        p.wave_type = SAWTOOTH;
-        p.attack_time = 0.005f;
-        p.sustain_time = 0.020f;
-        p.decay_time = 0.080f;
-        p.start_frequency = 0.450f;
-        p.min_frequency = 0.050f;
-        p.slide = -0.350f;
+        p.wave_type = NOISE;
+        p.attack_time = 0.002f;
+        p.sustain_time = 0.015f;
+        p.decay_time = 0.060f;
+        p.start_frequency = 0.750f;
+        p.min_frequency = 0.350f;
+        p.slide = -0.200f;
         return p;
     }
 
@@ -120,16 +122,30 @@ namespace SFX {
         return p;
     }
 
-    // Refining Bubble: Gentle soft bubbling
+    // Refining Bubble: Dull low gurgling with randomized pitch variation
     inline SfxrParams refiner_bubble() {
         SfxrParams p;
         p.wave_type = SINE;
-        p.attack_time = 0.005f;
-        p.sustain_time = 0.020f;
-        p.decay_time = 0.050f;
-        p.start_frequency = 0.420f;
-        p.min_frequency = 0.100f;
-        p.slide = 0.200f;
+        p.attack_time = 0.010f;
+        p.sustain_time = 0.030f;
+        p.decay_time = 0.080f;
+        float freq_var = Random::get_float(-0.0015f, 0.0015f);
+        p.start_frequency = std::clamp(0.0035f + freq_var, 0.0020f, 0.0055f);
+        p.min_frequency = 0.010f;
+        p.slide = Random::get_float(0.0010f, 0.0020f);
+        return p;
+    }
+
+    // Light Mana Conversion & Ejection: Very dull, low-pitch swell
+    inline SfxrParams mana_converted() {
+        SfxrParams p;
+        p.wave_type = SINE;
+        p.attack_time = 0.020f;
+        p.sustain_time = 0.080f;
+        p.decay_time = 0.160f;
+        p.start_frequency = 0.005f;
+        p.min_frequency = 0.0005f;
+        p.slide = 0.001f;
         return p;
     }
 
