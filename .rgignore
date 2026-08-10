@@ -1,0 +1,2 @@
+# Ignore archived plan files from ripgrep / AI grep search indexing
+plans/archive/
