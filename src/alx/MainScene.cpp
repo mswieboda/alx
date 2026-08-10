@@ -14,6 +14,7 @@
 #include "Action.h"
 #include "Random.h"
 #include "Layer.h"
+#include "alx/SFX.h"
 #include "alx/ParticleEmitters.h"
 #include "alx/TelemetryDumper.h"
 
@@ -252,6 +253,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
     if (m_enemy_manager.consume_tower_spawned_event()) {
         trigger_tower_spawn_alert();
+        Audio::play_sfx(SFX::dark_tower_spawn());
     }
 
     if (m_vignette_surge_timer > 0.0f) {
@@ -265,6 +267,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (tw_inc > 0.0f) {
         m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
         record_twilight_event(tw_inc, "Tower/Fixture Corruption");
+        Audio::play_sfx(SFX::twilight_pulse());
     }
 
     update_twilight_metrics(dt, prev_twilight);
@@ -468,6 +471,10 @@ void MainScene::update_tick_simulation(float dt) {
             m_twilight_level -= dec;
             m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
             record_twilight_event(-dec, "Spire Cleanse");
+            Audio::play_sfx(SFX::spire_burn());
+        }
+        if (sim_res.refiners_processed > 0) {
+            Audio::play_sfx(SFX::refiner_bubble());
         }
     }
 }

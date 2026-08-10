@@ -49,10 +49,10 @@ Define procedural `SfxrParams` presets for all core game interactions:
   - Minimum audibility floor (\(0.15\)) if visible on screen so actions remain clear.
 - [ ] `[SUAG-SPAT-PAN]`: (Optional/Nice-to-have) Basic stereo panning based on horizontal screen displacement relative to camera center.
 
-### `[PH-SUAG-P4]`: Game World Event Triggers & Integration
-- [ ] `[SUAG-TRIG-COMB]`: Wire combat sounds (sword swipe, enemy hit, player hit, player death) into combat & collision resolution logic.
-- [ ] `[SUAG-TRIG-MNFA]`: Wire automation sounds (refiner bubbling, spire cackling, twilight pulse, egg hatch, dark tower spawn).
-- [ ] `[SUAG-TRIG-BLD]`: Wire construction/interaction sounds (grid placement snap, wall bump).
+### `[PH-SUAG-P4]`: Game World Event Triggers & Integration (COMPLETED)
+- [x] `[SUAG-TRIG-COMB]`: Wire combat sounds (sword swipe, enemy hit, player hit, player death) into combat & collision resolution logic.
+- [x] `[SUAG-TRIG-MNFA]`: Wire automation sounds (refiner bubbling, spire cackling, twilight pulse, egg hatch, dark tower spawn).
+- [x] `[SUAG-TRIG-BLD]`: Wire construction/interaction sounds (grid placement snap, wall bump).
 
 ---
 

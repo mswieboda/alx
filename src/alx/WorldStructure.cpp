@@ -1,6 +1,8 @@
 #include "alx/WorldStructure.h"
 #include "alx/EnemyManager.h"
 #include "alx/Random.h"
+#include "alx/SFX.h"
+#include "core/Audio.h"
 #include <cmath>
 #include <algorithm>
 #include "core/Draw.h"
@@ -56,6 +58,11 @@ void WorldStructure::sync_prev_transforms() {
 void WorldStructure::take_damage(int amount) {
     hp = std::max(0, hp - amount);
     hit_flash_timer = 0.15f;
+    if (type == StructureType::DarkTower) {
+        Audio::play_sfx(SFX::dark_tower_hit());
+    } else {
+        Audio::play_sfx(SFX::fixture_hit());
+    }
 }
 
 void WorldStructure::update(float dt) {

@@ -165,6 +165,7 @@ struct Player : public Entity {
 private:
     int m_cursed_alloy = 5;
     FixtureType m_selected_fixture_type = FixtureType::Pipe;
+    bool m_was_blocked_prev = false;
 
     void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
     void update_actions(float dt, const Tiles& tiles, Network& network);

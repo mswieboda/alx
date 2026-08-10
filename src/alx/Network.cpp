@@ -826,6 +826,7 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
                                 progress = Game::REFINER_CONSUMING_WAIT_TICKS;
                                 next_fixtures[idx].is_powered = false;
                                 next_fixtures[idx].mana_state = ManaState::None;
+                                results.refiners_processed++;
                             } else {
                                 progress = Game::REFINER_PROCESSING_TICKS_REQUIRED;
                             }

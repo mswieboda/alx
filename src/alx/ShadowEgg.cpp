@@ -1,9 +1,11 @@
 #include "alx/ShadowEgg.h"
 #include <cmath>
 #include <algorithm>
+#include "core/Audio.h"
 #include "core/Draw.h"
 #include "alx/Layer.h"
 #include "alx/DrawFX.h"
+#include "alx/SFX.h"
 
 namespace alx {
 
@@ -42,6 +44,7 @@ void ShadowEgg::take_damage(int amount) {
     if (is_invulnerable()) return;
 
     hp -= amount;
+    Audio::play_sfx(SFX::fixture_hit());
     if (hp <= 0) {
         destroyed = true;
     }
@@ -75,6 +78,7 @@ void ShadowEgg::update(float dt) {
     if (incubation_timer <= 0.0f) {
         incubation_timer = 0.0f;
         hatched = true;
+        Audio::play_sfx(SFX::egg_hatch());
     }
 }
 

@@ -10,6 +10,8 @@
 #include "alx/DrawFX.h"
 #include "alx/WorldCollision.h"
 #include "alx/TrigLUT.h"
+#include "alx/SFX.h"
+#include "core/Audio.h"
 #include "core/Draw.h"
 #include "Debug.h"
 #include "assets/Images.h"
@@ -371,6 +373,7 @@ bool Player::try_build_tile(const Tiles& tiles, Network& network) {
     if (network.can_place_fixture(target_pos, m_selected_fixture_type, tiles)) {
         m_cursed_alloy -= cost;
         network.place_fixture(target_pos, m_selected_fixture_type);
+        Audio::play_sfx(SFX::build_snap());
         return true;
     }
     return false;
@@ -405,6 +408,9 @@ bool Player::take_damage(int amount) {
     if (state.hp <= 0) {
         state.defeated = true;
         state.defeat_timer = State::DEFEAT_DURATION;
+        Audio::play_sfx(SFX::player_death());
+    } else {
+        Audio::play_sfx(SFX::player_hit());
     }
     return true;
 }
@@ -555,7 +561,12 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
 
     constrain_movement_velocity_to_map(move_dx, move_dy, ground_circle(), map_w, map_h);
 
-    WorldCollision::try_move(transform.x, transform.y, move_dx, move_dy, ground_circle(), tiles, network, structures);
+    auto move_res = WorldCollision::try_move(transform.x, transform.y, move_dx, move_dy, ground_circle(), tiles, network, structures);
+    bool currently_blocked = move_res.blocked_x || move_res.blocked_y;
+    if (currently_blocked && !m_was_blocked_prev) {
+        Audio::play_sfx(SFX::wall_bump());
+    }
+    m_was_blocked_prev = currently_blocked;
 
     clamp_transform_to_map_bounds(transform, GROUND_RADIUS_RATIO, GROUND_OFFSET_Y_RATIO, map_w, map_h);
 }
@@ -593,6 +604,7 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
         current_swing_id++;
         is_charging_attack = true;
         charge_timer = 0.0f;
+        Audio::play_sfx(SFX::sword_swipe());
     }
     
     if (is_charging_attack) {

@@ -14,6 +14,7 @@ namespace alx {
 
 struct NetworkSimResults {
     int spires_converted = 0;
+    int refiners_processed = 0;
     int stagnant_decay_events = 0;
 };
 

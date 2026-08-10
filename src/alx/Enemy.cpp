@@ -3,10 +3,12 @@
 #include <cmath>
 #include <random>
 #include <utility>
+#include "core/Audio.h"
 #include "core/Draw.h"
 #include "alx/DrawFX.h"
 #include "alx/Layer.h"
 #include "alx/Random.h"
+#include "alx/SFX.h"
 #include "Debug.h"
 
 namespace alx {
@@ -78,6 +80,7 @@ void Enemy::set_steering_vector_8way(float target_world_x, float target_world_y)
 
 void Enemy::take_damage(int amount, float kb_dx, float kb_dy, float kb_speed, float wound_ox, float wound_oy) {
     hp -= amount;
+    Audio::play_sfx(SFX::enemy_hit());
     knockback_dx = kb_dx;
     knockback_dy = kb_dy;
     knockback_speed = kb_speed;
