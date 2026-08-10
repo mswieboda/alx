@@ -16,10 +16,11 @@ module LevelExporter
     end
   end
 
-  struct WallPlacementData
+  struct TilePlacementData
     property x : Int32
     property y : Int32
-    def initialize(@x, @y)
+    property type_name : String
+    def initialize(@x, @y, @type_name)
     end
   end
 
@@ -32,7 +33,7 @@ module LevelExporter
     property initial_twilight : Float64
     property fixtures = [] of FixturePlacementData
     property spawns = [] of DarkTowerSpawnData
-    property walls = [] of WallPlacementData
+    property custom_tiles = [] of TilePlacementData
 
     def initialize(@id, @map_width, @map_height, @player_spawn_x, @player_spawn_y, @initial_twilight)
     end
@@ -74,7 +75,16 @@ module LevelExporter
         when '.'
           visited[y][x] = true
         when '#'
-          parsed.walls << WallPlacementData.new(x, y)
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Wall")
+          visited[y][x] = true
+        when '~'
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Water")
+          visited[y][x] = true
+        when 'o'
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Stone")
+          visited[y][x] = true
+        when ','
+          parsed.custom_tiles << TilePlacementData.new(x, y, "Dirt")
           visited[y][x] = true
         when 'P'
           parsed.fixtures << FixturePlacementData.new(x, y, "Pipe")
@@ -161,17 +171,17 @@ module LevelExporter
           spawns_expr = "k_level#{id}_spawns"
         end
 
-        # Walls array
-        if lvl.walls.empty?
-          walls_expr = "{}"
+        # Custom tiles array
+        if lvl.custom_tiles.empty?
+          custom_tiles_expr = "{}"
         else
-          str << "        constexpr alx::WallPlacement k_level#{id}_walls[] = {\n"
-          lvl.walls.each_with_index do |w, idx|
-            comma = idx == lvl.walls.size - 1 ? "" : ","
-            str << "            { {#{w.x}, #{w.y}} }#{comma}\n"
+          str << "        constexpr alx::TilePlacement k_level#{id}_custom_tiles[] = {\n"
+          lvl.custom_tiles.each_with_index do |t, idx|
+            comma = idx == lvl.custom_tiles.size - 1 ? "" : ","
+            str << "            { {#{t.x}, #{t.y}}, alx::TileType::#{t.type_name} }#{comma}\n"
           end
           str << "        };\n\n"
-          walls_expr = "k_level#{id}_walls"
+          custom_tiles_expr = "k_level#{id}_custom_tiles"
         end
 
         # Level struct
@@ -183,7 +193,7 @@ module LevelExporter
         str << "            .initial_twilight = #{lvl.initial_twilight}f,\n"
         str << "            .fixtures         = #{fixtures_expr},\n"
         str << "            .dark_tower_spawns = #{spawns_expr},\n"
-        str << "            .walls             = #{walls_expr}\n"
+        str << "            .custom_tiles      = #{custom_tiles_expr}\n"
         str << "        };\n\n"
       end
 

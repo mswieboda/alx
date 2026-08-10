@@ -3,6 +3,7 @@
 #include <span>
 #include "alx/GridPos.h"
 #include "alx/Fixture.h"
+#include "alx/Tile.h"
 
 namespace alx {
 
@@ -15,8 +16,9 @@ struct DarkTowerSpawn {
     GridPos pos;
 };
 
-struct WallPlacement {
-    GridPos pos;
+struct TilePlacement {
+    GridPos  pos;
+    TileType type{TileType::Floor};
 };
 
 struct Level {
@@ -31,7 +33,7 @@ struct Level {
     float   initial_twilight{DEFAULT_INITIAL_TWILIGHT};
     std::span<const FixturePlacement> fixtures;
     std::span<const DarkTowerSpawn>   dark_tower_spawns;
-    std::span<const WallPlacement>    walls;
+    std::span<const TilePlacement>    custom_tiles;
 };
 
 namespace Levels {

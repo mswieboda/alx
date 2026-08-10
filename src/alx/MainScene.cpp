@@ -6,6 +6,7 @@
 #include "core/Draw.h"
 #include "core/Input.h"
 #include "assets/Fonts.h"
+#include "assets/Images.h"
 #include "Game.h"
 #include "Debug.h"
 #include "Action.h"
@@ -102,9 +103,9 @@ void MainScene::load_tiles_and_network(const Level& level) {
         }
     }
 
-    // 2. Explicit Wall tile placements
-    for (const auto& wall : level.walls) {
-        m_tiles.set_tile(wall.pos.x, wall.pos.y, TileType::Wall);
+    // 2. Explicit custom tile placements
+    for (const auto& tile : level.custom_tiles) {
+        m_tiles.set_tile(tile.pos, tile.type);
     }
 
     // 3. Clear & populate Network fixtures
@@ -683,27 +684,32 @@ void MainScene::draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, floa
 }
 
 void MainScene::draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size) {
-    uint32_t color = 0xFF2A2A38;
-    bool fill = true;
-
-    if (tile.type == TileType::Wall) {
-        color = 0xFF1C1C24;
-    } else if (tile.type == TileType::Floor) {
-        fill = false;
-    } else {
-        color = 0x00FF00FF;
+    if (tile.type == TileType::Empty) {
+        return;
     }
 
-    Draw::rect(
-        world_x,
-        world_y,
-        tile_size,
-        tile_size,
-        color,
-        fill,
-        1,
-        Layer::Ground
-    );
+    size_t frame_index = 0;
+    switch (tile.type) {
+        case TileType::Floor:  frame_index = 0; break;
+        case TileType::Wall:   frame_index = 1; break;
+        case TileType::Water:  frame_index = 2; break;
+        case TileType::Stone:  frame_index = 3; break;
+        case TileType::Dirt:   frame_index = 4; break;
+        default:               frame_index = 0; break;
+    }
+
+    if (frame_index < 5) {
+        const auto& frame = Assets::Images::tileset_frames[frame_index];
+        Draw::sprite(
+            static_cast<float>(world_x),
+            static_cast<float>(world_y),
+            Assets::Images::tileset + frame.offset,
+            static_cast<uint32_t>(frame.len),
+            static_cast<float>(tile_size),
+            static_cast<float>(tile_size),
+            Layer::Ground
+        );
+    }
 }
 
 } // namespace alx

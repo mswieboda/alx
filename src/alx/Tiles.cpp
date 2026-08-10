@@ -52,22 +52,26 @@ void Tiles::set_tile(int x, int y, TileType type) noexcept {
 
 bool Tiles::is_wall(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return true;
-    return tile(pos).type == TileType::Wall;
+    const TileType t = tile(pos).type;
+    return t == TileType::Wall || t == TileType::Water;
 }
 
 bool Tiles::is_wall(int x, int y) const noexcept {
     if (!in_bounds(x, y)) return true;
-    return tile(x, y).type == TileType::Wall;
+    const TileType t = tile(x, y).type;
+    return t == TileType::Wall || t == TileType::Water;
 }
 
 bool Tiles::is_floor(GridPos pos) const noexcept {
     if (!in_bounds(pos)) return false;
-    return tile(pos).type == TileType::Floor;
+    const TileType t = tile(pos).type;
+    return t == TileType::Floor || t == TileType::Stone || t == TileType::Dirt;
 }
 
 bool Tiles::is_floor(int x, int y) const noexcept {
     if (!in_bounds(x, y)) return false;
-    return tile(x, y).type == TileType::Floor;
+    const TileType t = tile(x, y).type;
+    return t == TileType::Floor || t == TileType::Stone || t == TileType::Dirt;
 }
 
 } // namespace alx

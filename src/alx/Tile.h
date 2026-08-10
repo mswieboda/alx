@@ -7,7 +7,10 @@ namespace alx {
 enum class TileType : uint8_t {
     Empty = 0,
     Floor,
-    Wall
+    Wall,
+    Water,
+    Stone,
+    Dirt
 };
 
 struct Tile {
