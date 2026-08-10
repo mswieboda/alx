@@ -24,22 +24,22 @@ This document outlines the phased roadmap for integrating background music, soun
 - [x] `[SUAG-MSPS]`: Wire `Audio::pause_music()` and `Audio::resume_music()` to Game State pause/unpause toggles.
 - [x] `[SUAG-VOLS]`: Enhance `Audio::play_sfx` or introduce `Audio::play_sfx_at(params, volume, pan)` to support per-instance playback volume and stereo panning.
 
-### `[PH-SUAG-P2]`: Sound FX Library & Preset Definitions (`SfxrParams`)
+### `[PH-SUAG-P2]`: Sound FX Library & Preset Definitions (`SfxrParams`) (COMPLETED)
 Define procedural `SfxrParams` presets for all core game interactions:
 
-- [ ] `[SUAG-SFX-SWP]`: **Player Sword Swipe** (Noise / Sawtooth pitch sweep, short attack, fast decay).
-- [ ] `[SUAG-SFX-ENH]`: **Enemy Hit** (Low square/noise drop, quick punchy decay).
-- [ ] `[SUAG-SFX-PLH]`: **Player Hit** (Sharp high square burst to low drop, distinct warning tint).
-- [ ] `[SUAG-SFX-DTH]`: **Dark Tower Hit** (Heavy resonant square rumble, pitch slide down).
-- [ ] `[SUAG-SFX-FXH]`: **Fixture Hit** (Crisp metallic/wooden square click).
-- [ ] `[SUAG-SFX-TWP]`: **Dark Tower Twilight Pulse** (Deep pulsating sine wave sweep with slow vibrato).
-- [ ] `[SUAG-SFX-EGH]`: **Egg Hatch** (Rising high-pitch square slide ending in noise pop).
-- [ ] `[SUAG-SFX-DTS]`: **Dark Tower Spawn** (Ominous low-frequency noise & square slide).
-- [ ] `[SUAG-SFX-RFB]`: **Refining Bubble** (Subtle soft high sine/square pitch blip while refining).
-- [ ] `[SUAG-SFX-SPC]`: **Spire Cackle/Burn** (Intermittent crackling noise bursts during energy discharge).
-- [ ] `[SUAG-SFX-PLD]`: **Player Death** (Multi-tone descending square sweep into static decay).
-- [ ] `[SUAG-SFX-BMP]`: **Player Solid Collision / Bump** (Thudding low sine/square thump).
-- [ ] `[SUAG-SFX-SNP]`: **Player Build Snap / Grid Placement** (Crisp high square click / latch chirp).
+- [x] `[SUAG-SFX-SWP]`: **Player Sword Swipe** (Noise / Sawtooth pitch sweep, short attack, fast decay).
+- [x] `[SUAG-SFX-ENH]`: **Enemy Hit** (Low square/noise drop, quick punchy decay).
+- [x] `[SUAG-SFX-PLH]`: **Player Hit** (Sharp high square burst to low drop, distinct warning tint).
+- [x] `[SUAG-SFX-DTH]`: **Dark Tower Hit** (Heavy resonant square rumble, pitch slide down).
+- [x] `[SUAG-SFX-FXH]`: **Fixture Hit** (Crisp metallic/wooden square click).
+- [x] `[SUAG-SFX-TWP]`: **Dark Tower Twilight Pulse** (Deep pulsating sine wave sweep with slow vibrato).
+- [x] `[SUAG-SFX-EGH]`: **Egg Hatch** (Rising high-pitch square slide ending in noise pop).
+- [x] `[SUAG-SFX-DTS]`: **Dark Tower Spawn** (Ominous low-frequency noise & square slide).
+- [x] `[SUAG-SFX-RFB]`: **Refining Bubble** (Subtle soft high sine/square pitch blip while refining).
+- [x] `[SUAG-SFX-SPC]`: **Spire Cackle/Burn** (Intermittent crackling noise bursts during energy discharge).
+- [x] `[SUAG-SFX-PLD]`: **Player Death** (Multi-tone descending square sweep into static decay).
+- [x] `[SUAG-SFX-BMP]`: **Player Solid Collision / Bump** (Thudding low sine/square thump).
+- [x] `[SUAG-SFX-SNP]`: **Player Build Snap / Grid Placement** (Crisp high square click / latch chirp).
 
 ### `[PH-SUAG-P3]`: Camera Viewport Culling & Simple 2D Spatial Audio
 - [ ] `[SUAG-SPAT-CUL]`: Add `Camera`/`Viewport` intersection query before triggering world SFX (suppress sounds outside view rect).
