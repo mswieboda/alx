@@ -21,6 +21,8 @@ namespace Audio {
         std::vector<float> samples;
         size_t cursor = 0;
         bool finished = false;
+        float volume = DEFAULT_SFX_VOLUME;
+        float pan = DEFAULT_SFX_PAN;
     };
 
     static ma_device g_audio_device;
@@ -36,10 +38,10 @@ namespace Audio {
     static bool g_music_playing = false;
     static bool g_music_paused = false;
     static bool g_music_loop = true;
-    static float g_music_volume = 0.5f;
+    static float g_music_volume = DEFAULT_MUSIC_VOLUME;
 
     // --- SFXR PCM SYNTHESIZER GENERATOR ---
-    static std::vector<float> generate_sfx_buffer(const SfxrParams& p, uint32_t sample_rate = 44100) {
+    static std::vector<float> generate_sfx_buffer(const SfxrParams& p, uint32_t sample_rate = SAMPLE_RATE) {
         float total_time = p.attack_time + p.sustain_time + p.decay_time;
         size_t total_samples = static_cast<size_t>(total_time * sample_rate);
         if (total_samples == 0) return {};
@@ -113,35 +115,38 @@ namespace Audio {
         float* pOutputF32 = static_cast<float*>(pOutput);
 
         // Clear output buffer with silence
-        std::fill_n(pOutputF32, frameCount, 0.0f);
+        std::fill_n(pOutputF32, frameCount * STEREO_CHANNELS, 0.0f);
 
         std::lock_guard<std::mutex> lock(g_audio_mutex);
 
         // Render Music via pocketmod if playing
         if (g_music_loaded && g_music_playing && !g_music_paused) {
-            int bytes_requested = frameCount * sizeof(float) * 2;
+            int bytes_requested = static_cast<int>(frameCount * sizeof(float) * STEREO_CHANNELS);
             int bytes_rendered = pocketmod_render(&g_pocketmod, pOutputF32, bytes_requested);
 
             // Apply music volume scaling
-            for (ma_uint32 i = 0; i < frameCount * 2; ++i) {
+            for (ma_uint32 i = 0; i < frameCount * STEREO_CHANNELS; ++i) {
                 pOutputF32[i] *= g_music_volume;
             }
 
             // Loop music if finished
             if (bytes_rendered == 0 && g_music_loop && g_music_data) {
-                pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), 44100);
+                pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), SAMPLE_RATE);
             }
         }
 
-        // Mix active SFXR voices on top of music
+        // Mix active SFXR voices on top of music with volume and panning
         for (auto& voice : g_active_voices) {
             if (voice.finished) continue;
+
+            const float left_gain  = voice.volume * std::clamp(1.0f - voice.pan, 0.0f, 1.0f);
+            const float right_gain = voice.volume * std::clamp(1.0f + voice.pan, 0.0f, 1.0f);
 
             for (ma_uint32 i = 0; i < frameCount; ++i) {
                 if (voice.cursor < voice.samples.size()) {
                     float s = voice.samples[voice.cursor++];
-                    pOutputF32[i * 2]     += s;
-                    pOutputF32[i * 2 + 1] += s;
+                    pOutputF32[i * STEREO_CHANNELS]     += s * left_gain;
+                    pOutputF32[i * STEREO_CHANNELS + 1] += s * right_gain;
                 } else {
                     voice.finished = true;
                     break;
@@ -160,8 +165,8 @@ namespace Audio {
     bool init() {
         ma_device_config config = ma_device_config_init(ma_device_type_playback);
         config.playback.format   = ma_format_f32;
-        config.playback.channels = 2; // Stereo stream
-        config.sampleRate        = 44100;
+        config.playback.channels = STEREO_CHANNELS; // Stereo stream
+        config.sampleRate        = SAMPLE_RATE;
         config.dataCallback      = audio_data_callback;
 
         if (ma_device_init(NULL, &config, &g_audio_device) != MA_SUCCESS) {
@@ -191,16 +196,19 @@ namespace Audio {
         }
     }
 
-    void play_sfx(const SfxrParams& params) {
+    void play_sfx(const SfxrParams& params, float volume, float pan) {
         if (!g_initialized) return;
 
-        std::thread([params]() {
-            std::vector<float> samples = generate_sfx_buffer(params, 44100);
+        const float clamped_vol = std::clamp(volume, MIN_VOLUME, MAX_SFX_VOLUME);
+        const float clamped_pan = std::clamp(pan, MIN_SFX_PAN, MAX_SFX_PAN);
+
+        std::thread([params, clamped_vol, clamped_pan]() {
+            std::vector<float> samples = generate_sfx_buffer(params, SAMPLE_RATE);
             if (samples.empty()) return;
 
             std::lock_guard<std::mutex> lock(g_audio_mutex);
             if (g_initialized) {
-                g_active_voices.push_back({ std::move(samples), 0, false });
+                g_active_voices.push_back({ std::move(samples), 0, false, clamped_vol, clamped_pan });
             }
         }).detach();
     }
@@ -211,7 +219,7 @@ namespace Audio {
         g_music_data = data;
         g_music_size = size;
 
-        if (!pocketmod_init(&g_pocketmod, data, static_cast<int>(size), 44100)) {
+        if (!pocketmod_init(&g_pocketmod, data, static_cast<int>(size), SAMPLE_RATE)) {
             g_music_loaded = false;
             g_music_playing = false;
             g_music_paused = false;
@@ -260,7 +268,7 @@ namespace Audio {
 
         // Rewind track position back to pattern 0
         if (g_music_loaded && g_music_data) {
-            pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), 44100);
+            pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), SAMPLE_RATE);
         }
     }
 
@@ -281,6 +289,6 @@ namespace Audio {
 
     void set_music_volume(float volume) {
         std::lock_guard<std::mutex> lock(g_audio_mutex);
-        g_music_volume = std::clamp(volume, 0.0f, 1.0f);
+        g_music_volume = std::clamp(volume, MIN_VOLUME, MAX_MUSIC_VOLUME);
     }
-}
+} // namespace Audio

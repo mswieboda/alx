@@ -3,10 +3,12 @@
 #include <cmath>
 #include <string>
 #include <utility>
+#include "core/Audio.h"
 #include "core/Draw.h"
 #include "core/Input.h"
 #include "assets/Fonts.h"
 #include "assets/Images.h"
+#include "assets/Music.h"
 #include "Game.h"
 #include "Debug.h"
 #include "Action.h"
@@ -25,6 +27,11 @@ void MainScene::init(SceneManager& sm) {
     }
 
     Draw::set_y_sort_mode(Draw::YSortMode::YPlusHeight);
+
+    if (Audio::load_music_from_memory(Assets::Music::awm, Assets::Music::awm_len)) {
+        Audio::set_music_volume(Audio::DEFAULT_MUSIC_VOLUME);
+        Audio::play_music(true);
+    }
 
     load_level(m_current_level_id);
 }
@@ -211,6 +218,11 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if constexpr (Debug::CAN_PAUSE) {
         if (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P)) {
             m_paused = !m_paused;
+            if (m_paused) {
+                Audio::pause_music();
+            } else {
+                Audio::resume_music();
+            }
         }
     }
     if (m_paused) return;
@@ -273,8 +285,11 @@ void MainScene::update_victory_condition(float raw_dt) {
         }
         m_victory_hold_timer += raw_dt;
         if (m_victory_hold_timer >= VICTORY_HOLD_DURATION_SEC) {
-            m_victory_achieved = true;
-            m_paused = true;
+            if (!m_victory_achieved) {
+                m_victory_achieved = true;
+                m_paused = true;
+                Audio::pause_music();
+            }
         }
     } else if (!m_victory_achieved) {
         m_victory_hold_timer = 0.0f;

@@ -19,10 +19,10 @@ This document outlines the phased roadmap for integrating background music, soun
 
 ## Phase Breakdown
 
-### `[PH-SUAG-P1]`: Background Music Integration & Audio Subsystem Enhancements
-- [ ] `[SUAG-MSCV]`: Configure default background music volume control (\(\sim 0.20\)) and ensure clean loop initialization upon game scene start.
-- [ ] `[SUAG-MSPS]`: Wire `Audio::pause_music()` and `Audio::resume_music()` to Game State pause/unpause toggles.
-- [ ] `[SUAG-VOLS]`: Enhance `Audio::play_sfx` or introduce `Audio::play_sfx_at(params, volume, pan)` to support per-instance playback volume and stereo panning.
+### `[PH-SUAG-P1]`: Background Music Integration & Audio Subsystem Enhancements (COMPLETED)
+- [x] `[SUAG-MSCV]`: Configure default background music volume control (\(\sim 0.20\)) and ensure clean loop initialization upon game scene start.
+- [x] `[SUAG-MSPS]`: Wire `Audio::pause_music()` and `Audio::resume_music()` to Game State pause/unpause toggles.
+- [x] `[SUAG-VOLS]`: Enhance `Audio::play_sfx` or introduce `Audio::play_sfx_at(params, volume, pan)` to support per-instance playback volume and stereo panning.
 
 ### `[PH-SUAG-P2]`: Sound FX Library & Preset Definitions (`SfxrParams`)
 Define procedural `SfxrParams` presets for all core game interactions:
