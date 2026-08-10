@@ -1,4 +1,6 @@
 #include "alx/Levels.h"
+#include <algorithm>
+#include <span>
 
 namespace alx::Levels {
 namespace {
@@ -29,45 +31,38 @@ constexpr DarkTowerSpawn level1_spawns[] = {
     { {45,  8} }
 };
 
-const Level level1 = {
-    .id               = 1,
-    .map_width        = 60,
-    .map_height       = 30,
-    .player_spawn     = {9, 9},
-    .initial_twilight = 0.9f,
-    .fixtures         = level1_fixtures,
-    .dark_tower_spawns = level1_spawns
+constexpr WallPlacement level1_walls[] = {
+    { {12, 14} },
+    { {13, 14} },
+    { {14, 14} }
 };
 
-const Level level2 = {
-    .id               = 2,
-    .map_width        = 60,
-    .map_height       = 30,
-    .player_spawn     = {9, 9},
-    .initial_twilight = 0.9f,
-    .fixtures         = {},
-    .dark_tower_spawns = {}
-};
-
-const Level level3 = {
-    .id               = 3,
-    .map_width        = 60,
-    .map_height       = 30,
-    .player_spawn     = {9, 9},
-    .initial_twilight = 0.9f,
-    .fixtures         = {},
-    .dark_tower_spawns = {}
+const Level ALL_LEVELS[] = {
+    Level{
+        .id                = 1,
+        .fixtures          = level1_fixtures,
+        .dark_tower_spawns = level1_spawns,
+        .walls             = level1_walls
+    },
+    Level{
+        .id                = 2
+    },
+    Level{
+        .id                = 3
+    }
 };
 
 } // namespace
 
 const Level* get_level(int id) {
-    switch (id) {
-        case 1: return &level1;
-        case 2: return &level2;
-        case 3: return &level3;
-        default: return nullptr;
-    }
+    const auto it = std::ranges::find_if(ALL_LEVELS, [id](const Level& lvl) {
+        return lvl.id == id;
+    });
+    return (it != std::end(ALL_LEVELS)) ? &(*it) : nullptr;
+}
+
+bool has_level(int id) {
+    return get_level(id) != nullptr;
 }
 
 } // namespace alx::Levels

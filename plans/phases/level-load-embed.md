@@ -72,7 +72,17 @@ Wire `MainScene` to consume `Level` data, removing all hardcoded values.
 
 ---
 
-### [PH-YP]: Phase 4 - YAML Level Source Format (Design & Spec)
+### [PH-ETD]: Phase 4 - Explicit Tile & Wall Data Integration (COMPLETED)
+
+Decouple tile/wall layout from hardcoded map borders, moving wall placement definition into `Level` data.
+
+- [x] `[WTST]`: Wall & Tile Struct - declare `WallPlacement { GridPos pos; }` in `src/alx/Levels.h` and add `std::span<const WallPlacement> walls` to the `Level` struct
+- [x] `[WLCD]`: Level Constants Wall Migration - update static level definitions in `src/alx/Levels.cpp` to supply `walls` arrays (migrating old border wall coords or specifying new interior/custom walls)
+- [x] `[TLRF]`: Tile Initialization Refactor - refactor `MainScene::load_tiles_and_network` to initialize grid tiles to `TileType::Floor` by default, eliminating the hardcoded outer border wall generation (`x==0`, `x==1`, etc.), and applying explicit walls from `level.walls`
+
+---
+
+### [PH-YP]: Phase 5 - YAML Level Source Format (Design & Spec)
 
 Define the YAML authoring format for level data to be processed by `pack_assets.cr`.
 Two candidate formats are under consideration — final choice to be made before
@@ -137,7 +147,7 @@ dark_tower_spawns:
 
 ---
 
-### [PH-YE]: Phase 5 - YAML Parsing & C++ Header Embedding
+### [PH-YE]: Phase 6 - YAML Parsing & C++ Header Embedding
 
 Implement the `pack_assets.cr` pipeline step that reads YAML level files and generates
 `src/assets/Levels.h` with embedded `constexpr` level data replacing the hand-authored

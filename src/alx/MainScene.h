@@ -126,7 +126,10 @@ private:
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
     void draw_vignette_surge();
     void draw_hud();
-    void load_tiles_and_network(std::span<const FixturePlacement> fixtures);
+    void load_tiles_and_network(const Level& level);
+    void setup_player_at_spawn(GridPos spawn_pos);
+    void load_dark_towers(std::span<const DarkTowerSpawn> spawns);
+    void reset_level_telemetry();
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress);
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size);
 

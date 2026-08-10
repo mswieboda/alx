@@ -30,6 +30,14 @@ struct GridPos {
     [[nodiscard]] constexpr GridPos west()  const noexcept { return GridPos{ static_cast<int16_t>(x - 1), y }; }
     [[nodiscard]] constexpr GridPos east()  const noexcept { return GridPos{ static_cast<int16_t>(x + 1), y }; }
 
+    [[nodiscard]] constexpr float to_world_x(float tile_size) const noexcept {
+        return static_cast<float>(x) * tile_size;
+    }
+
+    [[nodiscard]] constexpr float to_world_y(float tile_size) const noexcept {
+        return static_cast<float>(y) * tile_size;
+    }
+
     [[nodiscard]] constexpr int32_t manhattan_dist(GridPos other) const noexcept {
         int32_t dx = static_cast<int32_t>(x) - static_cast<int32_t>(other.x);
         int32_t dy = static_cast<int32_t>(y) - static_cast<int32_t>(other.y);
