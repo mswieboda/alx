@@ -239,7 +239,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     update_tick_simulation(dt);
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
-    m_camera.update(dt, m_player.facing_dx, m_player.facing_dy);
+    m_camera.update(dt, m_player.facing_dx, m_player.facing_dy, m_player.input_buffer.was_moving);
     m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
 
 #if ALX_ENABLE_HEADLESS
