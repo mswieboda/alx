@@ -51,8 +51,8 @@ module Alx
       unless File.exists?(TELEMETRY_PATH)
         print "\e[H\e[2J"
         puts "\e[1;33mAetherlux Telemetry Viewer\e[0m"
-        puts "Waiting for telemetry output at #{TELEMETRY_PATH}..."
-        puts "Launch the game or run a headless simulation to see live data."
+        puts "Waiting for output at #{TELEMETRY_PATH}..."
+        puts "Launch game or headless mode to see live data."
         return
       end
 
@@ -66,7 +66,7 @@ module Alx
       twilight_val = data.twilight_level || 0.0
       twilight_pct = data.twilight_pct || (twilight_val * 100).to_i
 
-      bar_width = 30
+      bar_width = 15
       filled_len = (twilight_val * bar_width).round.to_i.clamp(0, bar_width)
       empty_len = bar_width - filled_len
       bar_str = "=" * filled_len + "." * empty_len
@@ -81,17 +81,17 @@ module Alx
                  end
 
       print "\e[H\e[2J"
-      puts "\e[1;36m=======================================================================\e[0m"
-      puts "\e[1;36m                       AETHERLUX LIVE TELEMETRY                        \e[0m"
-      puts "\e[1;36m=======================================================================\e[0m"
-      printf " Sim Time:   %02d:%02d        | Ticks:      %-10d | Speed Scale: %.1fx\n",
+      puts "\e[1;36m==================================================\e[0m"
+      puts "\e[1;36m             AETHERLUX LIVE TELEMETRY             \e[0m"
+      puts "\e[1;36m==================================================\e[0m"
+      printf " Sim Time:   %02d:%02d   | Ticks: %-7d | Speed: %.1fx\n",
         mins, secs, data.ticks || 0, data.time_scale || 1.0
-      printf " State:      %-10s | Player HP:  %d/%d        | Cursed Alloy: %d\n",
+      printf " State:      %-7s | HP: %d/%d | Alloy: %d\n",
         (data.paused ? "\e[33mPAUSED\e[0m" : "\e[32mRUNNING\e[0m"),
         data.player_hp || 0, data.player_max_hp || 0, data.player_alloy || 0
-      puts "\e[1;36m-----------------------------------------------------------------------\e[0m"
+      puts "\e[1;36m--------------------------------------------------\e[0m"
       puts " TWILIGHT LEVEL & NET FLOW DYNAMICS:"
-      printf " Current Level:     [%s] %s%3d%%\e[0m (Raw: %.4f)\n", bar_str, tw_color, twilight_pct, twilight_val
+      printf " Level: [%s] %s%3d%%\e[0m (Raw: %.4f)\n", bar_str, tw_color, twilight_pct, twilight_val
 
       rolling_dt = data.twilight_rolling_rate_per_sec || 0.0
       rolling_color = rolling_dt > 0.0001 ? "\e[1;31m" : (rolling_dt < -0.0001 ? "\e[1;32m" : "\e[37m")
@@ -105,23 +105,24 @@ module Alx
 
       session_dt = data.twilight_session_net_rate_per_sec || 0.0
       session_color = session_dt > 0.0001 ? "\e[1;31m" : (session_dt < -0.0001 ? "\e[1;32m" : "\e[37m")
-      session_status = session_dt > 0.0001 ? "Net Corrupting" : (session_dt < -0.0001 ? "Net Purifying" : "Net Neutral")
+      session_status = session_dt > 0.0001 ? "Corrupting" : (session_dt < -0.0001 ? "Purifying" : "Neutral")
       printf " Session Net Rate:   %s%+.4f/sec (%s)\e[0m\n", session_color, session_dt, session_status
 
       last_delta = data.last_twilight_event_delta || 0.0
       last_cause = data.last_twilight_event_cause || "None"
       last_ago = data.seconds_since_last_event || 0.0
-      printf " Last Event:         %+.4f [%s] (%.1fs ago)\n", last_delta, last_cause, last_ago
-      puts "\e[1;36m-----------------------------------------------------------------------\e[0m"
+      printf " Last Event:         %+.4f (%.1fs ago)\n", last_delta, last_ago
+      printf "   Cause:            %.28s\n", last_cause
+      puts "\e[1;36m--------------------------------------------------\e[0m"
       puts " SHADOW & THREAT SYSTEM:"
-      printf " Dark Towers:  %-3d  | Shadow Eggs: %-3d  | Active Enemies: %-3d\n",
+      printf " Dark Towers: %-3d | Eggs: %-3d | Enemies: %-3d\n",
         data.dark_towers_count || 0, data.shadow_eggs_count || 0, data.enemies_count || 0
-      puts "\e[1;36m-----------------------------------------------------------------------\e[0m"
+      puts "\e[1;36m--------------------------------------------------\e[0m"
       puts " MANA INFRASTRUCTURE:"
-      printf " Light Spires: %-3d  | Refiners:    %-3d  | Pipes:          %-3d\n",
+      printf " Spires: %-3d     | Refiners: %-3d | Pipes: %-3d\n",
         data.spires_count || 0, data.refiners_count || 0, data.pipes_count || 0
-      printf " Total Cleanse Rate: %.4f/sec\n", data.spires_cleanse_rate_per_sec || 0.0
-      puts "\e[1;36m=======================================================================\e[0m"
+      printf " Cleanse Rate:       %.4f/sec\n", data.spires_cleanse_rate_per_sec || 0.0
+      puts "\e[1;36m==================================================\e[0m"
       puts " Press Ctrl+C to exit viewer."
     end
   end
