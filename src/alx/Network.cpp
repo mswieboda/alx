@@ -931,8 +931,18 @@ void Network::draw(
                 );
             } else if (type == FixtureType::Seep) {
                 DrawFixtures::seep(root_fix, world_x, world_y, m_tile_size);
+
+                // TODO: this belongs inside of `DrawFixtures::seep(` or deeper, etc
                 if (Random::chance(0.1f)) {
-                    ParticleEmitters::spawn_dark_mana_spill(ps, world_x + 8.0f, world_y + 8.0f, Layer::WorldObjFX);
+                    // TODO: might need to basically use get_fixture_ports
+                    PortLocation ports[4];
+                    int port_count = get_fixture_ports(type, ports);
+                    for (int p = 0; p < port_count; ++p) {
+                        int p_x = ports[p].off_x * m_tile_size + m_tile_size / 2;
+                        int p_y = ports[p].off_y * m_tile_size + m_tile_size / 2;
+
+                        ParticleEmitters::spawn_dark_mana_spill(ps, world_x + p_x, world_y + p_y, Layer::WorldObjFX);
+                    }
                 }
             }
 
