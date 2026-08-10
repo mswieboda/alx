@@ -29,8 +29,6 @@ struct Camera {
     float deadzone_h = 0.5f * Game::HEIGHT; // 50% of 240px height
     bool use_deadzone = true;
 
-    float zoom = 1.0f; // 1.0f = 1x normal, 0.75f = 3/4 scale
-
     // Camera Shake System (Trauma Quadratic Decay)
     float shake_intensity = 0.0f;
     float shake_duration = 0.0f;
@@ -103,8 +101,8 @@ struct Camera {
         update_shake(dt);
         if (!has_target) return;
 
-        float half_vw = (viewport_width / 2.0f) / zoom;
-        float half_vh = (viewport_height / 2.0f) / zoom;
+        float half_vw = viewport_width / 2.0f;
+        float half_vh = viewport_height / 2.0f;
 
         float desired_x = x;
         float desired_y = y;
@@ -162,15 +160,15 @@ struct Camera {
     // 2. Translation Invariance: Satisfies f(v + K) == f(v) + K for all integer tile widths K,
     //    preventing negative-coordinate origin tearing on tile maps.
     int to_screen_x(float world_x) const {
-        return static_cast<int>(std::floor((world_x - x) * zoom + shake_offset_x + 0.5f));
+        return static_cast<int>(std::floor((world_x - x) + shake_offset_x + 0.5f));
     }
 
     int to_screen_y(float world_y) const {
-        return static_cast<int>(std::floor((world_y - y) * zoom + shake_offset_y + 0.5f));
+        return static_cast<int>(std::floor((world_y - y) + shake_offset_y + 0.5f));
     }
 
     float to_world_x(float screen_x) const {
-        return (screen_x / zoom) + x;
+        return screen_x + x;
     }
 
     static constexpr float DEFAULT_CULL_MARGIN_PX = 32.0f;
@@ -182,13 +180,10 @@ struct Camera {
         float viewport_width = static_cast<float>(Game::WIDTH),
         float viewport_height = static_cast<float>(Game::HEIGHT)
     ) const noexcept {
-        float view_w = viewport_width / zoom;
-        float view_h = viewport_height / zoom;
-
         float min_cam_x = x - margin_px;
-        float max_cam_x = x + view_w + margin_px;
+        float max_cam_x = x + viewport_width + margin_px;
         float min_cam_y = y - margin_px;
-        float max_cam_y = y + view_h + margin_px;
+        float max_cam_y = y + viewport_height + margin_px;
 
         return (obj_x < max_cam_x) && (obj_x + obj_w > min_cam_x) &&
                (obj_y < max_cam_y) && (obj_y + obj_h > min_cam_y);
@@ -202,19 +197,16 @@ struct Camera {
         float viewport_height = static_cast<float>(Game::HEIGHT)
     ) const noexcept {
         if (tile_size <= 0) return;
-        float view_w = viewport_width / zoom;
-        float view_h = viewport_height / zoom;
-
         float margin_px = static_cast<float>(tile_margin * tile_size);
 
         out_min_tx = std::max(0, static_cast<int>(std::floor((x - margin_px) / static_cast<float>(tile_size))));
-        out_max_tx = std::min(map_w - 1, static_cast<int>(std::ceil((x + view_w + margin_px) / static_cast<float>(tile_size))));
+        out_max_tx = std::min(map_w - 1, static_cast<int>(std::ceil((x + viewport_width + margin_px) / static_cast<float>(tile_size))));
         out_min_ty = std::max(0, static_cast<int>(std::floor((y - margin_px) / static_cast<float>(tile_size))));
-        out_max_ty = std::min(map_h - 1, static_cast<int>(std::ceil((y + view_h + margin_px) / static_cast<float>(tile_size))));
+        out_max_ty = std::min(map_h - 1, static_cast<int>(std::ceil((y + viewport_height + margin_px) / static_cast<float>(tile_size))));
     }
 
     float to_world_y(float screen_y) const {
-        return (screen_y / zoom) + y;
+        return screen_y + y;
     }
 };
 

@@ -239,7 +239,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     update_tick_simulation(dt);
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
-    m_camera.update(dt);
+    m_camera.update(dt, m_player.facing_dx, m_player.facing_dy);
     m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
 
 #if ALX_ENABLE_HEADLESS
@@ -547,7 +547,7 @@ void MainScene::draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) 
 
     int player_screen_x = m_camera.to_screen_x(m_player.center_x(alpha));
     int player_screen_y = m_camera.to_screen_y(m_player.center_y(alpha));
-    int radius = static_cast<int>(std::round(m_player.wand_radius * m_camera.zoom));
+    int radius = static_cast<int>(std::round(m_player.wand_radius));
     int radius_sq = radius * radius;
     float inv_radius_sq = 1.0f / static_cast<float>(radius_sq);
 

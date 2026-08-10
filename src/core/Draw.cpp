@@ -84,7 +84,7 @@ namespace Draw {
         }
 
         inline float scale_dim(float dim) {
-            return g_active_camera ? std::max(1.0f, std::floor(dim * g_active_camera->zoom + 0.5f)) : dim;
+            return dim;
         }
 
         inline int transform_sort_y_override(int sort_y_override) {
