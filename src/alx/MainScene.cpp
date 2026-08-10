@@ -474,7 +474,7 @@ void MainScene::update_tick_simulation(float dt) {
             Audio::play_sfx(SFX::spire_burn());
         }
         if (sim_res.refiners_processed > 0) {
-            Audio::play_sfx(SFX::mana_converted(), 0.50f);
+            Audio::play_sfx(SFX::mana_converted());
         }
 
         // Active dark mana refiner pool gurgling sound with dynamic pitch variation
@@ -486,7 +486,7 @@ void MainScene::update_tick_simulation(float dt) {
             }
         }
         if (has_active_refiners) {
-            Audio::play_sfx(SFX::refiner_bubble(), 0.35f);
+            Audio::play_sfx(SFX::refiner_bubble());
         }
     }
 }

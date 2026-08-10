@@ -13,6 +13,9 @@ enum WaveType {
 struct SfxrParams {
     WaveType wave_type = SQUARE;
 
+    // Relative volume gain multiplier (1.0f = 100% baseline volume, 0.5f = 50%, etc.)
+    float gain = 1.0f;
+
     // Envelopes (in seconds)
     float attack_time = 0.0f;
     float sustain_time = 0.1f;
@@ -33,14 +36,14 @@ struct SfxrParams {
 
 namespace Audio {
     // --- AUDIO SYSTEM CONSTANTS ---
-    static constexpr float DEFAULT_MUSIC_VOLUME = 0.1f; // 0.05f;
-    static constexpr float DEFAULT_SFX_VOLUME   = 0.75f;
+    static constexpr float DEFAULT_MUSIC_VOLUME = 0.03f; // 0.05f;
+    static constexpr float DEFAULT_SFX_VOLUME   = 0.09f;
     static constexpr float DEFAULT_SFX_PAN      = 0.0f;
     static constexpr float MIN_SFX_PAN          = -1.0f;
     static constexpr float MAX_SFX_PAN          = 1.0f;
     static constexpr float MIN_VOLUME           = 0.0f;
-    static constexpr float MAX_SFX_VOLUME       = 2.0f;
-    static constexpr float MAX_MUSIC_VOLUME     = 1.0f;
+    static constexpr float MAX_SFX_VOLUME       = 0.75f;
+    static constexpr float MAX_MUSIC_VOLUME     = 0.5f;
     static constexpr uint32_t SAMPLE_RATE       = 44100;
     static constexpr uint32_t STEREO_CHANNELS   = 2;
 
@@ -49,8 +52,8 @@ namespace Audio {
 
     // --- SFX ---
 
-    // Triggers an SFXR sound effect with optional per-instance volume and stereo panning (-1.0f left, 0.0f center, +1.0f right)
-    void play_sfx(const SfxrParams& params, float volume = DEFAULT_SFX_VOLUME, float pan = DEFAULT_SFX_PAN);
+    // Triggers an SFXR sound effect with optional per-instance volume override and stereo panning (-1.0f left, 0.0f center, +1.0f right)
+    void play_sfx(const SfxrParams& params, float volume_override = -1.0f, float pan = DEFAULT_SFX_PAN);
 
     // --- Music ---
 
@@ -72,5 +75,3 @@ namespace Audio {
     // Volume
     void set_music_volume(float volume); // 0.0f to 1.0f
 } // namespace Audio
-
-

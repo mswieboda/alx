@@ -196,10 +196,13 @@ namespace Audio {
         }
     }
 
-    void play_sfx(const SfxrParams& params, float volume, float pan) {
+    void play_sfx(const SfxrParams& params, float volume_override, float pan) {
         if (!g_initialized) return;
 
-        const float clamped_vol = std::clamp(volume, MIN_VOLUME, MAX_SFX_VOLUME);
+        const float base_vol = (volume_override >= 0.0f) ? volume_override : DEFAULT_SFX_VOLUME;
+        const float target_vol = base_vol * params.gain;
+
+        const float clamped_vol = std::clamp(target_vol, MIN_VOLUME, MAX_SFX_VOLUME);
         const float clamped_pan = std::clamp(pan, MIN_SFX_PAN, MAX_SFX_PAN);
 
         std::thread([params, clamped_vol, clamped_pan]() {
