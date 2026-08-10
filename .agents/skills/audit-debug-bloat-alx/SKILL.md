@@ -1,9 +1,9 @@
 ---
-name: audit-debug-bloat
+name: audit-debug-bloat-alx
 description: Audits modified files, specific directories, or game concepts for un-gated debug code, telemetry updates, and runtime CLI flags, automatically applying zero-overhead Release macro guards and if constexpr optimizations.
 ---
 
-# Audit Debug Bloat Skill (`/audit-debug-bloat`)
+# Audit Debug Bloat Skill (`/audit-debug-bloat-alx`)
 
 This command audits source files (`.cpp`/`.h`) for debug rendering, telemetry metrics, headless logic, and CLI flags that leak into the Release binary. It refactors non-constexpr debug checks into zero-overhead preprocessor guards (`#if ALX_ENABLE_*`) and `if constexpr` branches.
 
@@ -11,7 +11,7 @@ This command audits source files (`.cpp`/`.h`) for debug rendering, telemetry me
 
 ## 1. Audit Objective
 
-When `/audit-debug-bloat` is invoked:
+When `/audit-debug-bloat-alx` is invoked:
 1. Inspect target files, staged changes (`git diff --staged`), or modified files (`git diff`).
 2. Identify any un-gated telemetry timers, runtime CLI flags, or standard `if` statements checking `Debug::` flags.
 3. Apply zero-cost release stubs and compile-time guards.

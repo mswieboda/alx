@@ -1,26 +1,26 @@
 ---
-name: check-best-practices
+name: check-best-practices-alx
 description: >-
-  Audits git staged changes (`git diff --staged`) and modified code against the project's engineering best practices in AGENTS.md and the targeted-cpp-refactoring skill, executing refactoring fixes while enforcing strict topic focus.
+  Audits git staged changes (`git diff --staged`) and modified code against the project's engineering best practices in AGENTS.md and the refactor-alx skill, executing refactoring fixes while enforcing strict topic focus.
 ---
 
-# Check Best Practices Skill (`/check-best-practices`)
+# Check Best Practices Skill (`/check-best-practices-alx`)
 
-This command audits staged (`git diff --staged`) and modified codebase changes against the project standards defined in [`AGENTS.md`](file:///Users/matt/code/cpp/alx/AGENTS.md) and the [`targeted-cpp-refactoring`](file:///Users/matt/code/cpp/alx/.agents/skills/targeted-cpp-refactoring/SKILL.md) skill. It ensures all changes comply with high-engineering quality, C++20 best practices, and clean architecture before code is committed.
+This command audits staged (`git diff --staged`) and modified codebase changes against the project standards defined in [`AGENTS.md`](file:///Users/matt/code/cpp/alx/AGENTS.md) and the [`refactor-alx`](file:///Users/matt/code/cpp/alx/.agents/skills/refactor-alx/SKILL.md) skill. It ensures all changes comply with high-engineering quality, C++20 best practices, and clean architecture before code is committed.
 
 ---
 
 ## 1. Goal & Pre-Prompt Instructions
 
-When this command (`/check-best-practices`) is invoked, execute the following pre-prompt instruction:
+When this command (`/check-best-practices-alx`) is invoked, execute the following pre-prompt instruction:
 
-> **Audit Objective**: Inspect all staged files (`git diff --staged`), as well as any active modified files (`git diff`), to verify complete compliance with our engineering best practices outlined in `AGENTS.md` and the `targeted-cpp-refactoring` skill. Identify any violations, perform targeted refactoring to fix root causes, and verify build integrity via `task build`.
+> **Audit Objective**: Inspect all staged files (`git diff --staged`), as well as any active modified files (`git diff`), to verify complete compliance with our engineering best practices outlined in `AGENTS.md` and the `refactor-alx` skill. Identify any violations, perform targeted refactoring to fix root causes, and verify build integrity via `task build`.
 
 ---
 
 ## 2. Audit Workflow & Execution Protocol
 
-Follow these sequential steps during a `/check-best-practices` audit:
+Follow these sequential steps during a `/check-best-practices-alx` audit:
 
 ### Step 1: Inspect Staged & Unstaged Diff
 - Run `git status` and `git diff --staged` to discover all modified and staged files.
@@ -69,7 +69,7 @@ Check the staged and modified code against the following explicit standards:
 
 ## 3. Additional Prompts & Focus Incorporation
 
-Any additional instructions or prompt parameters provided by the user alongside `/check-best-practices` (e.g., `/check-best-practices focus on collision logic in Player.cpp`) are **valid and active**.
+Any additional instructions or prompt parameters provided by the user alongside `/check-best-practices-alx` (e.g., `/check-best-practices-alx focus on collision logic in Player.cpp`) are **valid and active**.
 
 - Incorporate the additional prompt to narrow or expand the audit focus as requested.
 - Maintain all core best-practices checks while prioritizing the user's specific area of focus.
@@ -78,15 +78,15 @@ Any additional instructions or prompt parameters provided by the user alongside 
 
 ## 4. Off-Topic Steering Protocol
 
-If the user submits follow-up prompts or requests during a `/check-best-practices` session that stray off-topic from checking or refactoring the staged/modified code (e.g. asking to implement unrelated features or fix un-scoped bugs):
+If the user submits follow-up prompts or requests during a `/check-best-practices-alx` session that stray off-topic from checking or refactoring the staged/modified code (e.g. asking to implement unrelated features or fix un-scoped bugs):
 
 1. **Remind the User First**:
-   Politely inform the user that the primary goal of the active session is auditing and refactoring staged changes against `AGENTS.md` and `targeted-cpp-refactoring` standards.
+   Politely inform the user that the primary goal of the active session is auditing and refactoring staged changes against `AGENTS.md` and `refactor-alx` standards.
 
 2. **Present Clear Options**:
    Provide two explicit choices:
    - **Option A**: Complete or pause the best-practices audit/refactoring task first.
-   - **Option B**: Overrule the active `/check-best-practices` goal and switch focus to the new request.
+   - **Option B**: Overrule the active `/check-best-practices-alx` goal and switch focus to the new request.
 
 3. **Wait for Clarification**:
    Do not perform off-topic file modifications until the user explicitly confirms Option B or overrules the current goal.

@@ -1,9 +1,9 @@
 ---
-name: targeted-cpp-refactoring
+name: refactor-alx
 description: Perform targeted, high-engineering C++ code refactoring, code review, modular abstraction, readability cleanup, method decomposition, human-centric naming, and performance optimization on specific files or game concepts (e.g., player movement, rendering, memory efficiency) while maintaining strict focus and steering off-topic requests back to the refactoring scope.
 ---
 
-# Targeted C++ Refactoring Skill (`targeted-cpp-refactoring`)
+# Targeted C++ Refactoring Skill (`refactor-alx`)
 
 This skill provides a rigorous, standardized workflow for AI coding agents to perform high-engineering C++ code refactorings, code reviews, cleanups, abstractions, method decompositions, and performance audits focused on specific files or domain concepts within the codebase.
 
