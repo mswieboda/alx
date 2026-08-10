@@ -38,7 +38,7 @@ namespace Draw {
         // and bottom-right (x + w, y + h) endpoints through to_screen_x/to_screen_y.
         // This guarantees that adjacent tiles (e.g. Tile A at x, Tile B at x + w) share the exact
         // same integer screen pixel boundary (to_screen_x(x + w)), preventing 1-pixel visual tearing
-        // or gaps across all zoom levels, sub-pixel movements, and deadzone lerps.
+        // or gaps across sub-pixel movements and deadzone lerps.
         //
         // RASTERIZATION ALIASING NOTE (Sub-Pixel Remainder Rolling / Pixel Snapping Beats):
         // In GBA-style CPU software rendering without GPU sub-pixel bilinear filtering, mapping

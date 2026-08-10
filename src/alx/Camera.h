@@ -38,49 +38,10 @@ struct Camera : public core::Camera {
 
     void update(float dt, float facing_dx = 0.0f, float facing_dy = 1.0f, bool is_moving = false) {
         bool is_peek_held = Action::is_pan_mode_active();
+        update_movement_timer(dt, is_moving, is_peek_held);
 
-        if (is_moving && !is_peek_held) {
-            m_move_timer += dt;
-        } else {
-            m_move_timer = 0.0f;
-        }
-
-        // Calculate continuous auto-lead weight (0.0 to 1.0) using cubic ease-in
-        float raw_t = (m_move_timer - RAMP_START_SEC) / (RAMP_FULL_SEC - RAMP_START_SEC);
-        float clamped_t = std::clamp(raw_t, 0.0f, 1.0f);
-        float auto_weight = clamped_t * clamped_t * (3.0f - 2.0f * clamped_t);
-
-        float target_offset_x = 0.0f;
-        float target_offset_y = 0.0f;
-
-        float len = std::sqrt(facing_dx * facing_dx + facing_dy * facing_dy);
-        if (len > EPSILON_DIR_LEN) {
-            float norm_dx = facing_dx / len;
-            float norm_dy = facing_dy / len;
-
-            if (is_peek_held) {
-                // Priority 1: Manual Q Hold Deep Peek (5.0 tiles)
-                target_offset_x = norm_dx * DEEP_PEEK_DISTANCE_PX;
-                target_offset_y = norm_dy * DEEP_PEEK_DISTANCE_PX;
-            } else {
-                // Priority 2: Automatic Look-Ahead weighted by continuous movement ramp-in (up to 2.0 tiles)
-                target_offset_x = norm_dx * (AUTO_LOOKAHEAD_DISTANCE_PX * auto_weight);
-                target_offset_y = norm_dy * (AUTO_LOOKAHEAD_DISTANCE_PX * auto_weight);
-            }
-        }
-
-        // Dynamic lerp speed based on context
-        float active_speed = is_peek_held ? DEEP_PEEK_SPEED : (is_moving ? AUTO_PEEK_SPEED : RETURN_PEEK_SPEED);
-        float t = 1.0f - std::exp(-active_speed * dt);
-
-        m_pan_offset_x += (target_offset_x - m_pan_offset_x) * t;
-        m_pan_offset_y += (target_offset_y - m_pan_offset_y) * t;
-
-        if (!is_peek_held && !is_moving) {
-            if (std::abs(m_pan_offset_x) < MIN_OFFSET_SNAP_PX) m_pan_offset_x = 0.0f;
-            if (std::abs(m_pan_offset_y) < MIN_OFFSET_SNAP_PX) m_pan_offset_y = 0.0f;
-        }
-
+        const auto [target_offset_x, target_offset_y] = calculate_target_offset(facing_dx, facing_dy, is_peek_held);
+        apply_offset_lerp(dt, target_offset_x, target_offset_y, is_peek_held, is_moving);
         sync_core_camera();
     }
 
@@ -89,13 +50,63 @@ private:
     float m_pan_offset_y = 0.0f;
     float m_move_timer = 0.0f;
 
+    void update_movement_timer(float dt, bool is_moving, bool is_peek_held) noexcept {
+        if (is_moving && !is_peek_held) {
+            m_move_timer += dt;
+        } else {
+            m_move_timer = 0.0f;
+        }
+    }
+
+    [[nodiscard]] float calculate_auto_lead_weight() const noexcept {
+        const float raw_t = (m_move_timer - RAMP_START_SEC) / (RAMP_FULL_SEC - RAMP_START_SEC);
+        const float clamped_t = std::clamp(raw_t, 0.0f, 1.0f);
+        return clamped_t * clamped_t * (3.0f - 2.0f * clamped_t); // Smooth cubic ease-in
+    }
+
+    struct Offset { float x{0.0f}; float y{0.0f}; };
+
+    [[nodiscard]] Offset calculate_target_offset(float facing_dx, float facing_dy, bool is_peek_held) const noexcept {
+        const float len = std::sqrt(facing_dx * facing_dx + facing_dy * facing_dy);
+        if (len <= EPSILON_DIR_LEN) {
+            return {0.0f, 0.0f};
+        }
+
+        const float norm_dx = facing_dx / len;
+        const float norm_dy = facing_dy / len;
+
+        if (is_peek_held) {
+            return { norm_dx * DEEP_PEEK_DISTANCE_PX, norm_dy * DEEP_PEEK_DISTANCE_PX };
+        }
+
+        const float auto_weight = calculate_auto_lead_weight();
+        return { norm_dx * (AUTO_LOOKAHEAD_DISTANCE_PX * auto_weight), norm_dy * (AUTO_LOOKAHEAD_DISTANCE_PX * auto_weight) };
+    }
+
+    void apply_offset_lerp(float dt, float target_x, float target_y, bool is_peek_held, bool is_moving) noexcept {
+        const float active_speed = is_peek_held ? DEEP_PEEK_SPEED : (is_moving ? AUTO_PEEK_SPEED : RETURN_PEEK_SPEED);
+        const float t = 1.0f - std::exp(-active_speed * dt);
+
+        m_pan_offset_x += (target_x - m_pan_offset_x) * t;
+        m_pan_offset_y += (target_y - m_pan_offset_y) * t;
+
+        if (!is_peek_held && !is_moving) {
+            if (std::abs(m_pan_offset_x) < MIN_OFFSET_SNAP_PX) m_pan_offset_x = 0.0f;
+            if (std::abs(m_pan_offset_y) < MIN_OFFSET_SNAP_PX) m_pan_offset_y = 0.0f;
+        }
+    }
+
     void sync_core_camera() {
         if (has_target) {
-            float half_vw = static_cast<float>(Game::WIDTH) / 2.0f;
-            float half_vh = static_cast<float>(Game::HEIGHT) / 2.0f;
+            const float half_vw = static_cast<float>(Game::WIDTH) / 2.0f;
+            const float half_vh = static_cast<float>(Game::HEIGHT) / 2.0f;
 
-            float center_x = target_x + m_pan_offset_x;
-            float center_y = target_y + m_pan_offset_y;
+            // Integer pixel snap for camera offset prevents threshold oscillation wobble during return decay
+            const float snapped_offset_x = std::round(m_pan_offset_x);
+            const float snapped_offset_y = std::round(m_pan_offset_y);
+
+            const float center_x = target_x + snapped_offset_x;
+            const float center_y = target_y + snapped_offset_y;
 
             x = center_x - half_vw;
             y = center_y - half_vh;
