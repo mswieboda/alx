@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <span>
 #include <vector>
 #include "core/Scene.h"
 #include "alx/Camera.h"
@@ -8,6 +9,7 @@
 #include "alx/Player.h"
 #include "alx/EnemyManager.h"
 #include "alx/ParticleSystem.h"
+#include "alx/Levels.h"
 
 namespace alx {
 
@@ -44,6 +46,7 @@ private:
     float m_twilight_level = TWILIGHT_MAX;
     float m_wand_radius = 56.0f;
     int m_current_level_id = 1;
+    GridPos m_player_spawn{9, 9};
 
     // Sword slash tip tracking for gapless swipe line rendering
     float m_slash_prev_tip_x = 0.0f;
@@ -123,6 +126,7 @@ private:
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
     void draw_vignette_surge();
     void draw_hud();
+    void load_tiles_and_network(std::span<const FixturePlacement> fixtures);
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress);
     void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size);
 
@@ -155,12 +159,6 @@ public:
 
     void init(SceneManager& sm) override;
     void load_level(int level_id);
-    void load_tiles_and_network(
-        const std::vector<std::pair<int, int>>& seeps,
-        const std::vector<std::pair<int, int>>& refiners,
-        const std::vector<std::pair<int, int>>& spires,
-        const std::vector<std::pair<int, int>>& pipes
-    );
     void update_camera_map_boundary();
 
     void update(SceneManager& sm, float dt) override;

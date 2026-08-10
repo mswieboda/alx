@@ -29,47 +29,38 @@ void MainScene::init(SceneManager& sm) {
 }
 
 void MainScene::load_level(int level_id) {
+    const Level* lvl = Levels::get_level(level_id);
+    if (!lvl) return;
+
     m_current_level_id = level_id;
-    m_twilight_level = TWILIGHT_MAX;
+    m_player_spawn = lvl->player_spawn;
+    m_twilight_level = std::clamp(lvl->initial_twilight, 0.0f, TWILIGHT_MAX);
 
-    std::vector<std::pair<int, int>> seeps;
-    std::vector<std::pair<int, int>> refiners;
-    std::vector<std::pair<int, int>> spires;
-    std::vector<std::pair<int, int>> pipes;
+    m_tiles = Tiles(lvl->map_width, lvl->map_height);
+    m_network = Network(lvl->map_width, lvl->map_height);
 
-    std::vector<std::pair<int, int>> corrupted_tile_coords;
+    const float spawn_x = static_cast<float>(m_player_spawn.x) * m_tiles.tile_size();
+    const float spawn_y = static_cast<float>(m_player_spawn.y) * m_tiles.tile_size();
 
-    if (level_id == 1) {
-        m_tiles = Tiles(60, 30);
-        m_network = Network(60, 30);
 #if ALX_ENABLE_HEADLESS
-        if (m_is_headless) {
-            m_player = Player(HeadlessConstants::OFFSCREEN_PLAYER_POS, HeadlessConstants::OFFSCREEN_PLAYER_POS);
-        } else {
-            m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
-        }
-#else
-        m_player = Player(9 * m_tiles.tile_size(), 9 * m_tiles.tile_size());
-#endif
-        m_twilight_level = 0.9f;
-
-        seeps = { {15, 12} };
-        refiners = { {10, 8} };
-        spires = { {6, 6} };
-
-        pipes = {
-            // seep top center port (16,12) to refiner east port (12,9)
-            {16, 11}, {16, 10}, {16, 9}, {15, 9}, {14, 9}, {13, 9},
-
-            // refiner west port (10,9) to spire south port (7,8)
-            {9, 9}, {8, 9}, {7, 9}
-        };
-
-        corrupted_tile_coords = { {25, 10}, {40, 12}, {15, 20}, {45, 8} };
+    if (m_is_headless) {
+        m_player = Player(HeadlessConstants::OFFSCREEN_PLAYER_POS, HeadlessConstants::OFFSCREEN_PLAYER_POS);
+    } else {
+        m_player = Player(spawn_x, spawn_y);
     }
+#else
+    m_player = Player(spawn_x, spawn_y);
+#endif
 
     update_camera_map_boundary();
-    load_tiles_and_network(seeps, refiners, spires, pipes);
+    load_tiles_and_network(lvl->fixtures);
+
+    std::vector<std::pair<int, int>> corrupted_tile_coords;
+    corrupted_tile_coords.reserve(lvl->dark_tower_spawns.size());
+    for (const auto& spawn : lvl->dark_tower_spawns) {
+        corrupted_tile_coords.emplace_back(spawn.pos.x, spawn.pos.y);
+    }
+
     m_enemy_manager.clear();
     m_enemy_manager.register_corrupted_tiles(corrupted_tile_coords, m_tiles);
 
@@ -87,12 +78,7 @@ void MainScene::load_level(int level_id) {
 #endif
 }
 
-void MainScene::load_tiles_and_network(
-    const std::vector<std::pair<int, int>>& seeps,
-    const std::vector<std::pair<int, int>>& refiners,
-    const std::vector<std::pair<int, int>>& spires,
-    const std::vector<std::pair<int, int>>& pipes
-) {
+void MainScene::load_tiles_and_network(std::span<const FixturePlacement> fixtures) {
     int width = m_tiles.width();
     int height = m_tiles.height();
 
@@ -112,17 +98,8 @@ void MainScene::load_tiles_and_network(
     // 2. Clear & populate Network fixtures
     m_network.clear();
 
-    for (auto [x, y] : seeps) {
-        m_network.place_fixture(GridPos{ static_cast<int16_t>(x), static_cast<int16_t>(y) }, FixtureType::Seep);
-    }
-    for (auto [x, y] : refiners) {
-        m_network.place_fixture(GridPos{ static_cast<int16_t>(x), static_cast<int16_t>(y) }, FixtureType::Refiner);
-    }
-    for (auto [x, y] : spires) {
-        m_network.place_fixture(GridPos{ static_cast<int16_t>(x), static_cast<int16_t>(y) }, FixtureType::Spire);
-    }
-    for (auto [x, y] : pipes) {
-        m_network.place_fixture(GridPos{ static_cast<int16_t>(x), static_cast<int16_t>(y) }, FixtureType::Pipe);
+    for (const auto& placement : fixtures) {
+        m_network.place_fixture(placement.pos, placement.type);
     }
 }
 
@@ -311,12 +288,15 @@ void MainScene::update_player_respawn() {
         m_player.state.defeated = false;
         m_player.state.iframe_timer = Player::State::IFRAME_DURATION;
 
+        const float spawn_x_px = static_cast<float>(m_player_spawn.x) * m_tiles.tile_size();
+        const float spawn_y_px = static_cast<float>(m_player_spawn.y) * m_tiles.tile_size();
+
 #if ALX_ENABLE_HEADLESS
-        const float spawn_x = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
-        const float spawn_y = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : (9.0f * m_tiles.tile_size());
+        const float spawn_x = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : spawn_x_px;
+        const float spawn_y = m_is_headless ? HeadlessConstants::OFFSCREEN_PLAYER_POS : spawn_y_px;
 #else
-        const float spawn_x = 9.0f * m_tiles.tile_size();
-        const float spawn_y = 9.0f * m_tiles.tile_size();
+        const float spawn_x = spawn_x_px;
+        const float spawn_y = spawn_y_px;
 #endif
         m_player.transform.x = spawn_x;
         m_player.transform.y = spawn_y;
@@ -404,8 +384,8 @@ void MainScene::update_headless_defense(float dt) {
     m_headless_defend_timer += dt;
     if (m_headless_defend_timer >= HeadlessConstants::DEFEND_INTERVAL_SEC) {
         m_headless_defend_timer = 0.0f;
-        float base_x = 9.0f * m_tiles.tile_size();
-        float base_y = 9.0f * m_tiles.tile_size();
+        float base_x = static_cast<float>(m_player_spawn.x) * m_tiles.tile_size();
+        float base_y = static_cast<float>(m_player_spawn.y) * m_tiles.tile_size();
         m_enemy_manager.clear_enemies_near(base_x, base_y, HeadlessConstants::DEFEND_RADIUS_PX);
     }
 }
