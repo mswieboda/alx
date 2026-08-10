@@ -1,5 +1,3 @@
-- HUD is too jam packed and text overlaps. reduce to min labels like `a:` etc
-
 - player needs to be able to move (and actually face, instead of strafe) in all directions while building. but only pressing A or holding A locks the direction down
 
 - player needs: Player Dash / Dodge Roll (maybe the GBA-style "B" button or like a new usage of controller X/Y which isn't technically GBA-style but usually on all modern game controllers, so it would be fine to add in Input.h/Action.h and cpp etc)

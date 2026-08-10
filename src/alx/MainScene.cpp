@@ -589,15 +589,15 @@ void MainScene::draw_hud() {
     int screen_height = Game::HEIGHT;
 
     // TODO: in future switch to tiny icons
-    const char* selected_name = "p";
+    const char* selected_name = "\x1D";
     FixtureType sel_type = m_player.selected_fixture_type();
     int cost = Player::fixture_cost(sel_type);
     if (sel_type == FixtureType::Wall) {
-        selected_name = "w";
+        selected_name = "\x16";
     } else if (sel_type == FixtureType::Refiner) {
-        selected_name = "ref";
+        selected_name = "\x0A";
     } else if (sel_type == FixtureType::Spire) {
-        selected_name = "spr";
+        selected_name = "\x7F";
     }
 
     const uint32_t text_color = 0xFF00CCCC;
@@ -609,13 +609,16 @@ void MainScene::draw_hud() {
     // \x03 = Heart icon, \x04 = Gem/Alloy icon
     Draw::text_shadow(
         6, ly,
-        Draw::fmt("\x03 %d/%d  \x04 %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
+        // NOTE: old way with `HP 5/5` etc showing max health
+        // Draw::fmt("\x03 %d/%d  \x04 %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
+        Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
         text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
 
-    // \x0F = Twilight starburst icon
+    // \x0F = Twilight starburst icon, \x08 = Cleanse icon
     int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
-    std::string_view twilight_str = Draw::fmt("\x0F %d%%", twilight_pct);
+    const char* icon = m_twilight_level >= 0.5f ? "\x08" : "\x0F";
+    std::string_view twilight_str = Draw::fmt("%s %d%%", icon, twilight_pct);
     int twilight_width = Draw::text_width(twilight_str, 1, &font);
     Draw::text_shadow(
         screen_width / 2 - twilight_width / 2, ly,
@@ -624,7 +627,7 @@ void MainScene::draw_hud() {
     );
 
     // selected build fixture
-    std::string_view build_str = Draw::fmt("%s (%d)", selected_name, cost);
+    std::string_view build_str = Draw::fmt("build: %s (%d)", selected_name, cost);
     int build_width = Draw::text_width(build_str, 1, &font);
     Draw::text_shadow(
         screen_width - 6 - build_width, ly,
