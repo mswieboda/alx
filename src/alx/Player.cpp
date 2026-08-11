@@ -143,6 +143,32 @@ void draw_placement_preview(const Player& player, float world_draw_x, float worl
     bool is_valid = (!self_overlap) && has_alloy && can_place;
     uint32_t border_color = is_valid ? 0xFF00FF00 : 0xFF0000FF; // Green (valid) vs Red (invalid)
 
+    // STUI: 2D Directional Reticle Vector Line & Arrowhead
+    float pcx = world_draw_x + (player.transform.width * 0.5f);
+    float pcy = world_draw_y + (player.transform.height * 0.5f);
+    float tcx = (static_cast<float>(target_tx) + static_cast<float>(fp.width) * 0.5f) * tile_sz;
+    float tcy = (static_cast<float>(target_ty) + static_cast<float>(fp.height) * 0.5f) * tile_sz;
+
+    Draw::line(pcx, pcy, tcx, tcy, border_color, 1, player.transform.z_index + 1, static_cast<int>(world_bottom_y));
+
+    float card_dx = player.m_cardinal_facing_dx;
+    float card_dy = player.m_cardinal_facing_dy;
+    if (card_dx == 0.0f && card_dy == 0.0f) {
+        card_dx = player.facing_dx;
+        card_dy = player.facing_dy;
+    }
+
+    constexpr float wing_len = 3.0f;
+    if (std::abs(card_dx) > std::abs(card_dy)) {
+        float dir_sign = (card_dx >= 0.0f) ? 1.0f : -1.0f;
+        Draw::line(tcx, tcy, tcx - dir_sign * wing_len, tcy - wing_len, border_color, 1, player.transform.z_index + 1, static_cast<int>(world_bottom_y));
+        Draw::line(tcx, tcy, tcx - dir_sign * wing_len, tcy + wing_len, border_color, 1, player.transform.z_index + 1, static_cast<int>(world_bottom_y));
+    } else {
+        float dir_sign = (card_dy >= 0.0f) ? 1.0f : -1.0f;
+        Draw::line(tcx, tcy, tcx - wing_len, tcy - dir_sign * wing_len, border_color, 1, player.transform.z_index + 1, static_cast<int>(world_bottom_y));
+        Draw::line(tcx, tcy, tcx + wing_len, tcy - dir_sign * wing_len, border_color, 1, player.transform.z_index + 1, static_cast<int>(world_bottom_y));
+    }
+
     Draw::rect(
         static_cast<float>(target_tx) * tile_sz,
         static_cast<float>(target_ty) * tile_sz,
@@ -255,10 +281,23 @@ Player::PlacementPoint Player::placement_fixture_center(float px, float py, floa
     int player_tx = static_cast<int>(std::floor(g.cx / tile_size));
     int player_ty = static_cast<int>(std::floor(g.cy / tile_size));
 
-    float fallback_cx = g.cx + facing_dx * tile_size;
-    float fallback_cy = g.cy + facing_dy * tile_size;
+    // STCE: Use strict 4-way orthogonal cardinal facing vector
+    float card_dx = m_cardinal_facing_dx;
+    float card_dy = m_cardinal_facing_dy;
+    if (card_dx == 0.0f && card_dy == 0.0f) {
+        if (std::abs(facing_dx) >= std::abs(facing_dy)) {
+            card_dx = (facing_dx >= 0.0f) ? 1.0f : -1.0f;
+            card_dy = 0.0f;
+        } else {
+            card_dx = 0.0f;
+            card_dy = (facing_dy >= 0.0f) ? 1.0f : -1.0f;
+        }
+    }
 
-    bool is_vertical = std::abs(facing_dy) >= std::abs(facing_dx);
+    float fallback_cx = g.cx + card_dx * tile_size;
+    float fallback_cy = g.cy + card_dy * tile_size;
+
+    bool is_vertical = std::abs(card_dy) >= std::abs(card_dx);
 
     for (float d = tile_size * 0.5f; d <= max_dist; d += tile_size * 0.25f) {
         int tx = 0;
@@ -267,7 +306,7 @@ Player::PlacementPoint Player::placement_fixture_center(float px, float py, floa
         if (is_vertical) {
             // Perpendicular axis (X) centered on player tile X
             tx = player_tx - (fp.width / 2);
-            if (facing_dy >= 0.0f) {
+            if (card_dy >= 0.0f) {
                 // South (+Y)
                 ty = static_cast<int>(std::floor((g.cy + d) / tile_size));
             } else {
@@ -278,7 +317,7 @@ Player::PlacementPoint Player::placement_fixture_center(float px, float py, floa
         } else {
             // Perpendicular axis (Y) centered on player tile Y
             ty = player_ty - (fp.height / 2);
-            if (facing_dx >= 0.0f) {
+            if (card_dx >= 0.0f) {
                 // East (+X)
                 tx = static_cast<int>(std::floor((g.cx + d) / tile_size));
             } else {
@@ -531,6 +570,16 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
         FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
         facing_dx = facing_vec.dx;
         facing_dy = facing_vec.dy;
+
+        float ax = std::abs(facing_dx);
+        float ay = std::abs(facing_dy);
+        if (ax > ay) {
+            m_cardinal_facing_dx = (facing_dx > 0.0f) ? 1.0f : -1.0f;
+            m_cardinal_facing_dy = 0.0f;
+        } else if (ay > ax) {
+            m_cardinal_facing_dx = 0.0f;
+            m_cardinal_facing_dy = (facing_dy > 0.0f) ? 1.0f : -1.0f;
+        }
     }
 
     auto f = facing();
@@ -650,12 +699,24 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
             }
         }
 
-        if (Action::is_build_tile()) {
+        if (Action::is_place_fixture()) {
             try_build_tile(tiles, network);
         }
 
         if (Action::is_remove_fixture()) {
             try_remove_tile(tiles, network);
+        }
+
+        if (Action::is_build_foundation()) {
+            float tile_sz = static_cast<float>(tiles.tile_size());
+            PlacementPoint pt = placement_fixture_center(tile_sz);
+            GridPos target_pos{
+                static_cast<int16_t>(static_cast<int>(std::floor(pt.cx / tile_sz))),
+                static_cast<int16_t>(static_cast<int>(std::floor(pt.cy / tile_sz)))
+            };
+            if (network.in_bounds(target_pos)) {
+                Audio::play_sfx(SFX::build_snap());
+            }
         }
     }
 }

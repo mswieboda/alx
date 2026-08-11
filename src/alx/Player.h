@@ -53,6 +53,10 @@ struct Player : public Entity {
     float facing_dy = 1.0f;
     bool is_facing_left = false;
 
+    // Cardinal facing vector (strictly 4-way orthogonal for placement & reticle)
+    float m_cardinal_facing_dx = 0.0f;
+    float m_cardinal_facing_dy = 1.0f;
+
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
     float charge_timer = 0.0f;

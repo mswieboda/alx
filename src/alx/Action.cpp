@@ -100,6 +100,7 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(BuildMode)]     = GBA::R_SHOULDER;
     s_bindings[static_cast<size_t>(BuildCycle)]    = GBA::BUTTON_Y;
     s_bindings[static_cast<size_t>(ManaSpark)]     = GBA::R_TRIGGER;
+    s_bindings[static_cast<size_t>(BuildFoundation)] = { KeyCode::E };
 
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
 
@@ -174,6 +175,8 @@ static bool is_gamepad_action_pressed(Type type) {
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_NORTH);
         case ManaSpark:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_TRIGGER);
+        case BuildFoundation:
+            return ::Input::is_gamepad_button_pressed(MG_BUTTON_SOUTH);
         case Menu:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_START);
         default:
@@ -211,6 +214,8 @@ static bool is_gamepad_action_just_pressed(Type type) {
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_NORTH);
         case ManaSpark:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_TRIGGER);
+        case BuildFoundation:
+            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_SOUTH);
         case Menu:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_START);
         default:
@@ -244,11 +249,11 @@ bool is_just_pressed(Type type) {
 }
 
 bool is_attack() {
-    return !is_pressed(BuildMode) && is_just_pressed(ActionBtn);
+    return is_just_pressed(ActionBtn);
 }
 
 bool is_attack_held() {
-    return !is_pressed(BuildMode) && is_pressed(ActionBtn);
+    return is_pressed(ActionBtn);
 }
 
 bool is_place_fixture() {
@@ -270,14 +275,15 @@ bool is_remove_fixture() {
 }
 
 bool is_build_cycle() {
-    if (is_pressed(BuildMode) && is_just_pressed(PanMode)) {
-        return true;
-    }
-    return is_just_pressed(BuildCycle);
+    return is_pressed(BuildMode) && is_just_pressed(BuildCycle);
 }
 
 bool is_pan_mode_active() {
     return !is_pressed(BuildMode) && is_pressed(PanMode);
+}
+
+bool is_build_foundation() {
+    return is_just_pressed(BuildFoundation);
 }
 
 bool is_pressed(const std::string& action_str) {

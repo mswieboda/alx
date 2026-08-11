@@ -76,17 +76,14 @@ namespace Action {
     bool is_just_pressed(Type type);
 
     // Semantic Combo Helpers (GBA R-Shoulder + D-Pad / Button A / L-Shoulder)
-    bool is_attack();           // Button A without R-Shoulder (BuildMode) held
-    bool is_attack_held();      // Button A held without R-Shoulder (BuildMode) held
-    bool is_place_fixture();       // R-Shoulder (BuildMode) held + Button A or West (X / U) just pressed
-    bool is_place_fixture_held();  // R-Shoulder (BuildMode) held + Button A or West (X / U) held down
+    bool is_attack();              // Button A (J / Z) primary attack (unconditional)
+    bool is_attack_held();         // Button A (J / Z) held (unconditional)
+    bool is_place_fixture();       // R-Shoulder (BuildMode) held + West (X / U)
+    bool is_place_fixture_held();  // R-Shoulder (BuildMode) held + West (X / U) held down
     bool is_remove_fixture();      // R-Shoulder (BuildMode) held + Button B (Cancel)
-    bool is_build_cycle();      // R-Shoulder (BuildMode) held + L-Shoulder (PanMode)
-    bool is_pan_mode_active();  // L-Shoulder held without R-Shoulder (BuildMode) held
-
-    // Aliases for helper functions
-    inline bool is_build_tile() { return is_place_fixture(); }
-    inline bool is_build_tile_held() { return is_place_fixture_held(); }
+    bool is_build_cycle();         // North (Y / I) + Button Y
+    bool is_pan_mode_active();     // L-Shoulder held + R-Shoulder (BuildMode) not held
+    bool is_build_foundation();    // BuildFoundation action trigger
 
     // String API (Convenience overloads)
     bool is_pressed(const std::string& action_str);

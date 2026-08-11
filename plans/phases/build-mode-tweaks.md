@@ -28,15 +28,15 @@ Rather than a zero-cost ghost blueprint, placing a fixture consumes Alloy immedi
 
 ## Phased Implementation Plan
 
-### [PH-CDLK]: Phase 1 - Unconditional Combat & Cardinal Line Controls
+### [PH-CDLK]: Phase 1 - Unconditional Combat & Cardinal Line Controls (COMPLETED)
 
 Implement 4-way cardinal locking when holding the dedicated placement button (`Place` / `X` / `U`) and ensure combat actions (`ActionBtn` / `A`, `ManaSpark` / `RT`) operate unconditionally.
 
-- [ ] `[CBMD]`: Concurrent Build-Combat Defense - Permit primary attacks (`A`) and Mana Spark charges (`RT`) to trigger unconditionally even while `R1` (`BuildMode`) or `Place` (`X` / `U`) is held down; sword attacks pause fixture placement for their 0.15s sweep duration.
-- [ ] `[STCE]`: Strict 4-Way Cardinal Enforcer - Restrict build target placement vectors strictly to 4-way orthogonal cardinal axes ($0^\circ, 90^\circ, 180^\circ, 270^\circ$) whenever placement is active.
+- [x] `[CBMD]`: Concurrent Build-Combat Defense - Permit primary attacks (`A`) and Mana Spark charges (`RT`) to trigger unconditionally even while `R1` (`BuildMode`) or `Place` (`X` / `U`) is held down; sword attacks pause fixture placement for their 0.15s sweep duration.
+- [x] `[STCE]`: Strict 4-Way Cardinal Enforcer - Restrict build target placement vectors strictly to 4-way orthogonal cardinal axes ($0^\circ, 90^\circ, 180^\circ, 270^\circ$) whenever placement is active.
 - [x] `[CDLK]`: Cardinal Placement Lock - Lock facing direction exclusively when actively holding `Place` (`X` / `U`), while preserving full 8-way player movement speed during strafe. Holding `R1` (`BuildMode`) alone retains normal 8-way player turning.
-- [ ] `[STUI]`: Direction Lock Visual Indicator - Display a crisp 2D directional reticle arrow locked along the active cardinal axis and a grid tile outline over the targeted tile position.
-- [ ] `[BLFD]`: Foundation Construction Action - Support `Action::BuildFoundation` ("build_foundation" / "build") to trigger manual foundation construction/repair when standing adjacent to a `FixtureFoundation`.
+- [x] `[STUI]`: Direction Lock Visual Indicator - Display a crisp 2D directional reticle arrow locked along the active cardinal axis and a grid tile outline over the targeted tile position.
+- [x] `[BLFD]`: Foundation Construction Action - Support `Action::BuildFoundation` ("build_foundation" / "build") to trigger manual foundation construction/repair when standing adjacent to a `FixtureFoundation`.
 
 ---
 
