@@ -10,7 +10,7 @@
 
 namespace alx {
 
-class Camera;
+struct Camera;
 class Tiles;
 class Network;
 class ParticleSystem;

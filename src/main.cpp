@@ -3,14 +3,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 
 #include "Game.h"
 #include "core/GameWindow.h"
@@ -26,7 +26,7 @@
 
 namespace {
 
-#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 pid_t g_telemetry_pid = -1;
 
 void stop_inline_telemetry_viewer() {
@@ -56,7 +56,7 @@ void start_inline_telemetry_viewer() {
         _exit(0);
     }
 }
-#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 
 // --- CLI ARGUMENT PARSING HELPERS ---
 std::optional<std::string_view> find_cli_arg(int argc, char* argv[], std::string_view name) {
@@ -244,9 +244,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
     stop_inline_telemetry_viewer();
-#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 
     if constexpr (ALX_ENABLE_HEADLESS) {
         if (has_cli_flag(argc, argv, "report")) {
