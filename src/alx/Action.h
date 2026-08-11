@@ -31,10 +31,14 @@ namespace GBA {
 
     inline const std::vector<KeyCode> BUTTON_A   = { KeyCode::J, KeyCode::Z };
     inline const std::vector<KeyCode> BUTTON_B   = { KeyCode::K, KeyCode::X };
-    inline const std::vector<KeyCode> L_SHOULDER = { KeyCode::Q };
+    inline const std::vector<KeyCode> BUTTON_X   = { KeyCode::U };
+    inline const std::vector<KeyCode> BUTTON_Y   = { KeyCode::I };
+    inline const std::vector<KeyCode> L_SHOULDER = { KeyCode::E };
     inline const std::vector<KeyCode> R_SHOULDER = { KeyCode::O };
+    inline const std::vector<KeyCode> L_TRIGGER  = { KeyCode::Q };
+    inline const std::vector<KeyCode> R_TRIGGER  = { KeyCode::P };
     inline const std::vector<KeyCode> START      = { KeyCode::Enter };
-    inline const std::vector<KeyCode> SELECT     = { KeyCode::Tab, KeyCode::Space };
+    inline const std::vector<KeyCode> SELECT     = { KeyCode::Tab };
 }
 
 namespace Action {
@@ -43,22 +47,25 @@ namespace Action {
         MoveDown,
         MoveLeft,
         MoveRight,
-        ActionBtn,  // Button A (J / Z): Primary Attack / Action
+        ActionBtn,        // Button A (J / Z): Primary Attack / Action
         Attack = ActionBtn, // Alias for Attack
-        BuildTile,  // R-Shoulder (O) + Button A (J / Z) or West (X / U): Place buildable tile
-        Cancel,     // Button B (K / X) or East (B): Cancel / Drain / Demolish
-        Build,      // R-Shoulder (O): Modifier for Build commands
-        BuildCycle, // R-Shoulder (O) + L-Shoulder (Q) or North (Y / I): Cycle build type forward
-        PanMode,    // L-Shoulder (Q) or L1 Bumper: Hold to pan camera scouting
-        Menu,       // Enter (Start): Menu / Pause
-        Map,        // Tab (Select): Map
-        ManaSpark,  // Right Trigger (R2) or P: Charge/fire mana spark
-        Dash,       // Right Shoulder (R1) or Space: Dash / Dodge
-        DebugResource,  // 5: Temporary debug cheat +10 alloy
-        DebugEnemyWave, // 6: Temporary debug cheat to spawn 2 enemies
-        DebugTwUp,  // plus key
-        DebugTwDown, // minus key
-        Count
+        Place,            // West (X / U) or R-Shoulder (O) + Button A: Place fixture foundation/tile
+        Cancel,           // Button B (K / X) or East (B): Cancel / Demolish
+        BuildMode,        // R-Shoulder (O): Modifier for Build mode
+        BuildCycle,       // R-Shoulder (O) + L-Shoulder (Q) or North (Y / I): Cycle build type forward
+        PanMode,          // L-Shoulder (Q) or L1 Bumper: Hold to pan camera scouting
+        Menu,             // Enter (Start): Menu / Pause
+        ManaSpark,        // Right Trigger (R2) or P: Charge/fire mana spark
+        BuildFoundation,  // Future action to build/energize foundation to completion
+        DebugResource,    // 5: Temporary debug cheat +10 alloy
+        DebugEnemyWave,   // 6: Temporary debug cheat to spawn 2 enemies
+        DebugTwUp,        // plus key
+        DebugTwDown,      // minus key
+        Count,
+
+        // Backwards compatibility aliases
+        Build = BuildMode,
+        BuildTile = Place
     };
 
     Type string_to_type(const std::string& action_str);
@@ -69,12 +76,17 @@ namespace Action {
     bool is_just_pressed(Type type);
 
     // Semantic Combo Helpers (GBA R-Shoulder + D-Pad / Button A / L-Shoulder)
-    bool is_attack();           // Button A without R-Shoulder (Build) held
-    bool is_attack_held();      // Button A held without R-Shoulder (Build) held
-    bool is_build_tile();       // R-Shoulder (Build) held + Button A
-    bool is_remove_tile();      // R-Shoulder (Build) held + Button B (Cancel)
-    bool is_build_cycle();      // R-Shoulder (Build) held + L-Shoulder (PanMode)
-    bool is_pan_mode_active();  // L-Shoulder held without R-Shoulder (Build) held
+    bool is_attack();           // Button A without R-Shoulder (BuildMode) held
+    bool is_attack_held();      // Button A held without R-Shoulder (BuildMode) held
+    bool is_place_fixture();       // R-Shoulder (BuildMode) held + Button A or West (X / U) just pressed
+    bool is_place_fixture_held();  // R-Shoulder (BuildMode) held + Button A or West (X / U) held down
+    bool is_remove_fixture();      // R-Shoulder (BuildMode) held + Button B (Cancel)
+    bool is_build_cycle();      // R-Shoulder (BuildMode) held + L-Shoulder (PanMode)
+    bool is_pan_mode_active();  // L-Shoulder held without R-Shoulder (BuildMode) held
+
+    // Aliases for helper functions
+    inline bool is_build_tile() { return is_place_fixture(); }
+    inline bool is_build_tile_held() { return is_place_fixture_held(); }
 
     // String API (Convenience overloads)
     bool is_pressed(const std::string& action_str);

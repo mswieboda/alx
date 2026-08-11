@@ -8,26 +8,22 @@ namespace alx {
 namespace Action {
 
 static const std::unordered_map<std::string, Type> s_string_to_action_map = {
-    {"move_up",        MoveUp},
-    {"move_down",      MoveDown},
-    {"move_left",      MoveLeft},
-    {"move_right",     MoveRight},
-    {"action",         ActionBtn},
-    {"tool",           ActionBtn},
-    {"attack",         ActionBtn},
-    {"confirm",        ActionBtn},
-    {"a",              ActionBtn},
-    {"build",          Build},
-    {"build_tile",     BuildTile},
-    {"cancel",         Cancel},
-    {"b",              Cancel},
-    {"build_cycle",    BuildCycle},
-    {"pan_mode",       PanMode},
-    {"menu",           Menu},
-    {"map",            Map},
-    {"mana_spark",     ManaSpark},
-    {"dash",           Dash},
-    {"debug_resource", DebugResource},
+    {"move_up",          MoveUp},
+    {"move_down",        MoveDown},
+    {"move_left",        MoveLeft},
+    {"move_right",       MoveRight},
+    {"action",           ActionBtn},
+    {"attack",           ActionBtn},
+    {"confirm",          ActionBtn},
+    {"build_mode",       BuildMode},
+    {"place",            Place},
+    {"cancel",           Cancel},
+    {"build_cycle",      BuildCycle},
+    {"pan_mode",         PanMode},
+    {"menu",             Menu},
+    {"mana_spark",       ManaSpark},
+    {"build_foundation", BuildFoundation},
+    {"debug_resource",   DebugResource},
     {"debug_enemy_wave", DebugEnemyWave}
 };
 
@@ -41,23 +37,22 @@ Type string_to_type(const std::string& action_str) {
 
 std::string type_to_string(Type type) {
     switch (type) {
-        case MoveUp:        return "move_up";
-        case MoveDown:      return "move_down";
-        case MoveLeft:      return "move_left";
-        case MoveRight:     return "move_right";
-        case ActionBtn:     return "action";
-        case Build:         return "build";
-        case BuildTile:     return "build_tile";
-        case Cancel:        return "cancel";
-        case BuildCycle:    return "build_cycle";
-        case PanMode:       return "pan_mode";
-        case Menu:          return "menu";
-        case Map:           return "map";
-        case ManaSpark:     return "mana_spark";
-        case Dash:          return "dash";
-        case DebugResource: return "debug_resource";
-        case DebugEnemyWave: return "debug_enemy_wave";
-        default:            return "unknown";
+        case MoveUp:          return "move_up";
+        case MoveDown:        return "move_down";
+        case MoveLeft:        return "move_left";
+        case MoveRight:       return "move_right";
+        case ActionBtn:       return "action";
+        case BuildMode:       return "build_mode";
+        case Place:           return "place";
+        case Cancel:          return "cancel";
+        case BuildCycle:      return "build_cycle";
+        case PanMode:         return "pan_mode";
+        case Menu:            return "menu";
+        case ManaSpark:       return "mana_spark";
+        case BuildFoundation: return "build_foundation";
+        case DebugResource:   return "debug_resource";
+        case DebugEnemyWave:  return "debug_enemy_wave";
+        default:              return "unknown";
     }
 }
 
@@ -97,18 +92,16 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(MoveRight)]     = GBA::DPAD_RIGHT;
 
     s_bindings[static_cast<size_t>(ActionBtn)]     = GBA::BUTTON_A;
-    s_bindings[static_cast<size_t>(BuildTile)]     = { KeyCode::U };
+    s_bindings[static_cast<size_t>(Place)]         = GBA::BUTTON_X;
 
     s_bindings[static_cast<size_t>(Cancel)]        = GBA::BUTTON_B;
 
     s_bindings[static_cast<size_t>(PanMode)]       = GBA::L_SHOULDER;
-    s_bindings[static_cast<size_t>(Build)]         = GBA::R_SHOULDER;
-    s_bindings[static_cast<size_t>(BuildCycle)]    = { KeyCode::I };
-    s_bindings[static_cast<size_t>(ManaSpark)]     = { KeyCode::P };
-    s_bindings[static_cast<size_t>(Dash)]          = { KeyCode::Space };
+    s_bindings[static_cast<size_t>(BuildMode)]     = GBA::R_SHOULDER;
+    s_bindings[static_cast<size_t>(BuildCycle)]    = GBA::BUTTON_Y;
+    s_bindings[static_cast<size_t>(ManaSpark)]     = GBA::R_TRIGGER;
 
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
-    s_bindings[static_cast<size_t>(Map)]           = { KeyCode::Tab };
 
     s_bindings[static_cast<size_t>(DebugResource)] = { KeyCode::Key5 };
     s_bindings[static_cast<size_t>(DebugEnemyWave)] = { KeyCode::Key6 };
@@ -169,11 +162,11 @@ static bool is_gamepad_action_pressed(Type type) {
                    ::Input::is_gamepad_stick_dir_pressed(3);
         case ActionBtn:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_SOUTH);
-        case BuildTile:
+        case Place:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_WEST);
         case Cancel:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_EAST);
-        case Build:
+        case BuildMode:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case PanMode:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_LEFT_SHOULDER);
@@ -181,14 +174,8 @@ static bool is_gamepad_action_pressed(Type type) {
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_NORTH);
         case ManaSpark:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_TRIGGER);
-        case Dash:
-            return ::Input::is_gamepad_button_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case Menu:
             return ::Input::is_gamepad_button_pressed(MG_BUTTON_START);
-        case Map:
-            return ::Input::is_gamepad_button_pressed(MG_BUTTON_BACK) ||
-                   ::Input::is_gamepad_button_pressed(MG_BUTTON_TOUCHPAD) ||
-                   ::Input::is_gamepad_button_pressed(MG_BUTTON_MISC1);
         default:
             return false;
     }
@@ -212,11 +199,11 @@ static bool is_gamepad_action_just_pressed(Type type) {
                    ::Input::is_gamepad_stick_dir_just_pressed(3);
         case ActionBtn:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_SOUTH);
-        case BuildTile:
+        case Place:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_WEST);
         case Cancel:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_EAST);
-        case Build:
+        case BuildMode:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case PanMode:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_LEFT_SHOULDER);
@@ -224,14 +211,8 @@ static bool is_gamepad_action_just_pressed(Type type) {
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_NORTH);
         case ManaSpark:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_TRIGGER);
-        case Dash:
-            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_RIGHT_SHOULDER);
         case Menu:
             return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_START);
-        case Map:
-            return ::Input::is_gamepad_button_just_pressed(MG_BUTTON_BACK) ||
-                   ::Input::is_gamepad_button_just_pressed(MG_BUTTON_TOUCHPAD) ||
-                   ::Input::is_gamepad_button_just_pressed(MG_BUTTON_MISC1);
         default:
             return false;
     }
@@ -263,33 +244,40 @@ bool is_just_pressed(Type type) {
 }
 
 bool is_attack() {
-    return !is_pressed(Build) && is_just_pressed(ActionBtn);
+    return !is_pressed(BuildMode) && is_just_pressed(ActionBtn);
 }
 
 bool is_attack_held() {
-    return !is_pressed(Build) && is_pressed(ActionBtn);
+    return !is_pressed(BuildMode) && is_pressed(ActionBtn);
 }
 
-bool is_build_tile() {
-    if (is_pressed(Build) && is_just_pressed(ActionBtn)) {
+bool is_place_fixture() {
+    if (is_pressed(BuildMode) && is_just_pressed(ActionBtn)) {
         return true;
     }
-    return is_just_pressed(BuildTile);
+    return is_just_pressed(Place);
 }
 
-bool is_remove_tile() {
-    return is_pressed(Build) && is_just_pressed(Cancel);
+bool is_place_fixture_held() {
+    if (is_pressed(BuildMode) && is_pressed(ActionBtn)) {
+        return true;
+    }
+    return is_pressed(Place);
+}
+
+bool is_remove_fixture() {
+    return is_pressed(BuildMode) && is_just_pressed(Cancel);
 }
 
 bool is_build_cycle() {
-    if (is_pressed(Build) && is_just_pressed(PanMode)) {
+    if (is_pressed(BuildMode) && is_just_pressed(PanMode)) {
         return true;
     }
     return is_just_pressed(BuildCycle);
 }
 
 bool is_pan_mode_active() {
-    return !is_pressed(Build) && is_pressed(PanMode);
+    return !is_pressed(BuildMode) && is_pressed(PanMode);
 }
 
 bool is_pressed(const std::string& action_str) {

@@ -120,7 +120,7 @@ void draw_debug_outlines(const Player& player, float world_draw_x, float world_d
 }
 
 void draw_placement_preview(const Player& player, float world_draw_x, float world_draw_y, float world_bottom_y, const Tiles* tiles, const Network* network) {
-    if (!Action::is_pressed(Action::Build)) return;
+    if (!Action::is_pressed(Action::BuildMode) && !Action::is_place_fixture_held()) return;
 
     constexpr float tile_sz = 16.0f;
     Player::PlacementPoint pt = player.placement_fixture_center(world_draw_x, world_draw_y, tile_sz);
@@ -527,7 +527,7 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
     if (Action::is_pressed(Action::MoveLeft))  dx -= 1.0f;
     if (Action::is_pressed(Action::MoveRight)) dx += 1.0f;
 
-    if (!Action::is_pressed(Action::Build)) {
+    if (!Action::is_place_fixture_held()) {
         FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
         facing_dx = facing_vec.dx;
         facing_dy = facing_vec.dy;
@@ -654,7 +654,7 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
             try_build_tile(tiles, network);
         }
 
-        if (Action::is_remove_tile()) {
+        if (Action::is_remove_fixture()) {
             try_remove_tile(tiles, network);
         }
     }
