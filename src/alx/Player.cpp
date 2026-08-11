@@ -580,6 +580,56 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
             m_cardinal_facing_dx = 0.0f;
             m_cardinal_facing_dy = (facing_dy > 0.0f) ? 1.0f : -1.0f;
         }
+    } else {
+        // Build Placement active (holding Place action).
+        // Player sprite animation faces movement/strafe direction naturally.
+        FacingVector facing_vec = input_buffer.update_facing(dt, dx, dy);
+        facing_dx = facing_vec.dx;
+        facing_dy = facing_vec.dy;
+
+        // Apply Axis Hysteresis, Rear Hemisphere Flipping & Cross-Axis Threshold Turning
+        if (dx != 0.0f || dy != 0.0f) {
+            float card_x = m_cardinal_facing_dx;
+            float card_y = m_cardinal_facing_dy;
+            if (card_x == 0.0f && card_y == 0.0f) {
+                if (std::abs(facing_dx) >= std::abs(facing_dy)) {
+                    card_x = (facing_dx >= 0.0f) ? 1.0f : -1.0f;
+                    card_y = 0.0f;
+                } else {
+                    card_x = 0.0f;
+                    card_y = (facing_dy >= 0.0f) ? 1.0f : -1.0f;
+                }
+            }
+
+            float len = std::sqrt(dx * dx + dy * dy);
+            if (len > 0.0001f) {
+                float idx = dx / len;
+                float idy = dy / len;
+
+                float dot = idx * card_x + idy * card_y;
+                float perp_dot = idx * (-card_y) + idy * card_x;
+
+                if (dot <= COS_135_DEG) {
+                    // [OHFL]: Opposite Hemisphere Flip Lock (rear 90-degree cone)
+                    m_cardinal_facing_dx = -card_x;
+                    m_cardinal_facing_dy = -card_y;
+                } else if (dot >= COS_45_DEG) {
+                    // [AXHF]: Forward Cone (+-45 degrees) & Hysteresis Lock
+                    m_cardinal_facing_dx = card_x;
+                    m_cardinal_facing_dy = card_y;
+                } else if (dot < COS_60_DEG) {
+                    // [CRAT]: Cross-Axis Threshold Turn (sideways deflection > 60 degrees)
+                    if (perp_dot > 0.0f) {
+                        m_cardinal_facing_dx = -card_y;
+                        m_cardinal_facing_dy = card_x;
+                    } else if (perp_dot < 0.0f) {
+                        m_cardinal_facing_dx = card_y;
+                        m_cardinal_facing_dy = -card_x;
+                    }
+                }
+                // Else (COS_60_DEG <= dot < COS_45_DEG): inside 45-60 degree hysteresis buffer, keep current lock
+            }
+        }
     }
 
     auto f = facing();

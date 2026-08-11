@@ -57,6 +57,11 @@ struct Player : public Entity {
     float m_cardinal_facing_dx = 0.0f;
     float m_cardinal_facing_dy = 1.0f;
 
+    // Hysteresis & Hemisphere direction angle threshold cosines for placement lock
+    static constexpr float COS_45_DEG  = 0.70710678f;  // cos(45 deg): forward cone limit
+    static constexpr float COS_60_DEG  = 0.50000000f;  // cos(60 deg): hard sideways deflection threshold
+    static constexpr float COS_135_DEG = -0.70710678f; // cos(135 deg): rear 90-deg hemisphere cone limit
+
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
     float charge_timer = 0.0f;
