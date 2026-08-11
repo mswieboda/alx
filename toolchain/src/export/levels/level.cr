@@ -31,11 +31,12 @@ module LevelExporter
     property player_spawn_x : Int32
     property player_spawn_y : Int32
     property initial_twilight : Float64
+    property can_build : Bool
     property fixtures = [] of FixturePlacementData
     property spawns = [] of DarkTowerSpawnData
     property custom_tiles = [] of TilePlacementData
 
-    def initialize(@id, @map_width, @map_height, @player_spawn_x, @player_spawn_y, @initial_twilight)
+    def initialize(@id, @map_width, @map_height, @player_spawn_x, @player_spawn_y, @initial_twilight, @can_build)
     end
   end
 
@@ -49,6 +50,7 @@ module LevelExporter
     player_spawn_x = data["player_spawn"]["x"].as_i
     player_spawn_y = data["player_spawn"]["y"].as_i
     initial_twilight = data["initial_twilight"]?.try(&.as_f) || 0.9
+    can_build = data["can_build"]?.try(&.as_bool) || false
 
     tiles_raw = data["tiles"].as_s
     objects_raw = data["objects"].as_s
@@ -59,7 +61,7 @@ module LevelExporter
     validate_layer_dimensions(file_path, "tiles", tile_lines, map_width, map_height)
     validate_layer_dimensions(file_path, "objects", object_lines, map_width, map_height)
 
-    parsed = ParsedLevel.new(id, map_width, map_height, player_spawn_x, player_spawn_y, initial_twilight)
+    parsed = ParsedLevel.new(id, map_width, map_height, player_spawn_x, player_spawn_y, initial_twilight, can_build)
 
     # 1. Parse ground terrain layer (tiles:)
     tile_lines.each_with_index do |line, y|
@@ -205,11 +207,12 @@ module LevelExporter
         # Level struct
         str << "        inline const alx::Level k_level#{id} = {\n"
         str << "            .id                = #{lvl.id},\n"
-        str << "            .map_width        = #{lvl.map_width},\n"
-        str << "            .map_height       = #{lvl.map_height},\n"
-        str << "            .player_spawn     = {#{lvl.player_spawn_x}, #{lvl.player_spawn_y}},\n"
-        str << "            .initial_twilight = #{lvl.initial_twilight}f,\n"
-        str << "            .fixtures         = #{fixtures_expr},\n"
+        str << "            .map_width         = #{lvl.map_width},\n"
+        str << "            .map_height        = #{lvl.map_height},\n"
+        str << "            .player_spawn      = {#{lvl.player_spawn_x}, #{lvl.player_spawn_y}},\n"
+        str << "            .initial_twilight  = #{lvl.initial_twilight},\n"
+        str << "            .can_build         = #{lvl.can_build},\n"
+        str << "            .fixtures          = #{fixtures_expr},\n"
         str << "            .dark_tower_spawns = #{spawns_expr},\n"
         str << "            .custom_tiles      = #{custom_tiles_expr}\n"
         str << "        };\n\n"

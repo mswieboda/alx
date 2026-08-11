@@ -210,6 +210,7 @@ tasks:
       - task: clean-fonts
       - task: clean-images
       - task: clean-music
+      - task: clean-levels
 
   clean-fonts:
     desc: Clean generated Fonts.h header
@@ -228,6 +229,12 @@ tasks:
     cmds:
       - echo "=> Cleaning Music.h..."
       - rm -f '{{.assets_headers_dir}}/Music.h'
+
+  clean-levels:
+    desc: Clean generated Levels.h header
+    cmds:
+      - echo "=> Cleaning Levels.h..."
+      - rm -f '{{.assets_headers_dir}}/Levels.h'
 
   clean-pack-assets-bin:
     desc: Clean pack assets executable

@@ -44,6 +44,7 @@ void MainScene::load_level(int level_id) {
     m_current_level_id = level_id;
     m_player_spawn = lvl->player_spawn;
     m_twilight_level = std::clamp(lvl->initial_twilight, 0.0f, TWILIGHT_MAX);
+    m_can_build = lvl->can_build;
 
     m_tiles = Tiles(lvl->map_width, lvl->map_height);
     m_network = Network(lvl->map_width, lvl->map_height);
@@ -240,7 +241,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     update_tick_simulation(dt);
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
     m_camera.update(dt, m_player.facing_dx, m_player.facing_dy, m_player.input_buffer.was_moving);
-    m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures(), &m_particle_system);
+    m_player.update(dt, m_tiles, m_network, m_camera, m_can_build, &m_enemy_manager.structures(), &m_particle_system);
 
 #if ALX_ENABLE_HEADLESS
     if (m_is_headless) {
@@ -324,6 +325,7 @@ void MainScene::update_player_respawn() {
     }
 }
 
+// TODO: belongs more in Player.h/.cpp maybe?
 void MainScene::update_sword_slash_trail() {
     if (!m_player.is_attacking()) {
         m_slash_was_attacking = false;
@@ -501,7 +503,7 @@ void MainScene::draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) {
     draw_tiles_and_network(pixel_buffer, sub_tick_progress);
     m_enemy_manager.draw_corrupted_tiles(m_tiles.tile_size());
     m_enemy_manager.draw_enemies(pixel_buffer, alpha);
-    m_player.draw(pixel_buffer, alpha, &m_tiles, &m_network);
+    m_player.draw(pixel_buffer, alpha, m_can_build, &m_tiles, &m_network);
     m_particle_system.draw(&m_camera);
 }
 
@@ -597,12 +599,21 @@ void MainScene::draw_hud() {
     const int line_h_padding = 4;
     int ly = line_h_padding;
 
-    // \x03 = Heart icon, \x04 = Gem/Alloy icon
-    Draw::text_shadow(
-        6, ly,
-        Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
-        text_color, shadow_color, 1, Layer::HUD_Text, &font
-    );
+    if (m_can_build) {
+        // \x03 = Heart icon, \x04 = Gem/Alloy icon
+        Draw::text_shadow(
+            6, ly,
+            Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
+            text_color, shadow_color, 1, Layer::HUD_Text, &font
+        );
+    } else {
+        // \x03 = Heart icon
+        Draw::text_shadow(
+            6, ly,
+            Draw::fmt("\x03 %d", m_player.state.hp),
+            text_color, shadow_color, 1, Layer::HUD_Text, &font
+        );
+    }
 
     // \x0F = Twilight starburst icon, \x08 = Cleanse icon
     int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
@@ -615,14 +626,16 @@ void MainScene::draw_hud() {
         text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
 
-    // selected build fixture
-    std::string_view build_str = Draw::fmt("build: %s (%d)", selected_name, cost);
-    int build_width = Draw::text_width(build_str, 1, &font);
-    Draw::text_shadow(
-        screen_width - 6 - build_width, ly,
-        build_str,
-        text_color, shadow_color, 1, Layer::HUD_Text, &font
-    );
+    if (m_can_build) {
+        // selected build fixture
+        std::string_view build_str = Draw::fmt("build: %s (%d)", selected_name, cost);
+        int build_width = Draw::text_width(build_str, 1, &font);
+        Draw::text_shadow(
+            screen_width - 6 - build_width, ly,
+            build_str,
+            text_color, shadow_color, 1, Layer::HUD_Text, &font
+        );
+    }
 
     ly += font.size + line_h_padding;
 

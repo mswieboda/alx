@@ -31,6 +31,7 @@ struct Level {
     int     map_height{DEFAULT_MAP_HEIGHT};
     GridPos player_spawn{9, 9};
     float   initial_twilight{DEFAULT_INITIAL_TWILIGHT};
+    bool    can_build{false};
     std::span<const FixturePlacement> fixtures;
     std::span<const DarkTowerSpawn>   dark_tower_spawns;
     std::span<const TilePlacement>    custom_tiles;

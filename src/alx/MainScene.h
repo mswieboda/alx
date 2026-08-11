@@ -42,6 +42,9 @@ private:
     bool m_victory_achieved = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
 
+    // Level-specific features
+    bool m_can_build = false;
+
     // Level-specific progress stats
     float m_twilight_level = TWILIGHT_MAX;
     float m_wand_radius = 56.0f;

@@ -257,14 +257,14 @@ bool is_attack_held() {
 }
 
 bool is_place_fixture() {
-    if (is_pressed(BuildMode) && is_just_pressed(ActionBtn)) {
+    if (is_pressed(BuildMode) && is_just_pressed(Place)) {
         return true;
     }
     return is_just_pressed(Place);
 }
 
 bool is_place_fixture_held() {
-    if (is_pressed(BuildMode) && is_pressed(ActionBtn)) {
+    if (is_pressed(BuildMode) && is_pressed(Place)) {
         return true;
     }
     return is_pressed(Place);
