@@ -50,22 +50,22 @@ Implement intelligent direction switching so the player can change build directi
 
 ---
 
-### [PH-CPLD]: Phase 3 - Continuous Pipe Line Dragging
+### [PH-CPLD]: Phase 3 - Continuous Pipe Line Dragging (COMPLETED)
 
 Enable holding the build button to place continuous lines of pipes and walls as the player moves.
 
-- [ ] `[CPLD]`: Continuous Pipe Line Drag - Automatically place a new tile of the selected fixture type whenever the player moves into an adjacent empty grid cell while holding `X` (West) or `U`.
-- [ ] `[RSCK]`: Resource Shortage Gate - Gracefully stop drag placement and play a subtle audio cue (`SFX::wall_bump` or resource error tone) when Alloy runs out.
-- [ ] `[DRSFX]`: Drag Placement Audio/Visual FX - Trigger light particle sparks and building placement SFX for each auto-placed segment along the drag path.
+- [x] `[CPLD]`: Continuous Pipe Line Drag - Automatically place a new tile of the selected fixture type whenever the player moves into an adjacent empty grid cell while holding `X` (West) or `U`.
+- [x] `[RSCK]`: Resource Shortage Gate - Gracefully stop drag placement and play a subtle audio cue (`SFX::wall_bump` or resource error tone) when Alloy runs out.
+- [x] `[DRSFX]`: Drag Placement Audio/Visual FX - Trigger light particle sparks and building placement SFX for each auto-placed segment along the drag path.
 
 ---
 
-### [PH-HICN]: Phase 4 - Held Fixture Visual Feedback & Shared HUD Glyphs
+### [PH-HICN]: Phase 4 - Held Fixture Visual Feedback & Shared HUD Glyphs (COMPLETED)
 
 Render visual indication of the equipped fixture directly over the player's hands when holding `R1`.
 
-- [ ] `[HUDG]`: Shared HUD Glyph Helper - Extract/decouple HUD text glyph rendering helpers (near `Fixture.h`) so fixture icons can be drawn anywhere in world space or UI space.
-- [ ] `[HICN]`: Held Fixture Hand Icon - Render the tiny HUD text glyph of the active fixture (Pipe, Wall, Refiner, Spire) near the player's hands whenever `R1` (Build Mode) is held.
+- [x] `[HUDG]`: Shared HUD Glyph Helper - Extract/decouple HUD text glyph rendering helpers (near `Fixture.h`) so fixture icons can be drawn anywhere in world space or UI space.
+- [x] `[HICN]`: Held Fixture Hand Icon - Render the tiny HUD text glyph of the active fixture (Pipe, Wall, Refiner, Spire) near the player's hands whenever `R1` (Build Mode) is held.
   > [!NOTE]
   > The implementer MUST ask for user feedback to refine the exact pixel offsets relative to the player sprite for each facing direction (N/NE/E/SE/S/SW/W/NW). Do NOT attempt to read offset data from Aseprite asset files or headers.
 

@@ -26,6 +26,16 @@ enum class FixtureType : uint8_t {
     Seep
 };
 
+inline constexpr const char* fixture_glyph(FixtureType type) noexcept {
+    switch (type) {
+        case FixtureType::Pipe:    return "\x1D";
+        case FixtureType::Wall:    return "\x16";
+        case FixtureType::Refiner: return "\x0A";
+        case FixtureType::Spire:   return "\x7F";
+        default:                   return "";
+    }
+}
+
 enum class ManaState : uint8_t {
     None = 0,
     Dark,

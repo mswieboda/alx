@@ -240,7 +240,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     update_tick_simulation(dt);
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
     m_camera.update(dt, m_player.facing_dx, m_player.facing_dy, m_player.input_buffer.was_moving);
-    m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures());
+    m_player.update(dt, m_tiles, m_network, m_camera, &m_enemy_manager.structures(), &m_particle_system);
 
 #if ALX_ENABLE_HEADLESS
     if (m_is_headless) {
@@ -586,19 +586,10 @@ void MainScene::draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha) 
 
 void MainScene::draw_hud() {
     int screen_width = Game::WIDTH;
-    int screen_height = Game::HEIGHT;
 
-    // TODO: in future switch to tiny icons
-    const char* selected_name = "\x1D";
     FixtureType sel_type = m_player.selected_fixture_type();
+    const char* selected_name = fixture_glyph(sel_type);
     int cost = Player::fixture_cost(sel_type);
-    if (sel_type == FixtureType::Wall) {
-        selected_name = "\x16";
-    } else if (sel_type == FixtureType::Refiner) {
-        selected_name = "\x0A";
-    } else if (sel_type == FixtureType::Spire) {
-        selected_name = "\x7F";
-    }
 
     const uint32_t text_color = 0xFF00CCCC;
     const uint32_t shadow_color = 0xFF003344;
@@ -609,8 +600,6 @@ void MainScene::draw_hud() {
     // \x03 = Heart icon, \x04 = Gem/Alloy icon
     Draw::text_shadow(
         6, ly,
-        // NOTE: old way with `HP 5/5` etc showing max health
-        // Draw::fmt("\x03 %d/%d  \x04 %d", m_player.state.hp, m_player.state.max_hp, m_player.cursed_alloy()),
         Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
         text_color, shadow_color, 1, Layer::HUD_Text, &font
     );
@@ -647,7 +636,7 @@ void MainScene::draw_hud() {
         );
     }
 
-    draw_victory_and_pause_overlays(screen_width, screen_height, font);
+    draw_victory_and_pause_overlays(screen_width, Game::HEIGHT, font);
 }
 
 void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_height, const FontData& font) {
@@ -687,6 +676,8 @@ bool MainScene::is_connectable_fixture(int gx, int gy) const {
     FixtureType t = m_network.fixture(gx, gy).type;
     return t == FixtureType::Pipe || t == FixtureType::Seep || t == FixtureType::Refiner || t == FixtureType::Spire;
 }
+
+
 
 bool MainScene::connects_dark_mana(int gx, int gy) const {
     if (!m_network.in_bounds(gx, gy)) return false;

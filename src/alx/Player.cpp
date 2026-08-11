@@ -11,8 +11,10 @@
 #include "alx/WorldCollision.h"
 #include "alx/TrigLUT.h"
 #include "alx/SFX.h"
+#include "alx/ParticleEmitters.h"
 #include "core/Audio.h"
 #include "core/Draw.h"
+#include "core/Log.h"
 #include "Debug.h"
 #include "assets/Images.h"
 
@@ -392,7 +394,7 @@ Collision::Circle Player::attack_hit_circle(float alpha) const {
     return calculate_attack_circle_at(p, px, py);
 }
 
-bool Player::try_build_tile(const Tiles& tiles, Network& network) {
+bool Player::try_build_tile(const Tiles& tiles, Network& network, ParticleSystem* particle_system) {
     int cost = fixture_cost(m_selected_fixture_type);
     if (m_cursed_alloy < cost) return false;
 
@@ -413,6 +415,12 @@ bool Player::try_build_tile(const Tiles& tiles, Network& network) {
         m_cursed_alloy -= cost;
         network.place_fixture(target_pos, m_selected_fixture_type);
         Audio::play_sfx(SFX::build_snap());
+        if (particle_system) {
+            MultiTileFootprint fp = get_fixture_footprint(m_selected_fixture_type);
+            float spark_cx = (static_cast<float>(target_pos.x) + static_cast<float>(fp.width) * 0.5f) * tile_sz;
+            float spark_cy = (static_cast<float>(target_pos.y) + static_cast<float>(fp.height) * 0.5f) * tile_sz;
+            ParticleEmitters::spawn_build_sparks(*particle_system, spark_cx, spark_cy, 8);
+        }
         return true;
     }
     return false;
@@ -432,6 +440,7 @@ bool Player::try_remove_tile(const Tiles& tiles, Network& network) {
             int refund = fixture_cost(fix.type);
             m_cursed_alloy += refund;
             network.remove_fixture(target_pos);
+            Audio::play_sfx(SFX::remove_snap());
             return true;
         }
     }
@@ -454,7 +463,7 @@ bool Player::take_damage(int amount) {
     return true;
 }
 
-void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures) {
+void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures, ParticleSystem* particle_system) {
     sync_prev_transforms();
 
     if (state.iframe_timer > 0.0f) {
@@ -469,7 +478,7 @@ void Player::update(float dt, const Tiles& tiles, Network& network, const alx::C
     }
 
     update_movement(dt, tiles, network, camera, structures);
-    update_actions(dt, tiles, network);
+    update_actions(dt, tiles, network, particle_system);
 }
 
 void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles* tiles, const Network* network) {
@@ -535,6 +544,24 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles
 
     // Fixture placement preview box
     draw_placement_preview(*this, world_draw_x, world_draw_y, world_bottom_y, tiles, network);
+
+    // HICN: Render held fixture icon above player's head when Build Mode is held
+    if (Action::is_pressed(Action::BuildMode) || Action::is_place_fixture_held()) {
+        const char* icon = fixture_glyph(m_selected_fixture_type);
+        if (icon && icon[0] != '\0') {
+            const FontData& font = Assets::Fonts::fant_8;
+            int glyph_w = Draw::text_width(icon, 1, &font);
+            float off_x = (transform.width * 0.5f) - (static_cast<float>(glyph_w) * 0.5f);
+            float off_y = -10.0f; // Centered above player's head
+
+            Draw::text_shadow(
+                static_cast<float>(static_cast<int>(world_draw_x + off_x)),
+                static_cast<float>(static_cast<int>(world_draw_y + off_y)),
+                icon,
+                0xFF00CCCC, 0xFF003344, 1, transform.z_index + 2, &font, static_cast<int>(world_bottom_y)
+            );
+        }
+    }
 }
 
 int Player::fixture_cost(FixtureType type) {
@@ -670,7 +697,7 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
     clamp_transform_to_map_bounds(transform, GROUND_RADIUS_RATIO, GROUND_OFFSET_Y_RATIO, map_w, map_h);
 }
 
-void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
+void Player::update_actions(float dt, const Tiles& tiles, Network& network, ParticleSystem* particle_system) {
     if (attack_phase == AttackPhase::ActiveSweep) {
         swing_progress_prev = swing_progress_curr;
         attack_timer += dt;
@@ -749,8 +776,39 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
             }
         }
 
-        if (Action::is_place_fixture()) {
-            try_build_tile(tiles, network);
+        // PH-CPLD: Continuous Pipe Line Drag Placement Logic
+        if (Action::is_place_fixture_held()) {
+            float tile_sz = static_cast<float>(tiles.tile_size());
+            PlacementPoint pt = placement_fixture_center(tile_sz);
+            GridPos target_pos{
+                static_cast<int16_t>(static_cast<int>(std::floor(pt.cx / tile_sz))),
+                static_cast<int16_t>(static_cast<int>(std::floor(pt.cy / tile_sz)))
+            };
+
+            bool is_initial_press = Action::is_place_fixture();
+            if (is_initial_press) {
+                m_played_shortage_sfx = false;
+            }
+
+            if (is_initial_press || target_pos != m_last_drag_tile_pos) {
+                int cost = fixture_cost(m_selected_fixture_type);
+                if (m_cursed_alloy < cost) {
+                    if (!m_played_shortage_sfx) {
+                        Audio::play_sfx(SFX::wall_bump()); // [RSCK] Resource shortage gate audio cue
+                        m_played_shortage_sfx = true;
+                    }
+                    m_last_drag_tile_pos = target_pos;
+                } else {
+                    bool placed = try_build_tile(tiles, network, particle_system);
+                    m_last_drag_tile_pos = target_pos;
+                    if (placed) {
+                        m_played_shortage_sfx = false;
+                    }
+                }
+            }
+        } else {
+            m_last_drag_tile_pos = GridPos{ -32768, -32768 };
+            m_played_shortage_sfx = false;
         }
 
         if (Action::is_remove_fixture()) {
@@ -764,7 +822,9 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network) {
                 static_cast<int16_t>(static_cast<int>(std::floor(pt.cx / tile_sz))),
                 static_cast<int16_t>(static_cast<int>(std::floor(pt.cy / tile_sz)))
             };
+            Log::msg(">>> built foundation!");
             if (network.in_bounds(target_pos)) {
+                Log::msg(">>> built foundation! (audio?)");
                 Audio::play_sfx(SFX::build_snap());
             }
         }

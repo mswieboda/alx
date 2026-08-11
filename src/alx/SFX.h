@@ -154,8 +154,10 @@ namespace SFX {
     }
 
     // Egg Hatch: Rising chirp ending in a shell pop
+    // TODO: this might not work/no sound yet
     inline SfxrParams egg_hatch() {
         SfxrParams p;
+        p.gain = 0.09f;
         p.wave_type = SQUARE;
         p.attack_time = 0.002f;
         p.sustain_time = 0.050f;
@@ -172,18 +174,30 @@ namespace SFX {
     // Grid Placement Snap: Heavy mechanical lock sound
     inline SfxrParams build_snap() {
         SfxrParams p;
+        p.gain = 1.95f;
         p.wave_type = SQUARE;
         p.attack_time = 0.001f;
-        p.sustain_time = 0.030f;
-        p.decay_time = 0.060f;
-        p.start_frequency = 0.220f;
-        p.min_frequency = 0.030f;
-        p.slide = -0.180f;
-        p.square_duty = 0.650f;
+        p.sustain_time = 0.035f;
+        p.decay_time = 0.070f;
+        p.start_frequency = 0.350f;
+        p.min_frequency = 0.050f;
+        p.slide = -0.250f;
+        p.square_duty = 0.150f;
+        return p;
+    }
+
+    // Grid Removal Snap: Ascending release click sound (inverted pitch sweep of build_snap)
+    inline SfxrParams remove_snap() {
+        SfxrParams p = build_snap();
+        // p.gain = 0.5f;
+        p.start_frequency = 0.0f;
+        // p.slide = 0.150f;
+        // p.square_duty = 0.250f;
         return p;
     }
 
     // Player Wall Bump: Hollow stone impact
+    // TODO: this doesn't work/no sound yet
     inline SfxrParams wall_bump() {
         SfxrParams p;
         p.wave_type = SINE;

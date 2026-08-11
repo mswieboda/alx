@@ -5,6 +5,7 @@
 #include "core/Entity.h"
 #include "core/Facing.h"
 #include "alx/Fixture.h"
+#include "alx/GridPos.h"
 #include "Game.h"
 
 namespace alx {
@@ -12,6 +13,7 @@ namespace alx {
 class Camera;
 class Tiles;
 class Network;
+class ParticleSystem;
 struct WorldStructure;
 
 struct PlayerInputBuffer {
@@ -151,10 +153,10 @@ struct Player : public Entity {
     bool is_attacking() const;
     Collision::Circle attack_hit_circle(float alpha = 1.0f) const;
 
-    bool try_build_tile(const Tiles& tiles, Network& network);
+    bool try_build_tile(const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr);
     bool try_remove_tile(const Tiles& tiles, Network& network);
 
-    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
+    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr, ParticleSystem* particle_system = nullptr);
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, const Tiles* tiles = nullptr, const Network* network = nullptr);
 
     int cursed_alloy() const { return m_cursed_alloy; }
@@ -177,8 +179,12 @@ private:
     FixtureType m_selected_fixture_type = FixtureType::Pipe;
     bool m_was_blocked_prev = false;
 
+    // PH-CPLD: Continuous Pipe Line Drag tracking state
+    GridPos m_last_drag_tile_pos{-32768, -32768};
+    bool m_played_shortage_sfx = false;
+
     void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
-    void update_actions(float dt, const Tiles& tiles, Network& network);
+    void update_actions(float dt, const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr);
 };
 
 } // namespace alx

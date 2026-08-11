@@ -465,5 +465,36 @@ void spawn_dark_mana_spill(ParticleSystem& ps, float x, float y, int z_index, in
     }
 }
 
+void spawn_build_sparks(ParticleSystem& ps, float x, float y, int count, int z_index, int y_sort_override) {
+    for (int i = 0; i < count; ++i) {
+        if (Particle* p = ps.emit()) {
+            p->x = x + Random::get_float(-6.0f, 6.0f);
+            p->y = y + Random::get_float(-6.0f, 6.0f);
+            p->render_x = p->x;
+            p->render_y = p->y;
+
+            p->vx = Random::get_float(-40.0f, 40.0f);
+            p->vy = Random::get_float(-40.0f, 40.0f);
+
+            p->life = Random::get_float(0.15f, 0.35f);
+            p->max_life = p->life;
+
+            int color_choice = Random::get_int(0, 2);
+            if (color_choice == 0) {
+                p->color = 0xFF00FFFF; // Bright Cyan
+            } else if (color_choice == 1) {
+                p->color = 0xFF55FFFF; // Light Cyan
+            } else {
+                p->color = 0xFFFFFFFF; // Bright White Spark
+            }
+
+            p->size = Random::chance(0.5f) ? 1 : 2;
+            p->type = ParticleType::Spark;
+            p->z_index = z_index;
+            p->y_sort_override = y_sort_override;
+        }
+    }
+}
+
 } // namespace ParticleEmitters
 } // namespace alx
