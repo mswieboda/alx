@@ -2,8 +2,8 @@
 #include <string>
 
 namespace Game {
-    inline constexpr int WIDTH = 320 * 2;
-    inline constexpr int HEIGHT = 240 * 2;
+    inline constexpr int WIDTH = 320;
+    inline constexpr int HEIGHT = 240;
     inline constexpr int TILE_SIZE = 16;
     inline constexpr int DEFAULT_WINDOW_SCALE = 2;
     inline constexpr std::string_view TITLE = "Aetherlux";
