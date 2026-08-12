@@ -22,10 +22,6 @@
 
 namespace alx {
 
-namespace SpawnerConstants {
-
-}
-
 namespace DarkTowerConstants {
     static constexpr float SPAWN_INTERVAL_MIN = 6.0f;
     static constexpr float SPAWN_INTERVAL_MAX = 12.0f;
@@ -149,9 +145,6 @@ public:
 
 
     bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) const;
-
-
-    // static void enforce_solid_ground_ejection(Enemy& enemy, const Tiles& tiles, const Network& network);
 
 
     GridPos find_priority_target(const Enemy& enemy, const Network& network) const;

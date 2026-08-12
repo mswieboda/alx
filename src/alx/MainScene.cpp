@@ -66,7 +66,7 @@ void MainScene::setup_player_at_spawn(GridPos spawn_pos) {
 #else
     const float spawn_x = spawn_x_px;
     const float spawn_y = spawn_y_px;
-#endif
+#endif // ALX_ENABLE_HEADLESS
 
     m_player = Player(spawn_x, spawn_y);
 }
@@ -94,7 +94,7 @@ void MainScene::reset_level_telemetry() {
     m_last_event_delta = 0.0f;
     m_last_event_cause = "None";
     m_last_event_timestamp = 0.0f;
-#endif
+#endif // ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 }
 
 void MainScene::load_tiles_and_network(const Level& level) {
@@ -159,7 +159,7 @@ float MainScene::calculate_rolling_twilight_rate(float duration_sec) const {
     if (total_dt <= 0.0001f) return 0.0f;
     return total_delta / total_dt;
 }
-#endif
+#endif // ALX_ENABLE_TELEMETRY
 
 #if ALX_ENABLE_TELEMETRY
 void MainScene::dump_telemetry_snapshot() {
@@ -214,7 +214,7 @@ void MainScene::dump_telemetry_snapshot() {
 
     TelemetryDumper::dump_snapshot(snap);
 }
-#endif
+#endif // ALX_ENABLE_TELEMETRY
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
     if constexpr (Debug::CAN_PAUSE) {
@@ -247,7 +247,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (m_is_headless) {
         update_headless_defense(raw_dt);
     }
-#endif
+#endif // ALX_ENABLE_HEADLESS
 
     update_player_respawn();
 
@@ -279,7 +279,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         m_telemetry_dump_timer = 0.0f;
         dump_telemetry_snapshot();
     }
-#endif
+#endif // ALX_ENABLE_TELEMETRY
 }
 
 void MainScene::update_victory_condition(float raw_dt) {
@@ -390,7 +390,7 @@ void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
 
     const float frame_delta = m_twilight_level - prev_twilight;
     m_twilight_delta_per_sec = (dt > 0.0001f) ? (frame_delta / dt) : 0.0f;
-#endif
+#endif // ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 
 #if ALX_ENABLE_TELEMETRY
     m_rolling_samples[m_rolling_sample_head] = RollingSample{ dt, frame_delta };
@@ -398,7 +398,7 @@ void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
     if (m_rolling_sample_count < ROLLING_BUFFER_MAX_SAMPLES) {
         ++m_rolling_sample_count;
     }
-#endif
+#endif // ALX_ENABLE_TELEMETRY
 }
 
 #if ALX_ENABLE_HEADLESS
@@ -457,7 +457,7 @@ void MainScene::print_headless_summary_report(int64_t seed) {
 
     TelemetryDumper::print_summary_report(stats);
 }
-#endif
+#endif // ALX_ENABLE_HEADLESS
 
 void MainScene::update_tick_simulation(float dt) {
     if (m_paused) return;

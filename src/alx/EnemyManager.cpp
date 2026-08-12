@@ -368,11 +368,11 @@ namespace alx {
                 e.state = EnemyState::Wander;
                 e.state_timer = Random::get_float(4.0f, 6.0f);
                 EnemyMovement::reset_wander_state(e.move_state);
-                // Ensure hatched enemy is ejected if standing on solid ground/fixture
+                static constexpr int HATCH_MAX_NUDGE_STEPS = 8;
                 static constexpr float HATCH_NUDGE_DIST = 4.0f;
                 static constexpr float NUDGE_DIRS_X[4] = { 0.0f, 0.0f, -HATCH_NUDGE_DIST, HATCH_NUDGE_DIST };
                 static constexpr float NUDGE_DIRS_Y[4] = { -HATCH_NUDGE_DIST, HATCH_NUDGE_DIST, 0.0f, 0.0f };
-                for (int step = 0; step < 8; ++step) {
+                for (int step = 0; step < HATCH_MAX_NUDGE_STEPS; ++step) {
                     if (!is_solid_ground(e.ground_circle(), tiles, network)) break;
                     for (int d = 0; d < 4; ++d) {
                         float test_x = e.transform.x + NUDGE_DIRS_X[d];
@@ -1502,6 +1502,9 @@ namespace alx {
 
         float tower_max_extent = std::max(WorldStructure::DARK_TOWER_WIDTH * 0.5f, WorldStructure::DARK_TOWER_HEIGHT * 0.5f) + (ShadowEgg::EGG_WIDTH * 0.5f);
 
+        const float map_w = tiles.world_width();
+        const float map_h = tiles.world_height();
+
         for (int i = 0; i < eggs_to_spawn; ++i) {
             float angle = base_angle + i * angle_step + Random::get_float(-0.2f, 0.2f);
             float offset_ratio = Random::get_float(DarkTowerConstants::SPAWN_TILE_OFFSET_MIN_RATIO, DarkTowerConstants::SPAWN_TILE_OFFSET_MAX_RATIO);
@@ -1518,8 +1521,6 @@ namespace alx {
                 float candidate_y = tc_y + dist * std::sin(test_angle) - (ShadowEgg::EGG_HEIGHT * 0.5f);
 
                 // 1. Strict Map Bounds Check
-                float map_w = tiles.world_width();
-                float map_h = tiles.world_height();
                 if (candidate_x < 0.0f || candidate_x > (map_w - ShadowEgg::EGG_WIDTH) ||
                     candidate_y < 0.0f || candidate_y > (map_h - ShadowEgg::EGG_HEIGHT)) {
                     continue;
