@@ -24,21 +24,21 @@ namespace alx {
 // =========================================================================
 
 namespace GBA {
-    inline const std::vector<KeyCode> DPAD_UP    = { KeyCode::W, KeyCode::Up };
-    inline const std::vector<KeyCode> DPAD_DOWN  = { KeyCode::S, KeyCode::Down };
-    inline const std::vector<KeyCode> DPAD_LEFT  = { KeyCode::A, KeyCode::Left };
-    inline const std::vector<KeyCode> DPAD_RIGHT = { KeyCode::D, KeyCode::Right };
+    inline const std::vector<KeyCode> DPAD_UP    = { KeyCode::W };
+    inline const std::vector<KeyCode> DPAD_DOWN  = { KeyCode::S };
+    inline const std::vector<KeyCode> DPAD_LEFT  = { KeyCode::A };
+    inline const std::vector<KeyCode> DPAD_RIGHT = { KeyCode::D };
 
-    inline const std::vector<KeyCode> BUTTON_A   = { KeyCode::J, KeyCode::Z };
-    inline const std::vector<KeyCode> BUTTON_B   = { KeyCode::K, KeyCode::X };
+    inline const std::vector<KeyCode> BUTTON_A   = { KeyCode::J };
+    inline const std::vector<KeyCode> BUTTON_B   = { KeyCode::K };
     inline const std::vector<KeyCode> BUTTON_X   = { KeyCode::U };
     inline const std::vector<KeyCode> BUTTON_Y   = { KeyCode::I };
-    inline const std::vector<KeyCode> L_SHOULDER = { KeyCode::E };
-    inline const std::vector<KeyCode> R_SHOULDER = { KeyCode::O };
-    inline const std::vector<KeyCode> L_TRIGGER  = { KeyCode::Q };
-    inline const std::vector<KeyCode> R_TRIGGER  = { KeyCode::P };
+    inline const std::vector<KeyCode> L_SHOULDER = { KeyCode::Tab, KeyCode::LeftShift };
+    inline const std::vector<KeyCode> R_SHOULDER = { KeyCode::L };
+    inline const std::vector<KeyCode> L_TRIGGER  = { KeyCode::Z, KeyCode::Space };
+    inline const std::vector<KeyCode> R_TRIGGER  = { KeyCode::Semicolon };
     inline const std::vector<KeyCode> START      = { KeyCode::Enter };
-    inline const std::vector<KeyCode> SELECT     = { KeyCode::Tab };
+    inline const std::vector<KeyCode> SELECT     = { KeyCode::Backspace };
 }
 
 namespace Action {

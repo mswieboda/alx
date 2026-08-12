@@ -218,7 +218,7 @@ void MainScene::dump_telemetry_snapshot() {
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
     if constexpr (Debug::CAN_PAUSE) {
-        if (Action::is_just_pressed(Action::Menu) || Input::is_key_just_pressed(KeyCode::P)) {
+        if (Action::is_just_pressed(Action::Menu)) {
             m_paused = !m_paused;
             if (m_paused) {
                 Audio::pause_music();

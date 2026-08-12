@@ -100,7 +100,7 @@ void reset_default_bindings() {
     s_bindings[static_cast<size_t>(BuildMode)]     = GBA::R_SHOULDER;
     s_bindings[static_cast<size_t>(BuildCycle)]    = GBA::BUTTON_Y;
     s_bindings[static_cast<size_t>(ManaSpark)]     = GBA::R_TRIGGER;
-    s_bindings[static_cast<size_t>(BuildFoundation)] = { KeyCode::E };
+    s_bindings[static_cast<size_t>(BuildFoundation)] = GBA::L_TRIGGER;
 
     s_bindings[static_cast<size_t>(Menu)]          = GBA::START;
 

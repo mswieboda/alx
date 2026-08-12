@@ -521,12 +521,12 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool can_bu
         }
     }
 
-    // Charging visual feedback ring / aura
-    if (is_charging_attack) {
+    // Charging visual feedback ring / aura (spark charge only)
+    if (m_is_charging_spark) {
         float cx = world_draw_x + world_draw_w * 0.5f;
         float cy = world_draw_y + world_draw_h * 0.5f;
-        if (charge_timer < CHARGE_FULL_DURATION) {
-            float progress = charge_timer / CHARGE_FULL_DURATION;
+        if (m_charge_timer < CHARGE_FULL_DURATION) {
+            float progress = m_charge_timer / CHARGE_FULL_DURATION;
             int r = static_cast<int>(progress * CHARGE_MAX_UNCHARGED_RADIUS);
             if (r > 1) {
                 float size = static_cast<float>(r * 2);
@@ -721,11 +721,10 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
     }
 
     bool btn_just_pressed = Action::is_attack();
-    bool btn_held = Action::is_attack_held();
     bool spark_just_pressed = Action::is_just_pressed(Action::ManaSpark);
     bool spark_held = Action::is_pressed(Action::ManaSpark);
     
-    if (!is_charging_attack) {
+    if (!m_is_charging_spark) {
         if (btn_just_pressed && attack_phase == AttackPhase::Idle) {
             sync_prev_transforms();
             attack_phase = AttackPhase::ActiveSweep;
@@ -733,29 +732,23 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
             swing_progress_prev = 0.0f;
             swing_progress_curr = 0.0f;
             current_swing_id++;
-            is_charging_attack = true;
-            m_charging_with_spark = false;
-            charge_timer = 0.0f;
             Audio::play_sfx(SFX::sword_swipe());
         } else if (spark_just_pressed) {
             sync_prev_transforms();
-            is_charging_attack = true;
-            m_charging_with_spark = true;
-            charge_timer = 0.0f;
+            m_is_charging_spark = true;
+            m_charge_timer = 0.0f;
         }
     }
-    
-    if (is_charging_attack) {
-        bool still_holding = m_charging_with_spark ? spark_held : btn_held;
-        if (still_holding) {
-            charge_timer += dt;
+
+    if (m_is_charging_spark) {
+        if (spark_held) {
+            m_charge_timer += dt;
         } else {
-            if (charge_timer >= CHARGE_FULL_DURATION) {
+            if (m_charge_timer >= CHARGE_FULL_DURATION) {
                 m_pending_spark = true;
             }
-            is_charging_attack = false;
-            m_charging_with_spark = false;
-            charge_timer = 0.0f;
+            m_is_charging_spark = false;
+            m_charge_timer = 0.0f;
         }
     }
 

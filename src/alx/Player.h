@@ -66,9 +66,8 @@ struct Player : public Entity {
 
     enum class AttackPhase { Idle, ActiveSweep, Recovery };
 
-    float charge_timer = 0.0f;
-    bool is_charging_attack = false;
-    bool m_charging_with_spark = false;
+    float m_charge_timer = 0.0f;
+    bool m_is_charging_spark = false;
 
     // Charge attack timing, dimensions (decreased size), and partial transparent colors
     static constexpr float CHARGE_FULL_DURATION          = 0.5f;
