@@ -78,3 +78,9 @@ Transition direct building to an RTS-style foundation placement and energy const
 - [ ] `[FXFD]`: Fixture Foundation Placement - Modify build commands so placing a structure consumes Alloy upfront and spawns a `FixtureFoundation` (`Foundation::Pipe`, `Foundation::Wall`, `Foundation::Refiner`, `Foundation::Spire`).
 - [ ] `[FCON]`: Foundation Energy Construction - Automatically construct and energize a `FixtureFoundation` into an operational structure when Light Mana reaches it via the pipe network or when the player discharges a Mana Spark near it.
 - [ ] `[FDHP]`: Low-Priority Foundation Targeting & Health - Give unbuilt foundations a reduced health pool. Assign a drastically lowered enemy target score so enemies prioritize players, active refiners, and spires first, only attacking foundations as a last resort when everything else is destroyed.
+
+---
+
+### [PH-NHR]: Phase - Network Health And Repair
+* `[FHS]`: Fixture Health Visualization Extension - data/logic addition to render a tiny health bar or dynamic color tint shift toward red directly over damaged network fixtures and structures
+* `[NPR]`: Network Player Repairs - player can repair damaged network fixtures, consuming half of the original alloy cost (TBD on the cost, let's research what good game mechanics might be)

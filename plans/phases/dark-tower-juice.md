@@ -78,8 +78,9 @@ struct DarkTowerEmergenceAnim {
 ### `[PH-CAW]`: Phase 3 - Corruption Aura Wave & Movement Audit
 *Focus: Room twilight re-infestation pulse and non-breaking player speed aura investigation.*
 
-- [ ] `[CAP]`: **Periodic Corruption Aura Pulse**
+- [x] `[CAP]`: **Periodic Corruption Aura Pulse**
   - Implement 5.0-second interval timer for `Active` Dark Towers to emit a expanding corruption pulse.
+- [ ] `[APT]`: **Aura Pulse Tweaks**
   - Increase ambient twilight on surrounding tiles within a designated tile radius (e.g., 3x3 radius).
   - Keep twilight increase balanced to avoid unwinnable room lockouts.
 - [ ] `[PSA]`: **Player Speed Aura Investigation**
@@ -97,12 +98,25 @@ struct DarkTowerEmergenceAnim {
 - [ ] `[VFXP]`: **Particle Emitter & Sound Polish**
   - Fine-tune debris particle lifetimes, smoke swirl rotation speeds, and audio cue triggers for emergence phases.
 
----
+## Optional Phases
 
-### `[PH-CWRN]`: Phase 5 - Corrupted Root Nodes System (Low Priority / Future Expansion)
-*Focus: Tactical multi-target destruction requirement for Dark Towers.*
+These are OPTIONAL and brainstorm only - DO NOT IMPLEMENT THESE YET!
+
+### `[PH-CWRN]`: Phase - Corrupted Root Nodes System (Low Priority / Future Expansion)
+*Focus: Tactical multi-target destruction via Dark Towers.*
+
+OPTIONAL - needs more info, decisions on whether we should do it
 
 - [ ] `[RNOD]`: **Root Node Anchors**
   - Spawn 2-3 satellite root nodes on adjacent tiles when a Dark Tower becomes active.
 - [ ] `[RNSH]`: **Shielded Core Mechanics**
   - Maintain tower shield until all satellite root nodes are shattered by player attacks or Spire blasts.
+
+---
+
+### `[PH-NIM]`: Phase Network Interaction & Shield Mechanics (Low Priority / Future Expansion)
+
+OPTIONAL - needs more info, decisions on whether we should do it
+
+* `[DTSF]`: Dark Tower Shield Framework - implementation of regenerating dark energy force field armor on towers that absorbs incoming structural damage
+* `[SRD]`: Spire Resonance Drain - calculation checking if active Light Spires fall within a dark tower's pulse radius, actively draining the tower's dark energy shield and slowing down its pest spawn rates

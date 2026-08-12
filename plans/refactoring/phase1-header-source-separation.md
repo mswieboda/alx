@@ -84,6 +84,8 @@ Resolving these violations will:
 
 ## `[PH-CAMU]`: Camera Unification & Class Shadowing Removal
 
+NOTE: NEEDS to be vetted by user/game designer. `core::Camera` is meant to be used across games, like a core general game mechanic, while `alx::Camera` is meant to be specific to `alx` only.
+
 ### Identified Anti-Patterns
 * Dual-camera ambiguity: `alx::Camera` derives from `core::Camera` but hides/overrides non-virtual `update()` methods, duplicating boundary clamping math (`has_limits`, `std::clamp`).
 * `core::Camera` defines `using Camera = core::Camera;` in global scope.
