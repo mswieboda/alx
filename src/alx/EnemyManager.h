@@ -180,7 +180,7 @@ public:
 
 private:
     void update_threat_cache();
-    void spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network);
+    void spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network, const Player* player = nullptr);
     [[nodiscard]] float calculate_fixture_threat(const Fixture& fixture) const;
     void update_player_aggro(Enemy& enemy, const Player* player, float dt, const Tiles& tiles, const Network* network = nullptr);
 };

@@ -332,7 +332,7 @@ namespace alx {
                 if (struct_obj.spawn_timer >= struct_obj.next_spawn_cooldown) {
                     struct_obj.spawn_timer = 0.0f;
                     struct_obj.next_spawn_cooldown = calculate_inverse_twilight_cooldown(twilight_level);
-                    spawn_dark_tower_wave(struct_obj, tiles, network);
+                    spawn_dark_tower_wave(struct_obj, tiles, network, player);
                 }
             }
         }
@@ -368,6 +368,22 @@ namespace alx {
                 e.state = EnemyState::Wander;
                 e.state_timer = Random::get_float(4.0f, 6.0f);
                 EnemyMovement::reset_wander_state(e.move_state);
+                // Ensure hatched enemy is ejected if standing on solid ground/fixture
+                static constexpr float HATCH_NUDGE_DIST = 4.0f;
+                static constexpr float NUDGE_DIRS_X[4] = { 0.0f, 0.0f, -HATCH_NUDGE_DIST, HATCH_NUDGE_DIST };
+                static constexpr float NUDGE_DIRS_Y[4] = { -HATCH_NUDGE_DIST, HATCH_NUDGE_DIST, 0.0f, 0.0f };
+                for (int step = 0; step < 8; ++step) {
+                    if (!is_solid_ground(e.ground_circle(), tiles, network)) break;
+                    for (int d = 0; d < 4; ++d) {
+                        float test_x = e.transform.x + NUDGE_DIRS_X[d];
+                        float test_y = e.transform.y + NUDGE_DIRS_Y[d];
+                        if (!is_solid_ground(e.ground_circle(test_x, test_y), tiles, network)) {
+                            e.transform.x = test_x;
+                            e.transform.y = test_y;
+                            break;
+                        }
+                    }
+                }
                 it = m_shadow_eggs.erase(it);
             } else if (it->destroyed) {
                 if (particles) ParticleEmitters::spawn_egg_shatter(*particles, it->center_x(), it->center_y());
@@ -665,6 +681,7 @@ namespace alx {
                 enemy.state = EnemyState::ReturnToMap;
                 enemy.has_target = false;
                 enemy.is_moving = true;
+                enemy.stuck_timer = 0.0f;
             }
 
             switch (enemy.state) {
@@ -672,11 +689,24 @@ namespace alx {
                     if (!is_out_of_bounds) {
                         enemy.state = EnemyState::Wander;
                         enemy.state_timer = Enemy::WANDER_DURATION;
+                        enemy.stuck_timer = 0.0f;
                         EnemyMovement::reset_wander_state(enemy.move_state);
                         break;
                     }
+                    enemy.stuck_timer += dt;
                     float target_inside_x = std::clamp(eg.cx, Enemy::MAP_BOUNDARY_PADDING, map_w - Enemy::MAP_BOUNDARY_PADDING);
                     float target_inside_y = std::clamp(eg.cy, Enemy::MAP_BOUNDARY_PADDING, map_h - Enemy::MAP_BOUNDARY_PADDING);
+
+                    if (enemy.stuck_timer >= Enemy::RETURN_TO_MAP_TIMEOUT) {
+                        enemy.transform.x = target_inside_x - (enemy.transform.width * 0.5f);
+                        enemy.transform.y = target_inside_y - (enemy.transform.height * 0.5f);
+                        enemy.stuck_timer = 0.0f;
+                        enemy.state = EnemyState::Wander;
+                        enemy.state_timer = Enemy::WANDER_DURATION;
+                        EnemyMovement::reset_wander_state(enemy.move_state);
+                        break;
+                    }
+
                     enemy.set_steering_vector_8way(target_inside_x, target_inside_y);
                     break;
                 }
@@ -1051,21 +1081,27 @@ namespace alx {
                 bool blocked_x = false;
                 bool blocked_y = false;
 
-                if (enemy.move_dx != 0.0f) {
-                    float target_x = enemy.transform.x + enemy.move_dx * enemy.speed * dt;
-                    if (!is_solid_ground(enemy.ground_circle(target_x, enemy.transform.y), tiles, network)) {
-                        enemy.transform.x = target_x;
-                    } else {
-                        blocked_x = true;
+                if (enemy.state == EnemyState::ReturnToMap) {
+                    // Phase through outer perimeter wall when returning to map
+                    enemy.transform.x += enemy.move_dx * enemy.speed * dt;
+                    enemy.transform.y += enemy.move_dy * enemy.speed * dt;
+                } else {
+                    if (enemy.move_dx != 0.0f) {
+                        float target_x = enemy.transform.x + enemy.move_dx * enemy.speed * dt;
+                        if (!is_solid_ground(enemy.ground_circle(target_x, enemy.transform.y), tiles, network)) {
+                            enemy.transform.x = target_x;
+                        } else {
+                            blocked_x = true;
+                        }
                     }
-                }
 
-                if (enemy.move_dy != 0.0f) {
-                    float target_y = enemy.transform.y + enemy.move_dy * enemy.speed * dt;
-                    if (!is_solid_ground(enemy.ground_circle(enemy.transform.x, target_y), tiles, network)) {
-                        enemy.transform.y = target_y;
-                    } else {
-                        blocked_y = true;
+                    if (enemy.move_dy != 0.0f) {
+                        float target_y = enemy.transform.y + enemy.move_dy * enemy.speed * dt;
+                        if (!is_solid_ground(enemy.ground_circle(enemy.transform.x, target_y), tiles, network)) {
+                            enemy.transform.y = target_y;
+                        } else {
+                            blocked_y = true;
+                        }
                     }
                 }
 
@@ -1430,7 +1466,7 @@ namespace alx {
         }
     }
 
-    void EnemyManager::spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network) {
+    void EnemyManager::spawn_dark_tower_wave(WorldStructure& tower, const Tiles& tiles, Network& network, const Player* player) {
         int active_eggs_count = 0;
         Collision::AABB tower_aabb = tower.ground_aabb();
         float tc_x = tower.center_x();
@@ -1481,16 +1517,38 @@ namespace alx {
                 float candidate_x = tc_x + dist * std::cos(test_angle) - (ShadowEgg::EGG_WIDTH * 0.5f);
                 float candidate_y = tc_y + dist * std::sin(test_angle) - (ShadowEgg::EGG_HEIGHT * 0.5f);
 
+                // 1. Strict Map Bounds Check
+                float map_w = tiles.world_width();
+                float map_h = tiles.world_height();
+                if (candidate_x < 0.0f || candidate_x > (map_w - ShadowEgg::EGG_WIDTH) ||
+                    candidate_y < 0.0f || candidate_y > (map_h - ShadowEgg::EGG_HEIGHT)) {
+                    continue;
+                }
+
                 ShadowEgg test_egg(candidate_x, candidate_y);
                 Collision::AABB egg_aabb = test_egg.ground_aabb();
 
-                // 1. Ensure egg does not overlap DarkTower bounding box
+                // 2. Ensure egg does not overlap DarkTower bounding box
                 if (Collision::aabb_vs_aabb(egg_aabb, tower_aabb)) continue;
 
-                // 2. Ensure egg is on solid floor (not in walls, out of bounds, or inside pipe fixtures)
-                if (!is_solid_ground(test_egg.hurt_circle(), tiles, network)) continue;
+                // 3. Ensure egg is on open ground (not in walls, out of bounds, or inside pipe fixtures)
+                if (is_solid_ground(test_egg.hurt_circle(), tiles, network)) continue;
 
-                // 3. Ensure candidate does not heavily overlap existing eggs
+                // 4. Ensure egg does not overlap player ground circle
+                if (player && Collision::circle_vs_aabb(player->ground_circle(), egg_aabb)) continue;
+
+                // 5. Ensure egg does not overlap active enemies
+                bool overlaps_enemy = false;
+                for (const auto& enemy : m_enemies) {
+                    if (enemy.is_dead()) continue;
+                    if (Collision::circle_vs_aabb(enemy.ground_circle(), egg_aabb)) {
+                        overlaps_enemy = true;
+                        break;
+                    }
+                }
+                if (overlaps_enemy) continue;
+
+                // 6. Ensure candidate does not heavily overlap existing eggs
                 bool overlaps_egg = false;
                 for (const auto& existing_egg : m_shadow_eggs) {
                     if (existing_egg.hatched || existing_egg.destroyed) continue;
@@ -1507,13 +1565,6 @@ namespace alx {
                 m_shadow_eggs.emplace_back(start_x, start_y, candidate_x, candidate_y, ShadowEggConstants::EJECT_FLIGHT_DURATION);
                 spot_found = true;
                 break;
-            }
-
-            if (!spot_found) {
-                // Fallback: Launch directly to initial candidate coordinate
-                float start_x = tc_x - (ShadowEgg::EGG_WIDTH * 0.5f);
-                float start_y = tc_y - (ShadowEgg::EGG_HEIGHT * 0.5f);
-                m_shadow_eggs.emplace_back(start_x, start_y, target_x, target_y, ShadowEggConstants::EJECT_FLIGHT_DURATION);
             }
         }
     }

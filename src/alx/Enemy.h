@@ -87,6 +87,7 @@ struct Enemy : public Entity {
     static constexpr float RESTLESS_WANDER_DURATION  = 2.5f;  // Intermission wander duration
     static constexpr float OBSTACLE_STUCK_THRESHOLD  = 1.0f;  // Seconds spent against obstacle before detour wander
     static constexpr float DETOUR_WANDER_DURATION    = 3.0f;  // Detour wander duration around obstacles
+    static constexpr float RETURN_TO_MAP_TIMEOUT     = 3.0f;  // Max seconds out-of-bounds before emergency teleport
     static constexpr float TARGET_REEVAL_MIN_TIME    = 1.0f;  // Target re-evaluation min interval
     static constexpr float TARGET_REEVAL_MAX_TIME    = 3.0f;  // Target re-evaluation max interval
     static constexpr float ATTACK_WINDUP_TIME        = 0.3f;  // Attack windup telegraph

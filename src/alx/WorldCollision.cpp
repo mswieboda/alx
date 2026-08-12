@@ -12,10 +12,10 @@ bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const 
     int min_ty = static_cast<int>(std::floor((ground.cy - ground.radius) / tile_size));
     int max_ty = static_cast<int>(std::floor((ground.cy + ground.radius) / tile_size));
 
-    // Wall tile checks (1x1 precision)
+    // Wall tile checks (1x1 precision: includes out-of-bounds border cells)
     for (int ty = min_ty; ty <= max_ty; ++ty) {
         for (int tx = min_tx; tx <= max_tx; ++tx) {
-            if (tiles.in_bounds(tx, ty) && tiles.is_wall(tx, ty)) {
+            if (!tiles.in_bounds(tx, ty) || tiles.is_wall(tx, ty)) {
                 if (Collision::circle_vs_aabb(ground, tx * tile_size, ty * tile_size, tile_size, tile_size)) {
                     return true;
                 }
