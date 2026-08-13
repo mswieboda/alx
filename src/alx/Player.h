@@ -69,17 +69,6 @@ struct Player : public Entity {
     float m_charge_timer = 0.0f;
     bool m_is_charging_spark = false;
 
-    // Charge attack timing, dimensions (decreased size), and partial transparent colors
-    static constexpr float CHARGE_FULL_DURATION          = 0.5f;
-    static constexpr float CHARGE_MAX_UNCHARGED_RADIUS  = 4.0f;
-    static constexpr float CHARGE_FULLY_CHARGED_OUTER_SZ = 10.0f;
-    static constexpr float CHARGE_FULLY_CHARGED_OUTER_OFF= 5.0f;
-    static constexpr float CHARGE_FULLY_CHARGED_INNER_SZ = 6.0f;
-    static constexpr float CHARGE_FULLY_CHARGED_INNER_OFF= 3.0f;
-    static constexpr uint32_t CHARGE_AURA_COLOR          = 0x5500AAFF; // partial transparent cyan/blue
-    static constexpr uint32_t CHARGE_FULL_OUTER_COLOR    = 0x5500FFFF; // partial transparent opacity bright cyan
-    static constexpr uint32_t CHARGE_FULL_INNER_COLOR    = 0x55FFFFFF; // partial transparent opacity white
-
     // Collision areas ratios
     static constexpr float GROUND_RADIUS_RATIO = 0.25f;   // % of transform.width
     static constexpr float GROUND_OFFSET_Y_RATIO = 1.00f; // Bottom aligned (transform.y + transform.height - r)

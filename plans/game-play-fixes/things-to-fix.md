@@ -4,5 +4,3 @@
 - alloy pickups need to give like 3 alloy or 5 allow instead of just 1, or give a rare randomness for a "big" one like 5 alloy big brick (and all others are 2)
 
 - twilight levels are still not working well, we need to tweak them so they are better so the player gets rewarded for building and fighting. but not overwhelmed like it's impossible. this will be a hard balance to strike
-
-- player spark projectile needs to be bigger in size so it hits enemies or other things easier

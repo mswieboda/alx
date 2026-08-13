@@ -12,6 +12,7 @@
 #include "alx/TrigLUT.h"
 #include "alx/SFX.h"
 #include "alx/ParticleEmitters.h"
+#include "alx/ManaSpark.h"
 #include "core/Audio.h"
 #include "core/Draw.h"
 #include "core/Log.h"
@@ -481,7 +482,7 @@ void Player::update(float dt, const Tiles& tiles, Network& network, const alx::C
     update_actions(dt, tiles, network, can_build, particle_system);
 }
 
-void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool can_build, const Tiles* tiles, const Network* network) {
+void Player::draw(std::vector<uint32_t>& pixel_buffer, float alpha, bool can_build, const Tiles* tiles, const Network* network) {
     if (!active) return;
 
     float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
@@ -525,18 +526,8 @@ void Player::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool can_bu
     if (m_is_charging_spark) {
         float cx = world_draw_x + world_draw_w * 0.5f;
         float cy = world_draw_y + world_draw_h * 0.5f;
-        if (m_charge_timer < CHARGE_FULL_DURATION) {
-            float progress = m_charge_timer / CHARGE_FULL_DURATION;
-            int r = static_cast<int>(progress * CHARGE_MAX_UNCHARGED_RADIUS);
-            if (r > 1) {
-                float size = static_cast<float>(r * 2);
-                Draw::rect(cx - static_cast<float>(r), cy - static_cast<float>(r), size, size, CHARGE_AURA_COLOR, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
-            }
-        } else {
-            // Fully charged! Flash cyan aura ring (25% opacity, decreased size)
-            Draw::rect(cx - CHARGE_FULLY_CHARGED_OUTER_OFF, cy - CHARGE_FULLY_CHARGED_OUTER_OFF, CHARGE_FULLY_CHARGED_OUTER_SZ, CHARGE_FULLY_CHARGED_OUTER_SZ, CHARGE_FULL_OUTER_COLOR, false, 2, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
-            Draw::rect(cx - CHARGE_FULLY_CHARGED_INNER_OFF, cy - CHARGE_FULLY_CHARGED_INNER_OFF, CHARGE_FULLY_CHARGED_INNER_SZ, CHARGE_FULLY_CHARGED_INNER_SZ, CHARGE_FULL_INNER_COLOR, false, 1, Layer::WorldObjFX, static_cast<int>(world_bottom_y));
-        }
+
+        ManaSpark::draw_charging(pixel_buffer, alpha, m_charge_timer, cx, cy, static_cast<int>(world_bottom_y));
     }
 
     // Ground & hurt collision areas + attack hit arc debug outlines
@@ -744,7 +735,7 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
         if (spark_held) {
             m_charge_timer += dt;
         } else {
-            if (m_charge_timer >= CHARGE_FULL_DURATION) {
+            if (m_charge_timer >= ManaSpark::CHARGE_FULL_DURATION) {
                 m_pending_spark = true;
             }
             m_is_charging_spark = false;
