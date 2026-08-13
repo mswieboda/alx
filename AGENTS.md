@@ -9,7 +9,6 @@
 
 - **Use `task build` to compile**: Always use `task build` when compiling to verify syntax, type safety, and build success without launching the GUI window.
 - **Avoid plain `task` / `task run`**: Plain `task` executes the default target (`build run`), which launches the interactive game window. Only run `task` or `task run` when explicitly asked to, to inspect runtime startup or scene initialization logs.
-- **Deprecated build pipeline**: GNU Make and the `Makefile` have been deprecated for this project. Running it will output in a warning/error and will not do anything.
 
 ---
 
