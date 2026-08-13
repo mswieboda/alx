@@ -1,5 +1,4 @@
 #include "Network.h"
-#include <queue>
 #include <algorithm>
 #include "Debug.h"
 #include "Layer.h"
@@ -14,14 +13,22 @@ namespace alx {
 Network::Network(int width, int height, int tile_size)
     : m_width(width), m_height(height), m_tile_size(tile_size)
 {
-    m_fixtures.resize(m_width * m_height, Fixture{});
+    resize(m_width, m_height);
 }
 
 void Network::resize(int width, int height) {
     m_width = width;
     m_height = height;
-    m_fixtures.assign(m_width * m_height, Fixture{});
+    const size_t grid_size = static_cast<size_t>(m_width * m_height);
+    m_fixtures.assign(grid_size, Fixture{});
     m_active_indices.clear();
+
+    m_scratch_next_fixtures.assign(grid_size, Fixture{});
+    m_scratch_seep_dist.assign(grid_size, NetworkConfig::UNREACHABLE_DIST);
+    m_scratch_spire_dist.assign(grid_size, NetworkConfig::UNREACHABLE_DIST);
+    m_scratch_dark_pipes.reserve(grid_size);
+    m_scratch_light_pipes.reserve(grid_size);
+    m_scratch_bfs_queue.reserve(grid_size);
 }
 
 void Network::clear() {
@@ -253,10 +260,14 @@ void Network::update_neighbor_masks(GridPos pos) {
     }
 }
 
-std::vector<int> Network::compute_distance_field(FixtureType sourceType) const {
-    std::vector<int> dist(m_fixtures.size(), 9999);
-    std::queue<int> q;
+void Network::compute_distance_field(FixtureType sourceType, std::vector<int>& out_dist) const {
+    const size_t grid_size = m_fixtures.size();
+    if (out_dist.size() != grid_size) {
+        out_dist.resize(grid_size, NetworkConfig::UNREACHABLE_DIST);
+    }
+    std::fill(out_dist.begin(), out_dist.end(), NetworkConfig::UNREACHABLE_DIST);
 
+    m_scratch_bfs_queue.clear();
     PortLocation ports[4];
 
     for (int y = 0; y < m_height; ++y) {
@@ -269,16 +280,16 @@ std::vector<int> Network::compute_distance_field(FixtureType sourceType) const {
                     int p_x = x + ports[p].off_x;
                     int p_y = y + ports[p].off_y;
                     int p_idx = p_y * m_width + p_x;
-                    dist[p_idx] = 0;
+                    out_dist[p_idx] = 0;
 
                     int target_x = p_x + ports[p].face_dx;
                     int target_y = p_y + ports[p].face_dy;
                     if (in_bounds(target_x, target_y)) {
                         int t_idx = target_y * m_width + target_x;
                         if (m_fixtures[t_idx].type == FixtureType::Pipe) {
-                            if (dist[t_idx] > 1) {
-                                dist[t_idx] = 1;
-                                q.push(t_idx);
+                            if (out_dist[t_idx] > 1) {
+                                out_dist[t_idx] = 1;
+                                m_scratch_bfs_queue.push_back(t_idx);
                             }
                         }
                     }
@@ -287,16 +298,16 @@ std::vector<int> Network::compute_distance_field(FixtureType sourceType) const {
         }
     }
 
-    int dx[] = { 0, 0, -1, 1 };
-    int dy[] = { -1, 1, 0, 0 };
+    static constexpr int dx[] = { 0, 0, -1, 1 };
+    static constexpr int dy[] = { -1, 1, 0, 0 };
 
-    while (!q.empty()) {
-        int curr = q.front();
-        q.pop();
+    size_t head = 0;
+    while (head < m_scratch_bfs_queue.size()) {
+        int curr = m_scratch_bfs_queue[head++];
 
         int cx = curr % m_width;
         int cy = curr / m_width;
-        int curr_dist = dist[curr];
+        int curr_dist = out_dist[curr];
 
         for (int i = 0; i < 4; ++i) {
             int nx = cx + dx[i];
@@ -305,25 +316,23 @@ std::vector<int> Network::compute_distance_field(FixtureType sourceType) const {
             if (in_bounds(nx, ny)) {
                 int n_idx = ny * m_width + nx;
                 if (m_fixtures[n_idx].type == FixtureType::Pipe) {
-                    if (dist[n_idx] > curr_dist + 1) {
-                        dist[n_idx] = curr_dist + 1;
-                        q.push(n_idx);
+                    if (out_dist[n_idx] > curr_dist + 1) {
+                        out_dist[n_idx] = curr_dist + 1;
+                        m_scratch_bfs_queue.push_back(n_idx);
                     }
                 } else if (is_building(m_fixtures[n_idx].type)) {
                     if (is_valid_port_connection(cx, cy, nx, ny)) {
-                        if (dist[n_idx] > curr_dist + 1) {
-                            dist[n_idx] = curr_dist + 1;
+                        if (out_dist[n_idx] > curr_dist + 1) {
+                            out_dist[n_idx] = curr_dist + 1;
                         }
                     }
                 }
             }
         }
     }
-
-    return dist;
 }
 
-void Network::downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const {
+void Network::downstream_dir(int x, int y, ManaState state, const std::vector<int>& dark_dist, int& out_dx, int& out_dy) const {
     out_dx = 0;
     out_dy = 0;
 
@@ -332,10 +341,8 @@ void Network::downstream_dir(int x, int y, ManaState state, int& out_dx, int& ou
     if (current.type != FixtureType::Pipe || current.mana_state == ManaState::None) return;
 
     int idx = y * m_width + x;
-    int dx[] = { 0, 0, -1, 1 };
-    int dy[] = { -1, 1, 0, 0 };
-
-    std::vector<int> dark_dist = compute_distance_field(FixtureType::Seep);
+    static constexpr int dx[] = { 0, 0, -1, 1 };
+    static constexpr int dy[] = { -1, 1, 0, 0 };
 
     if (state == ManaState::Dark) {
         int my_d = dark_dist[idx];
@@ -346,7 +353,7 @@ void Network::downstream_dir(int x, int y, ManaState state, int& out_dx, int& ou
             if (in_bounds(nx, ny)) {
                 int n_idx = ny * m_width + nx;
                 const Fixture& n = m_fixtures[n_idx];
-                if ((n.type == FixtureType::Pipe || n.type == FixtureType::Refiner) && dark_dist[n_idx] > best_d && dark_dist[n_idx] < 9000) {
+                if ((n.type == FixtureType::Pipe || n.type == FixtureType::Refiner) && dark_dist[n_idx] > best_d && dark_dist[n_idx] < NetworkConfig::SINK_DIST_THRESHOLD) {
                     if (is_valid_port_connection(x, y, nx, ny)) {
                         best_d = dark_dist[n_idx];
                         out_dx = dx[i];
@@ -586,32 +593,29 @@ void Network::sim_pipe_flow(
     std::vector<Fixture>& next_fixtures
 ) {
     // 1. Process Iterative Dark Mana Pipeline Flow & Receding Draining
-    struct DarkPipeIndex {
-        int x, y, idx, dist;
-    };
-    std::vector<DarkPipeIndex> dark_pipes;
+    m_scratch_dark_pipes.clear();
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             int idx = y * m_width + x;
             const Fixture& current = m_fixtures[idx];
             if (current.type == FixtureType::Pipe && current.mana_state == ManaState::Dark) {
-                dark_pipes.push_back({ x, y, idx, seep_dist[idx] });
+                m_scratch_dark_pipes.push_back({ x, y, idx, seep_dist[idx] });
             }
         }
     }
 
     // Sort by distance from Seep ascending (closest to Seep first)
-    std::sort(dark_pipes.begin(), dark_pipes.end(), [](const DarkPipeIndex& a, const DarkPipeIndex& b) {
+    std::sort(m_scratch_dark_pipes.begin(), m_scratch_dark_pipes.end(), [](const DarkPipeIndex& a, const DarkPipeIndex& b) {
         return a.dist < b.dist;
     });
 
-    for (const auto& pipe_node : dark_pipes) {
+    for (const auto& pipe_node : m_scratch_dark_pipes) {
         int idx = pipe_node.idx;
         int x = pipe_node.x;
         int y = pipe_node.y;
         Fixture& next = next_fixtures[idx];
 
-        bool is_connected = (seep_dist[idx] < 9000);
+        bool is_connected = (seep_dist[idx] < NetworkConfig::SINK_DIST_THRESHOLD);
         if (!is_connected) {
             next.is_draining = true;
         } else {
@@ -623,8 +627,8 @@ void Network::sim_pipe_flow(
         int neighbor_count = find_all_downstream_neighbors(x, y, ManaState::Dark, seep_dist, light_dist, next_fixtures, neighbors);
 
         if (neighbor_count > 0) {
-            int dx[] = { 0, 0, -1, 1 };
-            int dy[] = { -1, 1, 0, 0 };
+            static constexpr int dx[] = { 0, 0, -1, 1 };
+            static constexpr int dy[] = { -1, 1, 0, 0 };
             uint8_t out_mask = 0;
 
             for (int n = 0; n < neighbor_count; ++n) {
@@ -645,7 +649,7 @@ void Network::sim_pipe_flow(
             }
             next.flow_out_mask = out_mask;
         } else {
-            // Downstream fallback for draining pipes (distance >= 9000)
+            // Downstream fallback for draining pipes (distance >= NetworkConfig::SINK_DIST_THRESHOLD)
             int flow_dx = 0, flow_dy = 0;
             DirectionMask::to_delta(next.flow_out_mask, flow_dx, flow_dy);
             if (flow_dx == 0 && flow_dy == 0) {
@@ -669,7 +673,7 @@ void Network::sim_pipe_flow(
                 }
             } else {
                 int out_dx = 0, out_dy = 0;
-                downstream_dir(x, y, ManaState::Dark, out_dx, out_dy);
+                downstream_dir(x, y, ManaState::Dark, seep_dist, out_dx, out_dy);
                 next.flow_out_mask = DirectionMask::from_delta(out_dx, out_dy);
             }
         }
@@ -690,25 +694,22 @@ void Network::sim_pipe_flow(
     }
 
     // 2. Process Discrete Light Mana Orb Flow (Conduits to Spires)
-    struct PipeIndex {
-        int x, y, idx, dist;
-    };
-    std::vector<PipeIndex> light_pipes;
+    m_scratch_light_pipes.clear();
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
             int idx = y * m_width + x;
             const Fixture& current = m_fixtures[idx];
             if (current.type == FixtureType::Pipe && current.is_powered && current.mana_state == ManaState::Light) {
-                light_pipes.push_back({ x, y, idx, light_dist[idx] });
+                m_scratch_light_pipes.push_back({ x, y, idx, light_dist[idx] });
             }
         }
     }
 
-    std::sort(light_pipes.begin(), light_pipes.end(), [](const PipeIndex& a, const PipeIndex& b) {
+    std::sort(m_scratch_light_pipes.begin(), m_scratch_light_pipes.end(), [](const LightPipeIndex& a, const LightPipeIndex& b) {
         return a.dist < b.dist;
     });
 
-    for (const auto& pipe_node : light_pipes) {
+    for (const auto& pipe_node : m_scratch_light_pipes) {
         int idx = pipe_node.idx;
         int x = pipe_node.x;
         int y = pipe_node.y;
@@ -867,16 +868,20 @@ void Network::sim_produce(NetworkSimResults& results, std::vector<Fixture>& next
 
 NetworkSimResults Network::sim_tick() {
     NetworkSimResults results{};
-    std::vector<Fixture> next_fixtures = m_fixtures;
+    const size_t grid_size = m_fixtures.size();
+    if (m_scratch_next_fixtures.size() != grid_size) {
+        m_scratch_next_fixtures.resize(grid_size);
+    }
+    m_scratch_next_fixtures = m_fixtures;
 
-    std::vector<int> seep_dist = compute_distance_field(FixtureType::Seep);
-    std::vector<int> light_dist = compute_distance_field(FixtureType::Spire);
+    compute_distance_field(FixtureType::Seep, m_scratch_seep_dist);
+    compute_distance_field(FixtureType::Spire, m_scratch_spire_dist);
 
-    sim_consume(next_fixtures);
-    sim_pipe_flow(seep_dist, light_dist, next_fixtures);
-    sim_produce(results, next_fixtures);
+    sim_consume(m_scratch_next_fixtures);
+    sim_pipe_flow(m_scratch_seep_dist, m_scratch_spire_dist, m_scratch_next_fixtures);
+    sim_produce(results, m_scratch_next_fixtures);
 
-    m_fixtures = std::move(next_fixtures);
+    m_fixtures = m_scratch_next_fixtures;
     return results;
 }
 

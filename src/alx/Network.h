@@ -12,6 +12,25 @@
 
 namespace alx {
 
+namespace NetworkConfig {
+    static constexpr int UNREACHABLE_DIST = 9999;
+    static constexpr int SINK_DIST_THRESHOLD = 9000;
+} // namespace NetworkConfig
+
+struct DarkPipeIndex {
+    int x{0};
+    int y{0};
+    int idx{0};
+    int dist{0};
+};
+
+struct LightPipeIndex {
+    int x{0};
+    int y{0};
+    int idx{0};
+    int dist{0};
+};
+
 struct NetworkSimResults {
     int spires_converted = 0;
     int refiners_processed = 0;
@@ -27,8 +46,16 @@ private:
     std::vector<Fixture> m_fixtures;
     std::vector<int32_t> m_active_indices;
 
+    // --- Pre-Allocated Hot-Path Scratch Buffers ---
+    mutable std::vector<Fixture> m_scratch_next_fixtures;
+    mutable std::vector<int> m_scratch_seep_dist;
+    mutable std::vector<int> m_scratch_spire_dist;
+    mutable std::vector<DarkPipeIndex> m_scratch_dark_pipes;
+    mutable std::vector<LightPipeIndex> m_scratch_light_pipes;
+    mutable std::vector<int> m_scratch_bfs_queue;
+
     // --- Private Distance & Helper Methods ---
-    std::vector<int> compute_distance_field(FixtureType sourceType) const;
+    void compute_distance_field(FixtureType sourceType, std::vector<int>& out_dist) const;
     int find_empty_adjacent_pipe(int x, int y, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const;
     int find_active_input_pipe(int x, int y, ManaState target_state, int& out_chosen_dir_idx) const;
     int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& seep_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const;
@@ -71,7 +98,7 @@ public:
     // --- Auto-Tiling Mask & Downstream Query ---
     [[nodiscard]] bool is_valid_port_connection(int from_x, int from_y, int to_x, int to_y) const noexcept;
     void update_neighbor_masks(GridPos pos);
-    void downstream_dir(int x, int y, ManaState state, int& out_dx, int& out_dy) const;
+    void downstream_dir(int x, int y, ManaState state, const std::vector<int>& dark_dist, int& out_dx, int& out_dy) const;
     [[nodiscard]] bool is_tall_fixture(int tx, int ty) const noexcept {
         if (!in_bounds(tx, ty)) return false;
         FixtureType t = fixture(tx, ty).type;

@@ -65,14 +65,14 @@ namespace AudioConfig {
 
 ---
 
-## `[PH-NETW]`: Network Simulation Hot-Path Allocation Buffer Pre-Allocation
+## `[PH-NETW]`: Network Simulation Hot-Path Allocation Buffer Pre-Allocation (COMPLETED)
 
 ### Identified Anti-Patterns
 * `sim_tick()` and its helper methods (`compute_distance_field`, `downstream_dir`, `sim_pipe_flow`) allocate multiple `std::vector` and `std::queue` heap instances on every simulation frame (`std::vector<Fixture> next_fixtures`, `std::vector<int> dist`, `std::vector<DarkPipeIndex>`, `std::queue<int> q`).
 * Heap allocations inside hot update loops trigger cache line misses, memory fragmentation, and frame drops.
 
 ### Action Plan & Sub-Tasks
-* `[NETSC]`: Add reusable scratch buffers as private member variables in `Network.h`:
+- [x] `[NETSC]`: Add reusable scratch buffers as private member variables in `Network.h`:
   ```cpp
   std::vector<Fixture> m_scratch_next_fixtures;
   std::vector<int> m_scratch_seep_dist;
@@ -81,8 +81,8 @@ namespace AudioConfig {
   std::vector<LightPipeIndex> m_scratch_light_pipes;
   std::vector<int> m_scratch_bfs_queue;
   ```
-* `[NETRZ]`: Pre-allocate and resize scratch buffers only when `Network::resize()` is called.
-* `[NETCL]`: Use `.clear()` (preserving buffer capacity) on scratch vectors during `sim_tick()` to achieve zero dynamic allocations on hot update paths.
+- [x] `[NETRZ]`: Pre-allocate and resize scratch buffers only when `Network::resize()` is called.
+- [x] `[NETCL]`: Use `.clear()` (preserving buffer capacity) on scratch vectors during `sim_tick()` to achieve zero dynamic allocations on hot update paths.
 
 ---
 
