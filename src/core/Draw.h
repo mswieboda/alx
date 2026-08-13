@@ -4,7 +4,19 @@
 #include <string_view>
 #include <variant>
 #include <cstdint>
+#include <span>
 #include "Font.h"
+
+struct RenderTarget {
+    std::span<uint32_t> pixels{};
+    int width{320};
+    int height{240};
+
+    [[nodiscard]] constexpr bool is_valid() const noexcept {
+        return !pixels.empty() && width > 0 && height > 0 &&
+               pixels.size() >= static_cast<size_t>(width * height);
+    }
+};
 
 #if defined(__GNUC__) || defined(__clang__)
   #define ALX_PRINTF_FORMAT(fmt_idx, arg_idx) __attribute__((format(printf, fmt_idx, arg_idx)))
@@ -166,6 +178,7 @@ namespace Draw {
     );
 
     // Process, order, and draw everything to the screen buffer
+    void flush_pipeline(RenderTarget target, uint32_t background_color);
     void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color);
 
     inline float interpolate(float prev, float curr, float alpha) {

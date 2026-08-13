@@ -1,6 +1,5 @@
 #define ALX_DRAW_INTERNAL_ALLOW
 #include "DrawPixels.h"
-#include "../Game.h"
 #include "Font.h"
 #include <algorithm>
 #include <cmath>
@@ -8,6 +7,8 @@
 namespace DrawPixels {
 
 namespace {
+
+constexpr uint32_t FALLBACK_PALETTE_COLOR = 0xFF00FF00;
 
 inline uint32_t blend_pixel(uint32_t dest, uint32_t src) {
     uint32_t src_alpha = (src >> 24) & 0xFF;
@@ -33,23 +34,25 @@ inline uint32_t blend_pixel(uint32_t dest, uint32_t src) {
 
 } // namespace
 
-void clear(std::vector<uint32_t>& buf, uint32_t color) {
-    std::fill(buf.begin(), buf.end(), color);
+void clear(RenderTarget target, uint32_t color) {
+    if (!target.is_valid()) return;
+    std::fill(target.pixels.begin(), target.pixels.end(), color);
 }
 
-void rect(std::vector<uint32_t>& buf, int rx, int ry, int rw, int rh, uint32_t color, bool fill, int thickness) {
-    int start_x = std::max(0, rx), end_x = std::min(Game::WIDTH, rx + rw);
-    int start_y = std::max(0, ry), end_y = std::min(Game::HEIGHT, ry + rh);
+void rect(RenderTarget target, int rx, int ry, int rw, int rh, uint32_t color, bool fill, int thickness) {
+    if (!target.is_valid()) return;
+    int start_x = std::max(0, rx), end_x = std::min(target.width, rx + rw);
+    int start_y = std::max(0, ry), end_y = std::min(target.height, ry + rh);
     uint32_t alpha = (color >> 24) & 0xFF;
 
     if (fill) {
         for (int y = start_y; y < end_y; ++y) {
             for (int x = start_x; x < end_x; ++x) {
-                uint32_t idx = y * Game::WIDTH + x;
+                uint32_t idx = static_cast<uint32_t>(y * target.width + x);
                 if (alpha == 0xFF) {
-                    buf[idx] = color;
+                    target.pixels[idx] = color;
                 } else if (alpha > 0) {
-                    buf[idx] = blend_pixel(buf[idx], color);
+                    target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                 }
             }
         }
@@ -61,11 +64,11 @@ void rect(std::vector<uint32_t>& buf, int rx, int ry, int rw, int rh, uint32_t c
                 int dx = x - rx;
                 int dy = y - ry;
                 if (dx < t || dx >= rw - t || dy < t || dy >= rh - t) {
-                    uint32_t idx = y * Game::WIDTH + x;
+                    uint32_t idx = static_cast<uint32_t>(y * target.width + x);
                     if (alpha == 0xFF) {
-                        buf[idx] = color;
+                        target.pixels[idx] = color;
                     } else if (alpha > 0) {
-                        buf[idx] = blend_pixel(buf[idx], color);
+                        target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                     }
                 }
             }
@@ -73,8 +76,8 @@ void rect(std::vector<uint32_t>& buf, int rx, int ry, int rw, int rh, uint32_t c
     }
 }
 
-void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness) {
-    if (rx <= 0.0f || ry <= 0.0f) return;
+void oval(RenderTarget target, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness) {
+    if (!target.is_valid() || rx <= 0.0f || ry <= 0.0f) return;
 
     uint32_t alpha = (color >> 24) & 0xFF;
     if (alpha == 0) return;
@@ -104,9 +107,9 @@ void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, ui
     }
 
     int start_x = std::max(0, static_cast<int>(std::floor(cx - rx)));
-    int end_x = std::min(Game::WIDTH, static_cast<int>(std::ceil(cx + rx + 1.0f)));
+    int end_x = std::min(target.width, static_cast<int>(std::ceil(cx + rx + 1.0f)));
     int start_y = std::max(0, static_cast<int>(std::floor(cy - ry)));
-    int end_y = std::min(Game::HEIGHT, static_cast<int>(std::ceil(cy + ry + 1.0f)));
+    int end_y = std::min(target.height, static_cast<int>(std::ceil(cy + ry + 1.0f)));
 
     for (int y = start_y; y < end_y; ++y) {
         float dy = (static_cast<float>(y) + 0.5f) - cy;
@@ -129,11 +132,11 @@ void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, ui
                 }
 
                 if (draw_pixel) {
-                    uint32_t idx = y * Game::WIDTH + x;
+                    uint32_t idx = static_cast<uint32_t>(y * target.width + x);
                     if (alpha == 0xFF) {
-                        buf[idx] = color;
+                        target.pixels[idx] = color;
                     } else {
-                        buf[idx] = blend_pixel(buf[idx], color);
+                        target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                     }
                 }
             }
@@ -141,7 +144,8 @@ void oval(std::vector<uint32_t>& buf, float cx, float cy, float rx, float ry, ui
     }
 }
 
-void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t color, int thickness) {
+void line(RenderTarget target, int x1, int y1, int x2, int y2, uint32_t color, int thickness) {
+    if (!target.is_valid()) return;
     uint32_t alpha = (color >> 24) & 0xFF;
     if (alpha == 0) return;
 
@@ -154,17 +158,17 @@ void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t c
     auto draw_brush = [&](int cx, int cy) {
         int half_t = thickness / 2;
         int start_x = std::max(0, cx - half_t);
-        int end_x = std::min(Game::WIDTH, cx - half_t + thickness);
+        int end_x = std::min(target.width, cx - half_t + thickness);
         int start_y = std::max(0, cy - half_t);
-        int end_y = std::min(Game::HEIGHT, cy - half_t + thickness);
+        int end_y = std::min(target.height, cy - half_t + thickness);
 
         for (int y = start_y; y < end_y; ++y) {
             for (int x = start_x; x < end_x; ++x) {
-                uint32_t idx = y * Game::WIDTH + x;
+                uint32_t idx = static_cast<uint32_t>(y * target.width + x);
                 if (alpha == 0xFF) {
-                    buf[idx] = color;
+                    target.pixels[idx] = color;
                 } else {
-                    buf[idx] = blend_pixel(buf[idx], color);
+                    target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                 }
             }
         }
@@ -172,12 +176,12 @@ void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t c
 
     if (thickness <= 1) {
         while (true) {
-            if (x1 >= 0 && x1 < Game::WIDTH && y1 >= 0 && y1 < Game::HEIGHT) {
-                uint32_t idx = y1 * Game::WIDTH + x1;
+            if (x1 >= 0 && x1 < target.width && y1 >= 0 && y1 < target.height) {
+                uint32_t idx = static_cast<uint32_t>(y1 * target.width + x1);
                 if (alpha == 0xFF) {
-                    buf[idx] = color;
+                    target.pixels[idx] = color;
                 } else {
-                    buf[idx] = blend_pixel(buf[idx], color);
+                    target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                 }
             }
             if (x1 == x2 && y1 == y2) break;
@@ -208,7 +212,8 @@ void line(std::vector<uint32_t>& buf, int x1, int y1, int x2, int y2, uint32_t c
     }
 }
 
-void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr) {
+void text(RenderTarget target, int x, int y, std::string_view text, uint32_t color, int scale, const FontData* font_ptr) {
+    if (!target.is_valid()) return;
     uint32_t alpha = (color >> 24) & 0xFF;
     if (alpha == 0) return;
 
@@ -242,17 +247,17 @@ void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint3
 
                     for (int sy = 0; sy < scale; ++sy) {
                         int current_y = base_y + sy;
-                        if (current_y < 0 || current_y >= Game::HEIGHT) continue;
+                        if (current_y < 0 || current_y >= target.height) continue;
 
                         for (int sx = 0; sx < scale; ++sx) {
                             int current_x = base_x + sx;
-                            if (current_x < 0 || current_x >= Game::WIDTH) continue;
+                            if (current_x < 0 || current_x >= target.width) continue;
 
-                            uint32_t idx = current_y * Game::WIDTH + current_x;
+                            uint32_t idx = static_cast<uint32_t>(current_y * target.width + current_x);
                             if (alpha == 0xFF) {
-                                buf[idx] = color;
+                                target.pixels[idx] = color;
                             } else {
-                                buf[idx] = blend_pixel(buf[idx], color);
+                                target.pixels[idx] = blend_pixel(target.pixels[idx], color);
                             }
                         }
                     }
@@ -264,12 +269,13 @@ void text(std::vector<uint32_t>& buf, int x, int y, std::string_view text, uint3
     }
 }
 
-void text_shadow(std::vector<uint32_t>& buf, int x, int y, std::string_view text_str, uint32_t color, uint32_t shadow_color, int scale, const FontData* font_ptr) {
+void text_shadow(RenderTarget target, int x, int y, std::string_view text_str, uint32_t color, uint32_t shadow_color, int scale, const FontData* font_ptr) {
+    if (!target.is_valid()) return;
     uint32_t shadow_alpha = (shadow_color >> 24) & 0xFF;
     if (shadow_alpha > 0) {
-        text(buf, x + 1, y + 1, text_str, shadow_color, scale, font_ptr);
+        text(target, x + 1, y + 1, text_str, shadow_color, scale, font_ptr);
     }
-    text(buf, x, y, text_str, color, scale, font_ptr);
+    text(target, x, y, text_str, color, scale, font_ptr);
 }
 
 namespace {
@@ -296,7 +302,7 @@ inline void decode_rle_sprite(
 }
 
 void draw_sprite_frame_unscaled(
-    std::vector<uint32_t>& buf,
+    RenderTarget target,
     int x, int y,
     const uint8_t* decoded_pixels,
     int tex_w,
@@ -310,7 +316,7 @@ void draw_sprite_frame_unscaled(
         int tex_y = src_y + sample_y;
         int ty = y + ly;
 
-        if (ty < 0 || ty >= Game::HEIGHT) continue;
+        if (ty < 0 || ty >= target.height) continue;
 
         int row_tex_offset = tex_y * tex_w;
 
@@ -319,21 +325,21 @@ void draw_sprite_frame_unscaled(
             int tex_x = src_x + sample_x;
             int tx = x + lx;
 
-            if (tx < 0 || tx >= Game::WIDTH) continue;
+            if (tx < 0 || tx >= target.width) continue;
 
             uint8_t pal_idx = decoded_pixels[row_tex_offset + tex_x];
-            uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;
+            uint32_t color = palette ? palette[pal_idx] : FALLBACK_PALETTE_COLOR;
 
             if ((color & 0xFF000000) != 0x00000000) {
-                uint32_t dest_idx = ty * Game::WIDTH + tx;
-                buf[dest_idx] = blend_pixel(buf[dest_idx], color);
+                uint32_t dest_idx = static_cast<uint32_t>(ty * target.width + tx);
+                target.pixels[dest_idx] = blend_pixel(target.pixels[dest_idx], color);
             }
         }
     }
 }
 
 void draw_sprite_frame_scaled(
-    std::vector<uint32_t>& buf,
+    RenderTarget target,
     int x, int y,
     const uint8_t* decoded_pixels,
     int tex_w,
@@ -348,7 +354,7 @@ void draw_sprite_frame_scaled(
 
     for (int dy = 0; dy < dest_h; ++dy) {
         int ty = y + dy;
-        if (ty < 0 || ty >= Game::HEIGHT) continue;
+        if (ty < 0 || ty >= target.height) continue;
 
         int sample_local_y = std::clamp(static_cast<int>(std::floor((static_cast<float>(dy) + 0.5f) * scale_v)), 0, src_h - 1);
         if (is_flip_v) {
@@ -359,7 +365,7 @@ void draw_sprite_frame_scaled(
 
         for (int dx = 0; dx < dest_w; ++dx) {
             int tx = x + dx;
-            if (tx < 0 || tx >= Game::WIDTH) continue;
+            if (tx < 0 || tx >= target.width) continue;
 
             int sample_local_x = std::clamp(static_cast<int>(std::floor((static_cast<float>(dx) + 0.5f) * scale_u)), 0, src_w - 1);
             if (is_flip_h) {
@@ -368,11 +374,11 @@ void draw_sprite_frame_scaled(
             int tex_x = src_x + sample_local_x;
 
             uint8_t pal_idx = decoded_pixels[row_tex_offset + tex_x];
-            uint32_t color = palette ? palette[pal_idx] : 0xFF00FF00;
+            uint32_t color = palette ? palette[pal_idx] : FALLBACK_PALETTE_COLOR;
 
             if ((color & 0xFF000000) != 0x00000000) {
-                uint32_t dest_idx = ty * Game::WIDTH + tx;
-                buf[dest_idx] = blend_pixel(buf[dest_idx], color);
+                uint32_t dest_idx = static_cast<uint32_t>(ty * target.width + tx);
+                target.pixels[dest_idx] = blend_pixel(target.pixels[dest_idx], color);
             }
         }
     }
@@ -381,7 +387,7 @@ void draw_sprite_frame_scaled(
 } // namespace
 
 void sprite_frame(
-    std::vector<uint32_t>& buf,
+    RenderTarget target,
     int x, int y,
     const uint8_t* pixel_data,
     uint32_t pixel_data_size,
@@ -397,7 +403,7 @@ void sprite_frame(
     bool is_flip_h,
     bool is_flip_v
 ) {
-    if (tex_w <= 0 || tex_h <= 0 || dest_w <= 0 || dest_h <= 0) return;
+    if (!target.is_valid() || tex_w <= 0 || tex_h <= 0 || dest_w <= 0 || dest_h <= 0) return;
 
     size_t total_pixels = static_cast<size_t>(tex_w) * static_cast<size_t>(tex_h);
     if (total_pixels > MAX_DECODED_SPRITE_PIXELS) return;
@@ -406,34 +412,36 @@ void sprite_frame(
     decode_rle_sprite(pixel_data, pixel_data_size, decoded_pixels, static_cast<uint32_t>(total_pixels));
 
     if (dest_w == src_w && dest_h == src_h) {
-        draw_sprite_frame_unscaled(buf, x, y, decoded_pixels, tex_w, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
+        draw_sprite_frame_unscaled(target, x, y, decoded_pixels, tex_w, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
     } else {
-        draw_sprite_frame_scaled(buf, x, y, decoded_pixels, tex_w, dest_w, dest_h, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
+        draw_sprite_frame_scaled(target, x, y, decoded_pixels, tex_w, dest_w, dest_h, src_x, src_y, src_w, src_h, palette, is_flip_h, is_flip_v);
     }
 }
 
 void blend(
-    std::vector<uint32_t>& pixel_buffer,
+    RenderTarget target,
     int x, int y,
     const uint32_t* pixel_data,
     uint32_t pixel_data_size,
     int width, int height
 ) {
+    if (!target.is_valid()) return;
+
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
             int tx = x + col;
             int ty = y + row;
 
-            if (tx >= 0 && tx < Game::WIDTH && ty >= 0 && ty < Game::HEIGHT) {
+            if (tx >= 0 && tx < target.width && ty >= 0 && ty < target.height) {
                 int src_idx = row * width + col;
 
-                if (src_idx * sizeof(uint32_t) >= pixel_data_size) continue;
+                if (static_cast<size_t>(src_idx) * sizeof(uint32_t) >= pixel_data_size) continue;
 
                 uint32_t color = pixel_data[src_idx];
 
                 if ((color & 0xFF000000) != 0x00000000) {
-                    uint32_t dest_idx = ty * Game::WIDTH + tx;
-                    pixel_buffer[dest_idx] = blend_pixel(pixel_buffer[dest_idx], color);
+                    uint32_t dest_idx = static_cast<uint32_t>(ty * target.width + tx);
+                    target.pixels[dest_idx] = blend_pixel(target.pixels[dest_idx], color);
                 }
             }
         }
@@ -441,18 +449,19 @@ void blend(
 }
 
 void vignette(
-    std::vector<uint32_t>& pixel_buffer,
+    RenderTarget target,
     float intensity,
     uint32_t color,
     float inner_radius,
     float outer_radius
 ) {
+    if (!target.is_valid()) return;
+
     float clamped_intensity = std::clamp(intensity, 0.0f, 1.0f);
     if (clamped_intensity <= 0.0f) return;
 
-    int width = Game::WIDTH;
-    int height = Game::HEIGHT;
-    if (static_cast<int>(pixel_buffer.size()) < width * height) return;
+    int width = target.width;
+    int height = target.height;
 
     float center_x = static_cast<float>(width) / 2.0f;
     float center_y = static_cast<float>(height) / 2.0f;
@@ -481,8 +490,8 @@ void vignette(
             uint8_t alpha_byte = static_cast<uint8_t>(std::clamp(pixel_alpha * 255.0f, 0.0f, 255.0f));
             if (alpha_byte > 0) {
                 uint32_t src_pixel = (static_cast<uint32_t>(alpha_byte) << 24) | rgb_color;
-                int idx = row_offset + x;
-                pixel_buffer[idx] = blend_pixel(pixel_buffer[idx], src_pixel);
+                uint32_t idx = static_cast<uint32_t>(row_offset + x);
+                target.pixels[idx] = blend_pixel(target.pixels[idx], src_pixel);
             }
         }
     }

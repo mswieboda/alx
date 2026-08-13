@@ -219,7 +219,8 @@ void MiniFBWindow::set_active_callback(ActiveCallback cb) {
 }
 
 void MiniFBWindow::present(const std::vector<uint32_t>& buffer, int target_w, int target_h) {
-    if (!m_running || !m_window) return;
+    if (!m_running || !m_window || target_w <= 0 || target_h <= 0) return;
+    if (buffer.size() < static_cast<size_t>(target_w * target_h)) return;
 
     int window_w = this->width();
     int window_h = this->height();
@@ -252,10 +253,13 @@ void MiniFBWindow::present(const std::vector<uint32_t>& buffer, int target_w, in
 
                 for (int sy = 0; sy < scale; ++sy) {
                     int target_y = py_start + sy;
-                    uint32_t* row_ptr = &m_presentation_pixel_buffer[target_y * window_w + px_start];
+                    if (target_y < 0 || target_y >= window_h) continue;
 
                     for (int sx = 0; sx < scale; ++sx) {
-                        row_ptr[sx] = pixel;
+                        int target_x = px_start + sx;
+                        if (target_x < 0 || target_x >= window_w) continue;
+
+                        m_presentation_pixel_buffer[target_y * window_w + target_x] = pixel;
                     }
                 }
             }
@@ -268,13 +272,10 @@ void MiniFBWindow::present(const std::vector<uint32_t>& buffer, int target_w, in
             int ly = start_ly + wy;
             if (ly < 0 || ly >= target_h) continue;
 
-            uint32_t* dest_row = &m_presentation_pixel_buffer[wy * window_w];
-            const uint32_t* src_row = &buffer[ly * target_w];
-
             for (int wx = 0; wx < window_w; ++wx) {
                 int lx = start_lx + wx;
                 if (lx >= 0 && lx < target_w) {
-                    dest_row[wx] = src_row[lx];
+                    m_presentation_pixel_buffer[wy * window_w + wx] = buffer[ly * target_w + lx];
                 }
             }
         }

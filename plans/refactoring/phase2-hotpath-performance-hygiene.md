@@ -104,20 +104,20 @@ namespace AudioConfig {
 
 ---
 
-## `[PH-DRAW]`: Framebuffer Out-of-Bounds Protection & RenderTarget Context
+## `[PH-DRAW]`: Framebuffer Out-of-Bounds Protection & RenderTarget Context (COMPLETED)
 
 ### Identified Anti-Patterns
 * In `MiniFBWindow::present()`, raw pixel indexing (`&m_presentation_pixel_buffer[target_y * window_w + px_start]`) lacks explicit clip boundary checks.
 * Drawing routines in `DrawPixels.cpp` hardcode `Game::WIDTH` (320) and `Game::HEIGHT` (240) globally instead of querying target buffer parameters.
 
 ### Action Plan & Sub-Tasks
-* `[DRWCP]`: Introduce explicit clip rectangle boundary checks in `MiniFBWindow::present()`:
+- [x] `[DRWCP]`: Introduce explicit clip rectangle boundary checks in `MiniFBWindow::present()`:
   ```cpp
   if (target_x >= 0 && target_x < window_w && target_y >= 0 && target_y < window_h) {
       // Write pixel safely
   }
   ```
-* `[DRWRT]`: Introduce a explicit `RenderTarget` context struct in `DrawPixels.h`:
+- [x] `[DRWRT]`: Introduce an explicit `RenderTarget` context struct in `DrawPixels.h` & `Draw.h`:
   ```cpp
   struct RenderTarget {
       std::span<uint32_t> pixels;
@@ -125,7 +125,7 @@ namespace AudioConfig {
       int height{240};
   };
   ```
-* `[DRWFX]`: Update `DrawPixels` primitive routines (`rect`, `oval`, `line`, `sprite_frame`) to draw into `RenderTarget` bounds rather than assuming fixed global screen dimensions.
+- [x] `[DRWFX]`: Update `DrawPixels` primitive routines (`rect`, `oval`, `line`, `sprite_frame`, `text`, `blend`, `vignette`) to draw into `RenderTarget` bounds rather than assuming fixed global screen dimensions.
 
 ---
 

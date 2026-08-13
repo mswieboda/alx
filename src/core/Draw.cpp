@@ -292,8 +292,14 @@ namespace Draw {
         });
     }
 
-    void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color) {
-        DrawPixels::clear(buffer, background_color);
+    void flush_pipeline(RenderTarget target, uint32_t background_color) {
+        if (!target.is_valid()) {
+            g_queue.clear();
+            g_string_pool.clear();
+            return;
+        }
+
+        DrawPixels::clear(target, background_color);
 
         // Sort the commands
         // Primary key: Z-Index (lower draws first).
@@ -311,17 +317,17 @@ namespace Draw {
                 using T = std::decay_t<decltype(arg)>;
 
                 if constexpr (std::is_same_v<T, TextData>) {
-                    DrawPixels::text(buffer, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.text, arg.color, arg.scale, arg.font);
+                    DrawPixels::text(target, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.text, arg.color, arg.scale, arg.font);
                 }
                 else if constexpr (std::is_same_v<T, RectData>) {
-                    DrawPixels::rect(buffer, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.width, arg.height, arg.color, arg.fill, arg.thickness);
+                    DrawPixels::rect(target, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.width, arg.height, arg.color, arg.fill, arg.thickness);
                 }
                 else if constexpr (std::is_same_v<T, OvalData>) {
-                    DrawPixels::oval(buffer, arg.cx, arg.cy, arg.rx, arg.ry, arg.color, arg.fill, arg.thickness);
+                    DrawPixels::oval(target, arg.cx, arg.cy, arg.rx, arg.ry, arg.color, arg.fill, arg.thickness);
                 }
                 else if constexpr (std::is_same_v<T, SpriteData>) {
                     DrawPixels::sprite_frame(
-                        buffer,
+                        target,
                         static_cast<int>(cmd.x), static_cast<int>(cmd.y),
                         arg.pixel_data,
                         arg.pixel_data_size,
@@ -340,7 +346,7 @@ namespace Draw {
                 }
                 else if constexpr (std::is_same_v<T, BlendPixelsData>) {
                     DrawPixels::blend(
-                        buffer,
+                        target,
                         static_cast<int>(cmd.x), static_cast<int>(cmd.y),
                         arg.pixel_data,
                         arg.pixel_data_size,
@@ -350,7 +356,7 @@ namespace Draw {
                 }
                 else if constexpr (std::is_same_v<T, LineData>) {
                     DrawPixels::line(
-                        buffer,
+                        target,
                         static_cast<int>(cmd.x), static_cast<int>(cmd.y),
                         static_cast<int>(arg.x2), static_cast<int>(arg.y2),
                         arg.color,
@@ -359,7 +365,7 @@ namespace Draw {
                 }
                 else if constexpr (std::is_same_v<T, VignetteData>) {
                     DrawPixels::vignette(
-                        buffer,
+                        target,
                         arg.intensity,
                         arg.color,
                         arg.inner_radius,
@@ -373,5 +379,14 @@ namespace Draw {
         // but preserve capacity to avoid heap re-allocations
         g_queue.clear();
         g_string_pool.clear();
+    }
+
+    void flush_pipeline(std::vector<uint32_t>& buffer, uint32_t background_color) {
+        RenderTarget target{
+            std::span<uint32_t>(buffer.data(), buffer.size()),
+            Game::WIDTH,
+            Game::HEIGHT
+        };
+        flush_pipeline(target, background_color);
     }
 }
