@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <span>
 
 #include "Game.h"
 #include "core/Transform.h"
@@ -13,23 +14,20 @@
 namespace alx {
 
 namespace NetworkConfig {
-    static constexpr int UNREACHABLE_DIST = 9999;
-    static constexpr int SINK_DIST_THRESHOLD = 9000;
+    inline constexpr int UNREACHABLE_DIST = 9999;
+    inline constexpr int SINK_DIST_THRESHOLD = 9000;
+    inline constexpr float PIPE_DESTRUCTION_TWILIGHT_INCREASE = 0.05f;
+    inline constexpr float BUILDING_DESTRUCTION_TWILIGHT_INCREASE = 0.15f;
 } // namespace NetworkConfig
 
-struct DarkPipeIndex {
+struct PipeDistIndex {
     int x{0};
     int y{0};
     int idx{0};
     int dist{0};
 };
-
-struct LightPipeIndex {
-    int x{0};
-    int y{0};
-    int idx{0};
-    int dist{0};
-};
+using DarkPipeIndex = PipeDistIndex;
+using LightPipeIndex = PipeDistIndex;
 
 struct NetworkSimResults {
     int spires_converted = 0;
@@ -47,11 +45,11 @@ private:
     std::vector<int32_t> m_active_indices;
 
     // --- Pre-Allocated Hot-Path Scratch Buffers ---
-    mutable std::vector<Fixture> m_scratch_next_fixtures;
-    mutable std::vector<int> m_scratch_seep_dist;
-    mutable std::vector<int> m_scratch_spire_dist;
-    mutable std::vector<DarkPipeIndex> m_scratch_dark_pipes;
-    mutable std::vector<LightPipeIndex> m_scratch_light_pipes;
+    std::vector<Fixture> m_scratch_next_fixtures;
+    std::vector<int> m_scratch_seep_dist;
+    std::vector<int> m_scratch_spire_dist;
+    std::vector<DarkPipeIndex> m_scratch_dark_pipes;
+    std::vector<LightPipeIndex> m_scratch_light_pipes;
     mutable std::vector<int> m_scratch_bfs_queue;
 
     // --- Private Distance & Helper Methods ---
@@ -61,7 +59,7 @@ private:
     int find_downstream_pipe_neighbor(int x, int y, ManaState state, const std::vector<int>& seep_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures, int& out_chosen_dir_idx) const;
 
     struct DownstreamNeighbor { int idx; int dir_idx; };
-    int find_all_downstream_neighbors(int x, int y, ManaState state, const std::vector<int>& seep_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures, DownstreamNeighbor out_neighbors[4]) const;
+    int find_all_downstream_neighbors(int x, int y, ManaState state, const std::vector<int>& seep_dist, const std::vector<int>& light_dist, const std::vector<Fixture>& next_fixtures, std::span<DownstreamNeighbor, 4> out_neighbors) const;
 
     // --- Private Simulation Sub-Step Helpers ---
     void sim_consume(std::vector<Fixture>& next_fixtures);

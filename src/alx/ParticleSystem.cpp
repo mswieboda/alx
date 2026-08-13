@@ -25,6 +25,9 @@ namespace ParticleConfig {
     constexpr float OOZE_EXTRA_HEIGHT     = 2.0f;
     constexpr float STREAK_WIDTH          = 3.5f;
     constexpr float STREAK_HALF_WIDTH     = 1.75f;
+    constexpr float STREAK_THICKNESS      = 1.0f;
+    constexpr uint8_t RECT_SIZE_THRESHOLD = 2;
+    constexpr float CULL_PADDING_FACTOR   = 2.0f;
 } // namespace ParticleConfig
 
 void update_spark_physics(Particle& p, float dt) {
@@ -122,9 +125,9 @@ void render_mana_pulse_streak(const Particle& p, uint32_t color) {
     float dy = p.target_y - p.start_y;
 
     if (std::abs(dx) >= std::abs(dy)) {
-        Draw::rect(p.render_x - ParticleConfig::STREAK_HALF_WIDTH, p.render_y, ParticleConfig::STREAK_WIDTH, 1.0f, color, true, 1, z_idx, p.y_sort_override);
+        Draw::rect(p.render_x - ParticleConfig::STREAK_HALF_WIDTH, p.render_y, ParticleConfig::STREAK_WIDTH, ParticleConfig::STREAK_THICKNESS, color, true, 1, z_idx, p.y_sort_override);
     } else {
-        Draw::rect(p.render_x, p.render_y - ParticleConfig::STREAK_HALF_WIDTH, 1.0f, ParticleConfig::STREAK_WIDTH, color, true, 1, z_idx, p.y_sort_override);
+        Draw::rect(p.render_x, p.render_y - ParticleConfig::STREAK_HALF_WIDTH, ParticleConfig::STREAK_THICKNESS, ParticleConfig::STREAK_WIDTH, color, true, 1, z_idx, p.y_sort_override);
     }
 }
 
@@ -136,7 +139,7 @@ void render_ooze_teardrop(const Particle& p, uint32_t color) {
 }
 
 void render_standard_particle(const Particle& p, uint32_t color) {
-    if (p.size <= 2) {
+    if (p.size <= ParticleConfig::RECT_SIZE_THRESHOLD) {
         float s = static_cast<float>(p.size);
         Draw::rect(p.render_x, p.render_y, s, s, color, true, 1, p.z_index, p.y_sort_override);
     } else {
@@ -146,13 +149,13 @@ void render_standard_particle(const Particle& p, uint32_t color) {
 }
 
 void render_single_particle(const Particle& p, const Camera* camera) {
-    if (camera && !camera->is_aabb_visible(p.render_x - p.size, p.render_y - p.size, p.size * 2.0f, p.size * 2.0f)) {
+    if (camera && !camera->is_aabb_visible(p.render_x - p.size, p.render_y - p.size, p.size * ParticleConfig::CULL_PADDING_FACTOR, p.size * ParticleConfig::CULL_PADDING_FACTOR)) {
         return;
     }
 
-    float progress = (p.max_life > 0.0f) ? (p.life / p.max_life) : 1.0f;
+    float life_fraction = (p.max_life > 0.0f) ? (p.life / p.max_life) : 1.0f;
     uint32_t base_alpha = (p.color >> 24) & 0xFF;
-    uint32_t alpha = static_cast<uint8_t>(progress * static_cast<float>(base_alpha));
+    uint32_t alpha = static_cast<uint8_t>(life_fraction * static_cast<float>(base_alpha));
     uint32_t current_color = (p.color & 0x00FFFFFF) | (alpha << 24);
 
     if (p.type == ParticleType::ManaPulseStraight || p.type == ParticleType::ManaPulseCurved) {

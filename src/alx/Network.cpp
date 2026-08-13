@@ -1,5 +1,6 @@
 #include "Network.h"
 #include <algorithm>
+#include <span>
 #include "Debug.h"
 #include "Layer.h"
 #include "core/Draw.h"
@@ -173,11 +174,9 @@ bool Network::damage_fixture(GridPos pos, int amount, float& out_twilight_increa
     if (root_fix.hp <= 0) {
         FixtureType t = root_fix.type;
         if (t == FixtureType::Pipe) {
-            // TODO: make this a constant
-            out_twilight_increase = 0.05f;
+            out_twilight_increase = NetworkConfig::PIPE_DESTRUCTION_TWILIGHT_INCREASE;
         } else if (t == FixtureType::Refiner || t == FixtureType::Spire) {
-            // TODO: make this a constant
-            out_twilight_increase = 0.15f;
+            out_twilight_increase = NetworkConfig::BUILDING_DESTRUCTION_TWILIGHT_INCREASE;
         }
         remove_fixture(root_pos);
         return true;
@@ -268,7 +267,7 @@ void Network::compute_distance_field(FixtureType sourceType, std::vector<int>& o
     std::fill(out_dist.begin(), out_dist.end(), NetworkConfig::UNREACHABLE_DIST);
 
     m_scratch_bfs_queue.clear();
-    PortLocation ports[4];
+    PortLocation ports[4]{};
 
     for (int y = 0; y < m_height; ++y) {
         for (int x = 0; x < m_width; ++x) {
@@ -448,7 +447,7 @@ int Network::find_downstream_pipe_neighbor(
     int back_dy = -current.move_dy;
 
     // Pass 1: SDF Sink Preference (if valid path towards sink exists)
-    if (state == ManaState::Light && my_d < 9000) {
+    if (state == ManaState::Light && my_d < NetworkConfig::SINK_DIST_THRESHOLD) {
         for (int step = 1; step <= 4; ++step) {
             int i = (start_dir + step) % 4;
             if (current.move_dx != 0 || current.move_dy != 0) {
@@ -501,7 +500,7 @@ int Network::find_all_downstream_neighbors(
     const std::vector<int>& seep_dist,
     const std::vector<int>& light_dist,
     const std::vector<Fixture>& next_fixtures,
-    DownstreamNeighbor out_neighbors[4]
+    std::span<DownstreamNeighbor, 4> out_neighbors
 ) const {
     int idx = y * m_width + x;
     const Fixture& current = m_fixtures[idx];
