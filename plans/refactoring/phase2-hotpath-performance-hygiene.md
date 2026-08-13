@@ -21,25 +21,47 @@ Resolving these issues will:
 
 ---
 
-## `[PH-AUDO]`: Audio Subsystem Thread & Heap Allocation Removal
+## `[PH-AUDO]`: Audio Subsystem Thread & Heap Allocation Removal (COMPLETED)
 
 ### Identified Anti-Patterns
 * Calling `Audio::play_sfx()` spawns a detached OS thread (`std::thread(...).detach()`) and allocates a dynamic `std::vector<float>` heap buffer on *every single sound effect trigger*.
 * Spawning OS threads on the audio hot-path causes context-switching overhead, thread safety hazards, and micro-stutters under heavy audio playback.
 
+### Detailed Architecture & Data Structures
+```cpp
+struct SfxVoice {
+    bool active{false};
+    SfxrParams params{};
+    float volume{0.0f};
+    float pan{0.0f};
+    
+    uint32_t current_sample{0};
+    uint32_t total_samples{0};
+    float phase{0.0f};
+    float f_freq{0.0f};
+    float f_slide{0.0f};
+    float vibrato_phase{0.0f};
+    uint32_t noise_seed{0};
+};
+
+namespace AudioConfig {
+    static constexpr size_t MAX_ACTIVE_VOICES     = 32; // can even set to 64 or higher
+    static constexpr float FREQ_SCALE_HZ          = 8000.0f;
+    static constexpr float SLIDE_SCALE            = 100.0f;
+    static constexpr float VIBRATO_DEPTH_SCALE    = 100.0f;
+    static constexpr float VIBRATO_SPEED_SCALE    = 0.05f;
+    static constexpr float SFX_MASTER_GAIN        = 0.25f;
+    static constexpr float PI                     = 3.14159265358979323846f;
+}
+```
+
 ### Action Plan & Sub-Tasks
-* `[AUPOL]`: Replace thread creation in `Audio.cpp` with a fixed-capacity static voice pool:
-  ```cpp
-  struct SfxrVoice {
-      bool active{false};
-      float params[30]{};
-      size_t sample_offset{0};
-  };
-  static constexpr size_t MAX_ACTIVE_VOICES = 16;
-  std::array<SfxrVoice, MAX_ACTIVE_VOICES> m_voices;
-  ```
-* `[AUSTM]`: Generate PCM samples incrementally during miniaudio's `audio_data_callback()` stream mix pass, eliminating heap allocations and thread spawning entirely.
-* `[AUPIV]`: Replace raw literals (`8000.0f`, `44100`, `3.14159265f`) with `constexpr` constants in `AudioConfig` namespace.
+- [x] `[AUPOL]`: Implement static `SfxVoice` struct and fixed voice pool `std::array<SfxVoice, AudioConfig::MAX_ACTIVE_VOICES> g_voices;` in [`src/core/Audio.cpp`](file:///Users/matt/code/cpp/alx/src/core/Audio.cpp).
+- [x] `[AUPIV]`: Define `AudioConfig` `constexpr` constants in [`src/core/Audio.h`](file:///Users/matt/code/cpp/alx/src/core/Audio.h) replacing magic literals (`8000.0f`, `100.0f`, `3.14159265f`, etc.).
+- [x] `[AUSTM]`: Refactor `play_sfx()` to eliminate `std::thread` spawning and buffer allocation, initializing an available slot in `g_voices` in $O(1)$ constant time.
+- [x] `[AUVST]`: Implement deterministic voice stealing strategy when all voice slots are occupied.
+- [x] `[AURTM]`: Update `audio_data_callback()` to perform real-time incremental SFXR sample synthesis directly during the miniaudio mix pass, removing `generate_sfx_buffer()`.
+- [x] `[AUVRF]`: Verify syntax and compilation via `task build`, confirming zero heap allocations on audio triggers.
 
 ---
 

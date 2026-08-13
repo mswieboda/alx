@@ -3,6 +3,20 @@
 #include <cstdint>
 #include <cmath>
 
+namespace AudioConfig {
+    constexpr uint32_t MAX_ACTIVE_VOICES  = 32; // can also to 64 or higher
+    constexpr uint32_t NOISE_LCG_MULT     = 1664525u;
+    constexpr uint32_t NOISE_LCG_INC      = 1013904223u;
+    constexpr float NOISE_NORMALIZE_DIV   = 4294967295.0f;
+    constexpr float SQUARE_WAVE_DUTY_GAIN = 0.5f;
+    constexpr float FREQ_SCALE_HZ         = 8000.0f;
+    constexpr float SLIDE_SCALE           = 100.0f;
+    constexpr float VIBRATO_DEPTH_SCALE   = 100.0f;
+    constexpr float VIBRATO_SPEED_SCALE   = 0.05f;
+    constexpr float SFX_MASTER_GAIN       = 0.25f;
+    constexpr float PI                    = 3.14159265358979323846f;
+} // namespace AudioConfig
+
 enum WaveType {
     SQUARE = 0,
     SAWTOOTH,
@@ -36,7 +50,7 @@ struct SfxrParams {
 
 namespace Audio {
     // --- AUDIO SYSTEM CONSTANTS ---
-    static constexpr float DEFAULT_MUSIC_VOLUME = 0.0f; //5f;
+    static constexpr float DEFAULT_MUSIC_VOLUME = 0.03f;
     static constexpr float DEFAULT_SFX_VOLUME   = 0.27f;
     static constexpr float DEFAULT_SFX_PAN      = 0.0f;
     static constexpr float MIN_SFX_PAN          = -1.0f;

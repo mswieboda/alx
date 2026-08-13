@@ -6,28 +6,34 @@ extern "C" {
 }
 
 #include <algorithm>
-#include <vector>
-#include <mutex>
+#include <array>
+#include <cmath>
+#include <cstdint>
 #include <cstdlib>
-#include <random>
-#include <thread>
+#include <mutex>
 
 #include "Audio.h"
 #include "Log.h"
 
 namespace Audio {
 
-    struct ActiveVoice {
-        std::vector<float> samples;
-        size_t cursor = 0;
-        bool finished = false;
-        float volume = DEFAULT_SFX_VOLUME;
-        float pan = DEFAULT_SFX_PAN;
+    struct SfxVoice {
+        bool active{false};
+        SfxrParams params{};
+        float volume{DEFAULT_SFX_VOLUME};
+        float pan{DEFAULT_SFX_PAN};
+        uint32_t current_sample{0};
+        uint32_t total_samples{0};
+        float phase{0.0f};
+        float f_freq{0.0f};
+        float f_slide{0.0f};
+        float vibrato_phase{0.0f};
+        uint32_t noise_seed{0};
     };
 
     static ma_device g_audio_device;
     static bool g_initialized = false;
-    static std::vector<ActiveVoice> g_active_voices;
+    static std::array<SfxVoice, AudioConfig::MAX_ACTIVE_VOICES> g_voices{};
     static std::mutex g_audio_mutex;
 
     // Music State
@@ -40,78 +46,136 @@ namespace Audio {
     static bool g_music_loop = true;
     static float g_music_volume = DEFAULT_MUSIC_VOLUME;
 
-    // --- SFXR PCM SYNTHESIZER GENERATOR ---
-    static std::vector<float> generate_sfx_buffer(const SfxrParams& p, uint32_t sample_rate = SAMPLE_RATE) {
-        float total_time = p.attack_time + p.sustain_time + p.decay_time;
-        size_t total_samples = static_cast<size_t>(total_time * sample_rate);
-        if (total_samples == 0) return {};
+    namespace {
 
-        std::vector<float> buffer(total_samples, 0.0f);
-
-        float phase = 0.0f;
-        float f_freq = p.start_frequency * p.start_frequency * 8000.0f; // Map float to Hz range
-        float f_slide = p.slide * 100.0f;
-        float vibrato_phase = 0.0f;
-
-        for (size_t i = 0; i < total_samples; ++i) {
-            float t = static_cast<float>(i) / sample_rate;
-
-            // Envelopes
-            float env_vol = 0.0f;
-            if (t < p.attack_time) {
-                env_vol = t / p.attack_time;
-            } else if (t < p.attack_time + p.sustain_time) {
-                env_vol = 1.0f;
-            } else {
-                float decay_elapsed = t - (p.attack_time + p.sustain_time);
-                env_vol = 1.0f - (decay_elapsed / p.decay_time);
+        float calculate_envelope(const SfxrParams& params, float t) {
+            if (t < params.attack_time) {
+                return (params.attack_time > 0.0f) ? (t / params.attack_time) : 1.0f;
             }
-            env_vol = std::clamp(env_vol, 0.0f, 1.0f);
 
-            // Frequency sweep/slide
-            f_freq += f_slide;
-            if (f_freq < p.min_frequency) f_freq = p.min_frequency;
+            const float attack_and_sustain = params.attack_time + params.sustain_time;
+            if (t < attack_and_sustain) {
+                return 1.0f;
+            }
+
+            const float decay_elapsed = t - attack_and_sustain;
+            if (params.decay_time > 0.0f) {
+                return std::max(0.0f, 1.0f - (decay_elapsed / params.decay_time));
+            }
+
+            return 0.0f;
+        }
+
+        float generate_waveform_sample(WaveType type, float phase, float square_duty, uint32_t& noise_seed) {
+            switch (type) {
+                case SQUARE:
+                    return (phase < square_duty) ? AudioConfig::SQUARE_WAVE_DUTY_GAIN : -AudioConfig::SQUARE_WAVE_DUTY_GAIN;
+                case SAWTOOTH:
+                    return 1.0f - 2.0f * phase;
+                case SINE:
+                    return std::sin(phase * 2.0f * AudioConfig::PI);
+                case NOISE:
+                    noise_seed = noise_seed * AudioConfig::NOISE_LCG_MULT + AudioConfig::NOISE_LCG_INC;
+                    return (static_cast<float>(noise_seed) / AudioConfig::NOISE_NORMALIZE_DIV) * 2.0f - 1.0f;
+            }
+            return 0.0f;
+        }
+
+        float render_voice_sample(SfxVoice& voice) {
+            const float t = static_cast<float>(voice.current_sample) / static_cast<float>(SAMPLE_RATE);
+            const float env_vol = std::clamp(calculate_envelope(voice.params, t), 0.0f, 1.0f);
+
+            // Frequency sweep / slide
+            voice.f_freq += voice.f_slide;
+            if (voice.f_freq < voice.params.min_frequency) {
+                voice.f_freq = voice.params.min_frequency;
+            }
 
             // Vibrato
-            float current_freq = f_freq;
-            if (p.vibrato_depth > 0.0f) {
-                vibrato_phase += p.vibrato_speed * 0.05f;
-                current_freq += std::sin(vibrato_phase) * p.vibrato_depth * 100.0f;
+            float current_freq = voice.f_freq;
+            if (voice.params.vibrato_depth > 0.0f) {
+                voice.vibrato_phase += voice.params.vibrato_speed * AudioConfig::VIBRATO_SPEED_SCALE;
+                current_freq += std::sin(voice.vibrato_phase) * voice.params.vibrato_depth * AudioConfig::VIBRATO_DEPTH_SCALE;
             }
 
             // Phase accumulation
-            phase += current_freq / sample_rate;
-            while (phase >= 1.0f) phase -= 1.0f;
+            voice.phase += current_freq / static_cast<float>(SAMPLE_RATE);
+            while (voice.phase >= 1.0f) voice.phase -= 1.0f;
+            while (voice.phase < 0.0f)  voice.phase += 1.0f;
 
             // Waveform generation
-            float sample = 0.0f;
-            switch (p.wave_type) {
-                case SQUARE:
-                    sample = (phase < p.square_duty) ? 0.5f : -0.5f;
-                    break;
-                case SAWTOOTH:
-                    sample = 1.0f - 2.0f * phase;
-                    break;
-                case SINE:
-                    sample = std::sin(phase * 2.0f * 3.14159265f);
-                    break;
-                case NOISE:
-                    {
-                        thread_local std::mt19937 generator(std::random_device{}());
-                        std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
-                        sample = distribution(generator);
-                    }
-                    break;
-            }
+            const float raw_sample = generate_waveform_sample(
+                voice.params.wave_type, voice.phase, voice.params.square_duty, voice.noise_seed
+            );
 
-            buffer[i] = sample * env_vol * 0.25f; // Master volume scaling
+            voice.current_sample++;
+            return raw_sample * env_vol * AudioConfig::SFX_MASTER_GAIN;
         }
 
-        return buffer;
-    }
+        void mix_music(float* output, ma_uint32 frame_count) {
+            if (!g_music_loaded || !g_music_playing || g_music_paused) {
+                return;
+            }
+
+            const int bytes_requested = static_cast<int>(frame_count * sizeof(float) * STEREO_CHANNELS);
+            const int bytes_rendered = pocketmod_render(&g_pocketmod, output, bytes_requested);
+
+            for (ma_uint32 i = 0; i < frame_count * STEREO_CHANNELS; ++i) {
+                output[i] *= g_music_volume;
+            }
+
+            if (bytes_rendered == 0 && g_music_loop && g_music_data) {
+                pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), SAMPLE_RATE);
+            }
+        }
+
+        void mix_voices(float* output, ma_uint32 frame_count) {
+            for (auto& voice : g_voices) {
+                if (!voice.active) continue;
+
+                const float left_gain  = voice.volume * std::clamp(1.0f - voice.pan, 0.0f, 1.0f);
+                const float right_gain = voice.volume * std::clamp(1.0f + voice.pan, 0.0f, 1.0f);
+
+                for (ma_uint32 i = 0; i < frame_count; ++i) {
+                    if (voice.current_sample >= voice.total_samples) {
+                        voice.active = false;
+                        break;
+                    }
+
+                    const float final_sample = render_voice_sample(voice);
+                    output[i * STEREO_CHANNELS]     += final_sample * left_gain;
+                    output[i * STEREO_CHANNELS + 1] += final_sample * right_gain;
+                }
+            }
+        }
+
+        SfxVoice* allocate_voice_slot() {
+            for (auto& v : g_voices) {
+                if (!v.active) {
+                    return &v;
+                }
+            }
+
+            // Voice stealing: select active voice with minimum remaining samples
+            SfxVoice* slot = nullptr;
+            uint32_t min_remaining = UINT32_MAX;
+            for (auto& v : g_voices) {
+                const uint32_t remaining = (v.total_samples > v.current_sample) ? (v.total_samples - v.current_sample) : 0;
+                if (remaining < min_remaining) {
+                    min_remaining = remaining;
+                    slot = &v;
+                }
+            }
+            return slot;
+        }
+
+    } // namespace
 
     // --- MINIAUDIO STREAM CALLBACK ---
     static void audio_data_callback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount) {
+        (void)pDevice;
+        (void)pInput;
+
         float* pOutputF32 = static_cast<float*>(pOutput);
 
         // Clear output buffer with silence
@@ -119,47 +183,9 @@ namespace Audio {
 
         std::lock_guard<std::mutex> lock(g_audio_mutex);
 
-        // Render Music via pocketmod if playing
-        if (g_music_loaded && g_music_playing && !g_music_paused) {
-            int bytes_requested = static_cast<int>(frameCount * sizeof(float) * STEREO_CHANNELS);
-            int bytes_rendered = pocketmod_render(&g_pocketmod, pOutputF32, bytes_requested);
-
-            // Apply music volume scaling
-            for (ma_uint32 i = 0; i < frameCount * STEREO_CHANNELS; ++i) {
-                pOutputF32[i] *= g_music_volume;
-            }
-
-            // Loop music if finished
-            if (bytes_rendered == 0 && g_music_loop && g_music_data) {
-                pocketmod_init(&g_pocketmod, g_music_data, static_cast<int>(g_music_size), SAMPLE_RATE);
-            }
-        }
-
-        // Mix active SFXR voices on top of music with volume and panning
-        for (auto& voice : g_active_voices) {
-            if (voice.finished) continue;
-
-            const float left_gain  = voice.volume * std::clamp(1.0f - voice.pan, 0.0f, 1.0f);
-            const float right_gain = voice.volume * std::clamp(1.0f + voice.pan, 0.0f, 1.0f);
-
-            for (ma_uint32 i = 0; i < frameCount; ++i) {
-                if (voice.cursor < voice.samples.size()) {
-                    float s = voice.samples[voice.cursor++];
-                    pOutputF32[i * STEREO_CHANNELS]     += s * left_gain;
-                    pOutputF32[i * STEREO_CHANNELS + 1] += s * right_gain;
-                } else {
-                    voice.finished = true;
-                    break;
-                }
-            }
-        }
-
-        // Clean up completed SFX voices
-        g_active_voices.erase(
-            std::remove_if(g_active_voices.begin(), g_active_voices.end(),
-                           [](const ActiveVoice& v) { return v.finished; }),
-            g_active_voices.end()
-        );
+        // Render music track and active SFX voice mix
+        mix_music(pOutputF32, frameCount);
+        mix_voices(pOutputF32, frameCount);
     }
 
     bool init() {
@@ -199,21 +225,35 @@ namespace Audio {
     void play_sfx(const SfxrParams& params, float volume_override, float pan) {
         if (!g_initialized) return;
 
+        const float total_time = params.attack_time + params.sustain_time + params.decay_time;
+        const uint32_t total_samples = static_cast<uint32_t>(total_time * static_cast<float>(SAMPLE_RATE));
+        if (total_samples == 0) return;
+
         const float base_vol = (volume_override >= 0.0f) ? volume_override : DEFAULT_SFX_VOLUME;
         const float target_vol = base_vol * params.gain;
 
         const float clamped_vol = std::clamp(target_vol, MIN_VOLUME, MAX_SFX_VOLUME);
         const float clamped_pan = std::clamp(pan, MIN_SFX_PAN, MAX_SFX_PAN);
 
-        std::thread([params, clamped_vol, clamped_pan]() {
-            std::vector<float> samples = generate_sfx_buffer(params, SAMPLE_RATE);
-            if (samples.empty()) return;
+        std::lock_guard<std::mutex> lock(g_audio_mutex);
 
-            std::lock_guard<std::mutex> lock(g_audio_mutex);
-            if (g_initialized) {
-                g_active_voices.push_back({ std::move(samples), 0, false, clamped_vol, clamped_pan });
-            }
-        }).detach();
+        SfxVoice* slot = allocate_voice_slot();
+        if (!slot) return;
+
+        static uint32_t s_seed_counter = 1u;
+        s_seed_counter = s_seed_counter * AudioConfig::NOISE_LCG_MULT + AudioConfig::NOISE_LCG_INC;
+
+        slot->params = params;
+        slot->volume = clamped_vol;
+        slot->pan = clamped_pan;
+        slot->current_sample = 0;
+        slot->total_samples = total_samples;
+        slot->phase = 0.0f;
+        slot->f_freq = params.start_frequency * params.start_frequency * AudioConfig::FREQ_SCALE_HZ;
+        slot->f_slide = params.slide * AudioConfig::SLIDE_SCALE;
+        slot->vibrato_phase = 0.0f;
+        slot->noise_seed = s_seed_counter;
+        slot->active = true;
     }
 
     bool load_music_from_memory(const uint8_t* data, size_t size) {
