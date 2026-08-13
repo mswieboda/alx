@@ -86,21 +86,21 @@ namespace AudioConfig {
 
 ---
 
-## `[PH-PART]`: ParticleSystem $O(1)$ Free-List Index Pool Optimization
+## `[PH-PART]`: ParticleSystem $O(1)$ Free-List Index Pool Optimization (COMPLETED)
 
 ### Identified Anti-Patterns
 * `ParticleSystem::emit()` performs an $O(N)$ linear scan over up to 1,024 pool slots looking for an inactive particle every single time `emit()` is called. When 50 particles are emitted in a single frame (e.g. `spawn_tower_shatter`), this executes up to 51,200 loop iterations per frame.
 * `ParticleSystem::active_count()` performs a full $O(N)$ 1,024-element scan per call.
 
 ### Action Plan & Sub-Tasks
-* `[PARFL]`: Implement an $O(1)$ constant-time free-list index tracking array in `ParticleSystem`:
+- [x] `[PARFL]`: Implement an $O(1)$ constant-time free-list index tracking array in `ParticleSystem`:
   ```cpp
   std::array<uint16_t, POOL_CAPACITY> m_free_slots;
   size_t m_free_count{POOL_CAPACITY};
   size_t m_active_count{0};
   ```
-* `[PAREM]`: Update `emit()` to pop an index from `m_free_slots` in $O(1)$ constant time. When a particle dies in `update()`, push its index back onto `m_free_slots` in $O(1)$ time.
-* `[PARAC]`: Return `m_active_count` directly in `active_count()` in $O(1)$ time without linear array iteration.
+- [x] `[PAREM]`: Update `emit()` to pop an index from `m_free_slots` in $O(1)$ constant time. When a particle dies in `update()`, push its index back onto `m_free_slots` in $O(1)$ time.
+- [x] `[PARAC]`: Return `m_active_count` directly in `active_count()` in $O(1)$ time without linear array iteration.
 
 ---
 
