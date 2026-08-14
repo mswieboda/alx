@@ -29,7 +29,7 @@ void MainScene::init(SceneManager& sm) {
 
     Draw::set_y_sort_mode(Draw::YSortMode::YPlusHeight);
 
-    if (Audio::load_music_from_memory(Assets::Music::awm, Assets::Music::awm_len)) {
+    if (Audio::load_music_from_memory(Assets::Music::twilight_bg, Assets::Music::twilight_bg_len)) {
         Audio::set_music_volume(Audio::DEFAULT_MUSIC_VOLUME);
         Audio::play_music(true);
     }
