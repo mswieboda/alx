@@ -1,25 +1,35 @@
 #pragma once
-#include <string>
+
+#include <string_view>
 
 namespace Game {
-    inline constexpr int WIDTH = 320;
-    inline constexpr int HEIGHT = 240;
-    inline constexpr int TILE_SIZE = 16;
-    inline constexpr int DEFAULT_WINDOW_SCALE = 2;
-    inline constexpr std::string_view TITLE = "Aetherlux";
+    // game metadata
+    constexpr std::string_view TITLE = "Aetherlux";
 
-    inline constexpr int TARGET_FPS = 60; // Set your cap here
-    inline constexpr float FRAME_DURATION = 1.0f / TARGET_FPS;
+    // window / game loop
+    constexpr int DEFAULT_WINDOW_SCALE = 2;
+    constexpr int TARGET_FPS = 60; // Set your cap here
+    constexpr float FRAME_DURATION = 1.0f / TARGET_FPS;
+
+    // tiles / maps
+    constexpr int TILE_SIZE = 16;
+
+    // game dimensions
+    constexpr int WIDTH = 320;
+    constexpr int HEIGHT = 240;
+    constexpr int half_screen_width = Game::WIDTH / 2.0f;
+    constexpr int half_screen_height = Game::HEIGHT / 2.0f;
+    constexpr int qtr_screen_height = Game::HEIGHT / 4.0f;
 
     // Seed Configuration
     // Set CUSTOM_SEED to a positive integer (e.g. 1337) to force deterministic runs.
     // Set to -1 (or <= 0) for dynamic random seeding on every launch.
-    inline constexpr int64_t CUSTOM_SEED = -1; // e.g. 1337
+    constexpr int64_t CUSTOM_SEED = -1; // e.g. 1337
 
     // Infrastructure Processing Constants (simulation ticks required per conversion cycle)
-    inline constexpr uint8_t REFINER_PROCESSING_TICKS_REQUIRED = 5;
-    inline constexpr uint8_t REFINER_CONSUMING_WAIT_TICKS = 1;
-    inline constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
-    inline constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 20;
+    constexpr uint8_t REFINER_PROCESSING_TICKS_REQUIRED = 5;
+    constexpr uint8_t REFINER_CONSUMING_WAIT_TICKS = 1;
+    constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
+    constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 20;
 }
 

@@ -38,7 +38,7 @@ AI agents operating in this codebase MUST follow these strict engineering standa
 - **Zero Magic Numbers**: Never hardcode raw numeric literals (e.g. `16`, `32`, `8.0f`, pixel offsets, layout margins) in drawing, rendering, collision, coordinate transformation, or logic math.
 - **Single Source of Truth**:
   - Always query existing struct/class properties, getters, method returns, or shared grid/room metadata (e.g., `tile_size`, `room.getTileWidth()`, `grid.width`).
-  - If a shared constant is missing, define it as a named `constexpr` or static constant in an appropriate header or namespace.
+  - If a shared constant is missing, define it as a named `constexpr` constant in an appropriate header or namespace. Follow modern C++20 header constant conventions: use `constexpr` (or `inline constexpr`) for value types at namespace scope, `static constexpr` only inside class/struct bodies, and `inline constexpr const T&` for read-only reference constants.
 - **Dynamic Sizing & Layout Math**:
   - Render positioning, entity bounds, UI layouts, and grid cell mappings must be calculated dynamically based on shared dimensions and container bounds rather than hardcoded pixel adjustments (`+ 16`, `* 8`).
 
@@ -67,6 +67,7 @@ AI agents operating in this codebase MUST follow these strict engineering standa
   - Pass non-primitive parameters by `const` reference (`const T&`) or string/array views (`std::string_view`, `std::span`) when read-only.
   - Enforce `const` correctness on all inspector methods, queries, and getters.
   - Always use in-class member initializers (e.g., `int m_hp{100};`) to eliminate uninitialized memory undefined behavior (UB).
+  - **Header Constant Conventions (C++20)**: Avoid `static constexpr` at namespace scope in header files, as it creates duplicate static instances across translation units. Use `constexpr` (or `inline constexpr`) for namespace-scoped value constants, and `inline constexpr const T&` for reference constants. Reserve `static constexpr` strictly for class/struct member constants.
 - **RAII & Memory Safety**:
   - Avoid raw ownership pointers (`new`/`delete`). Rely on RAII, value semantics, and smart pointers.
   - Prefer contiguous storage (`std::vector<T>`) for cache locality over pointer indirection arrays. Use `std::unique_ptr` for exclusive owner boundaries (e.g., System/Scene managers) and reserve `std::shared_ptr` strictly for shared resources (e.g., asset handles).

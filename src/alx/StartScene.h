@@ -3,11 +3,10 @@
 
 namespace alx {
 
+enum class MenuItem : uint8_t { Start, Options, Quit, Count };
+
 class StartScene : public Scene {
 private:
-    // --- CONSTANTS ---
-    // static constexpr float TWILIGHT_MAX = 0.99f;
-
     int m_selected_index = 0;
 
 public:

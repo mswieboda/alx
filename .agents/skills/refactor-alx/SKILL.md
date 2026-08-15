@@ -97,7 +97,7 @@ All code modifications under this skill MUST satisfy both codebase-specific rule
 ### F. Zero Magic Numbers & Dynamic Sizing
 - **No Raw Literals**: Never hardcode raw numeric literals (`16`, `32`, `8.0f`, pixel offsets) in math, collision, layout, or rendering.
 - **Single Source of Truth**: Query existing getters, properties, or shared metadata (e.g., `tile_size`, `room.getTileWidth()`).
-- **Dynamic Layout Math**: Calculate layout and entity bounds dynamically from container dimensions. If a constant is missing, introduce a named `constexpr` or static constant in an appropriate header/namespace.
+- **Dynamic Layout Math**: Calculate layout and entity bounds dynamically from container dimensions. If a constant is missing, introduce a named `constexpr` (or `inline constexpr`) constant in an appropriate header/namespace (use `static constexpr` strictly within class bodies).
 
 ### G. Header (`.h`) vs. Source (`.cpp`) Separation
 - **Declarations in Headers, Implementations in Source**: Headers contain ONLY declarations, class definitions, `constexpr`, and templates. Function and method bodies MUST reside in `.cpp` source files.

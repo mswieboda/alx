@@ -41,6 +41,7 @@ Check the staged and modified code against the following explicit standards:
    - Move non-inline function and method definitions out of headers and into `.cpp` source files.
 3. **Modern C++20 & Safe Types**:
    - Verify usage of explicit types (`uint32_t`, `int32_t`), `constexpr`, `enum class`, and read-only views (`std::string_view`, `std::span`).
+   - Audit C++20 header constant conventions: favor `constexpr` / `inline constexpr` for namespace-scoped constants, and `inline constexpr const T&` for references. Disallow namespace-scoped `static constexpr` in headers (reserve `static constexpr` strictly for class/struct member constants).
    - Enforce `const` correctness on all getters and inspectors.
    - Use in-class member initializers (`int m_val{0};`).
 4. **Frame Loop & Hot-Path Performance**:

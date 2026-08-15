@@ -12,7 +12,7 @@ enum class TransitionState {
 };
 
 class SceneManager {
-    static constexpr float FADE_DURATION = 1.0f; // secs for fade in/out
+    static constexpr float fade_duration = 0.3f; // secs for fade in/out
 
 private:
     std::unique_ptr<Scene> m_current_scene;

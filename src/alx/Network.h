@@ -14,10 +14,10 @@
 namespace alx {
 
 namespace NetworkConfig {
-    inline constexpr int UNREACHABLE_DIST = 9999;
-    inline constexpr int SINK_DIST_THRESHOLD = 9000;
-    inline constexpr float PIPE_DESTRUCTION_TWILIGHT_INCREASE = 0.05f;
-    inline constexpr float BUILDING_DESTRUCTION_TWILIGHT_INCREASE = 0.15f;
+    constexpr int UNREACHABLE_DIST = 9999;
+    constexpr int SINK_DIST_THRESHOLD = 9000;
+    constexpr float PIPE_DESTRUCTION_TWILIGHT_INCREASE = 0.05f;
+    constexpr float BUILDING_DESTRUCTION_TWILIGHT_INCREASE = 0.15f;
 } // namespace NetworkConfig
 
 struct PipeDistIndex {
