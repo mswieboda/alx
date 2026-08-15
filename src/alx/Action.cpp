@@ -7,55 +7,6 @@ namespace alx {
 
 namespace Action {
 
-static const std::unordered_map<std::string, Type> s_string_to_action_map = {
-    {"move_up",          MoveUp},
-    {"move_down",        MoveDown},
-    {"move_left",        MoveLeft},
-    {"move_right",       MoveRight},
-    {"action",           ActionBtn},
-    {"attack",           ActionBtn},
-    {"confirm",          ActionBtn},
-    {"build_mode",       BuildMode},
-    {"place",            Place},
-    {"cancel",           Cancel},
-    {"build_cycle",      BuildCycle},
-    {"pan_mode",         PanMode},
-    {"menu",             Menu},
-    {"mana_spark",       ManaSpark},
-    {"build_foundation", BuildFoundation},
-    {"debug_resource",   DebugResource},
-    {"debug_enemy_wave", DebugEnemyWave}
-};
-
-Type string_to_type(const std::string& action_str) {
-    auto it = s_string_to_action_map.find(action_str);
-    if (it != s_string_to_action_map.end()) {
-        return it->second;
-    }
-    return Count;
-}
-
-std::string type_to_string(Type type) {
-    switch (type) {
-        case MoveUp:          return "move_up";
-        case MoveDown:        return "move_down";
-        case MoveLeft:        return "move_left";
-        case MoveRight:       return "move_right";
-        case ActionBtn:       return "action";
-        case BuildMode:       return "build_mode";
-        case Place:           return "place";
-        case Cancel:          return "cancel";
-        case BuildCycle:      return "build_cycle";
-        case PanMode:         return "pan_mode";
-        case Menu:            return "menu";
-        case ManaSpark:       return "mana_spark";
-        case BuildFoundation: return "build_foundation";
-        case DebugResource:   return "debug_resource";
-        case DebugEnemyWave:  return "debug_enemy_wave";
-        default:              return "unknown";
-    }
-}
-
 // =========================================================================
 // GBA CONTROLLER HARDWARE MAPPING SCHEME
 // =========================================================================
@@ -284,14 +235,6 @@ bool is_pan_mode_active() {
 
 bool is_build_foundation() {
     return is_just_pressed(BuildFoundation);
-}
-
-bool is_pressed(const std::string& action_str) {
-    return is_pressed(string_to_type(action_str));
-}
-
-bool is_just_pressed(const std::string& action_str) {
-    return is_just_pressed(string_to_type(action_str));
 }
 
 } // namespace Action

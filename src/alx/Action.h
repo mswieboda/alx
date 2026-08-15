@@ -57,19 +57,14 @@ namespace Action {
         Menu,             // Enter (Start): Menu / Pause
         ManaSpark,        // Right Trigger (R2) or P: Charge/fire mana spark
         BuildFoundation,  // Future action to build/energize foundation to completion
+
         DebugResource,    // 5: Temporary debug cheat +10 alloy
         DebugEnemyWave,   // 6: Temporary debug cheat to spawn 2 enemies
         DebugTwUp,        // plus key
         DebugTwDown,      // minus key
-        Count,
 
-        // Backwards compatibility aliases
-        Build = BuildMode,
-        BuildTile = Place
+        Count, // NOTE: keep this at the bottom, it's a helpful enum convention (could be optional?)
     };
-
-    Type string_to_type(const std::string& action_str);
-    std::string type_to_string(Type type);
 
     // Primary Enum API (Fast, O(1), Type-safe)
     bool is_pressed(Type type);

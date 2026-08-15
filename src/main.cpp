@@ -12,6 +12,7 @@
 #include <unistd.h>
 #endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 
+#include "Debug.h"
 #include "Game.h"
 #include "core/GameWindow.h"
 #include "core/FrameTime.h"
@@ -22,6 +23,7 @@
 #include "core/Draw.h"
 #include "assets/Images.h"
 #include "alx/Random.h"
+#include "alx/StartScene.h"
 #include "alx/MainScene.h"
 
 namespace {
@@ -112,7 +114,7 @@ void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scen
 
         if (window.is_active()) {
             // Early out on Escape key if allowed
-            if (Game::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
+            if (scene_manager.m_is_quit || Debug::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
                 window.close();
                 break;
             }
@@ -229,9 +231,15 @@ int main(int argc, char* argv[]) {
     SceneManager scene_manager;
 
     // Initialize and change to the first scene
+    auto start_scene = std::make_unique<alx::StartScene>();
     auto main_scene = std::make_unique<alx::MainScene>();
+
+#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
     auto* raw_scene = main_scene.get();
-    scene_manager.change_scene(std::move(main_scene));
+#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
+
+    // scene_manager.change_scene(std::move(main_scene));
+    scene_manager.change_scene(std::move(start_scene));
 
     while (game_window.is_running()) {
         Input::update_input_state(game_window.is_active());

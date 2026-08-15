@@ -11,9 +11,6 @@ namespace Game {
     inline constexpr int TARGET_FPS = 60; // Set your cap here
     inline constexpr float FRAME_DURATION = 1.0f / TARGET_FPS;
 
-    // NOTE: disable this in a true released game so ESC doesn't quit so easily
-    inline constexpr bool QUIT_ON_ESC = true;
-
     // Seed Configuration
     // Set CUSTOM_SEED to a positive integer (e.g. 1337) to force deterministic runs.
     // Set to -1 (or <= 0) for dynamic random seeding on every launch.

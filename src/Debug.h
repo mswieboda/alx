@@ -29,7 +29,7 @@ namespace Debug {
     inline constexpr bool DRAW_ENEMY_ATTACK_TILE = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = false;
-    inline constexpr bool CAN_PAUSE = true;
+    inline constexpr bool QUIT_ON_ESC = false;
 #else  // !ALX_ENABLE_DEBUG
     inline constexpr bool DRAW_GROUND_AREAS = false;
     inline constexpr bool DRAW_FIXTURE_COLLISION_AREAS = false;
@@ -41,7 +41,7 @@ namespace Debug {
     inline constexpr bool DRAW_ENEMY_ATTACK_TILE = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = false;
-    inline constexpr bool CAN_PAUSE = false;
+    inline constexpr bool QUIT_ON_ESC = false;
 #endif // ALX_ENABLE_DEBUG
 } // namespace Debug
 

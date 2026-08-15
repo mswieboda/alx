@@ -13,6 +13,8 @@ private:
     void process_pending_changes();
 
 public:
+    bool m_is_quit = false;
+
     SceneManager();
     ~SceneManager();
 

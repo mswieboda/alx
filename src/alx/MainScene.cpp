@@ -6,6 +6,8 @@
 #include "core/Audio.h"
 #include "core/Draw.h"
 #include "core/Input.h"
+#include "core/Log.h"
+#include "core/SceneManager.h"
 #include "assets/Fonts.h"
 #include "assets/Images.h"
 #include "assets/Music.h"
@@ -217,16 +219,21 @@ void MainScene::dump_telemetry_snapshot() {
 #endif // ALX_ENABLE_TELEMETRY
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
-    if constexpr (Debug::CAN_PAUSE) {
-        if (Action::is_just_pressed(Action::Menu)) {
-            m_paused = !m_paused;
-            if (m_paused) {
-                Audio::pause_music();
-            } else {
-                Audio::resume_music();
-            }
+    // TODO: temporary ESC before we have menu items
+    if (Input::is_key_just_pressed(KeyCode::Escape)) {
+      Log::msg("[MainScene::update] quit");
+      // sm.m_is_quit = true;
+    }
+
+    if (Action::is_just_pressed(Action::Menu)) {
+        m_paused = !m_paused;
+        if (m_paused) {
+            Audio::pause_music();
+        } else {
+            Audio::resume_music();
         }
     }
+
     if (m_paused) return;
 
     update_victory_condition(raw_dt);
