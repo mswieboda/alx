@@ -1,0 +1,10 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "binary_file_patterns": [
+                "deps/*"
+            ]
+        }
+    ]
+}
