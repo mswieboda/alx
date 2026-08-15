@@ -5,12 +5,24 @@
 
 class Scene;
 
+enum class TransitionState {
+    None,
+    FadingOut,
+    FadingIn
+};
+
 class SceneManager {
+    static constexpr float FADE_DURATION = 1.0f; // secs for fade in/out
+
 private:
     std::unique_ptr<Scene> m_current_scene;
     std::unique_ptr<Scene> m_next_scene;
 
-    void process_pending_changes();
+    TransitionState m_transition_state{TransitionState::None};
+    float m_fade_timer{0.0f};
+
+    void fade_and_swap(float dt);
+    void draw_fade(float alpha);
 
 public:
     bool m_is_quit = false;
@@ -26,4 +38,6 @@ public:
     void change_scene(std::unique_ptr<Scene> new_scene);
     void update(float dt);
     void draw(std::vector<uint32_t>& pixel_buffer, float alpha = 1.0f);
+
+    bool is_in_transition() const { return m_transition_state != TransitionState::None; }
 };

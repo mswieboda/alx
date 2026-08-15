@@ -15,6 +15,7 @@ constexpr int WorldObjSpireTop     = 19;  // Overhead Spire / Roof Peak lines (r
 constexpr int WorldOverlay         = 90;  // Twilight dark screen overlay
 constexpr int HUD_BG               = 99;  // HUD background rects
 constexpr int HUD_Text             = 100; // HUD text labels
+constexpr int SceneFade            = 999; // Scene fade in/out transition
 
 } // namespace Layer
 } // namespace alx

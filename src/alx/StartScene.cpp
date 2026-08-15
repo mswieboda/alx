@@ -27,12 +27,12 @@ void StartScene::init(SceneManager& sm) {
 void StartScene::update(SceneManager& sm, float raw_dt) {
   // TODO: temporary ESC before we have menu items
   if (Input::is_key_just_pressed(KeyCode::Escape)) {
-    Log::msg("[StartScene::update] quit");
+    Log::debug_t("[StartScene::update] quit");
     sm.m_is_quit = true;
   }
 
   if (Action::is_just_pressed(Action::Menu)) {
-    Log::msg("[StartScene::update] change scene to main");
+    Log::debug_t("[StartScene::update] >>> change scene to main");
     auto main_scene = std::make_unique<alx::MainScene>();
     sm.change_scene(std::move(main_scene));
   }

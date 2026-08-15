@@ -19,6 +19,7 @@
 #include "alx/SFX.h"
 #include "alx/ParticleEmitters.h"
 #include "alx/TelemetryDumper.h"
+#include "alx/StartScene.h"
 
 namespace alx {
 
@@ -221,8 +222,8 @@ void MainScene::dump_telemetry_snapshot() {
 void MainScene::update(SceneManager& sm, float raw_dt) {
     // TODO: temporary ESC before we have menu items
     if (Input::is_key_just_pressed(KeyCode::Escape)) {
-      Log::msg("[MainScene::update] quit");
-      // sm.m_is_quit = true;
+      auto scene_ptr = std::make_unique<alx::StartScene>();
+      sm.change_scene(std::move(scene_ptr));
     }
 
     if (Action::is_just_pressed(Action::Menu)) {
