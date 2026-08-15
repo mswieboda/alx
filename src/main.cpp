@@ -232,13 +232,10 @@ int main(int argc, char* argv[]) {
 
     // Initialize and change to the first scene
     auto start_scene = std::make_unique<alx::StartScene>();
-    auto main_scene = std::make_unique<alx::MainScene>();
 
-#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
-    auto* raw_scene = main_scene.get();
-#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
+    // TODO: this telemetry report is broken because we have StartScene now
+    // auto* raw_scene = main_scene.get();
 
-    // scene_manager.change_scene(std::move(main_scene));
     scene_manager.change_scene(std::move(start_scene));
 
     while (game_window.is_running()) {
@@ -252,17 +249,18 @@ int main(int argc, char* argv[]) {
         }
     }
 
-#if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
-    stop_inline_telemetry_viewer();
-#endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
+// TODO: this telemetry report is broken because we have StartScene now
+// #if ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
+//     stop_inline_telemetry_viewer();
+// #endif // ALX_ENABLE_DEV_TOOLS && ALX_ENABLE_TELEMETRY && defined(__APPLE__)
 
-    if constexpr (ALX_ENABLE_HEADLESS) {
-        if (has_cli_flag(argc, argv, "report")) {
-            if (raw_scene) {
-                raw_scene->print_headless_summary_report(seed);
-            }
-        }
-    }
+//     if constexpr (ALX_ENABLE_HEADLESS) {
+//         if (has_cli_flag(argc, argv, "report")) {
+//             if (raw_scene) {
+//                 raw_scene->print_headless_summary_report(seed);
+//             }
+//         }
+//     }
 
     Audio::cleanup();
     return 0;

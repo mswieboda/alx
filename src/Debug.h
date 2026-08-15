@@ -29,7 +29,7 @@ namespace Debug {
     inline constexpr bool DRAW_ENEMY_ATTACK_TILE = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_COLLISION_AREAS = false;
     inline constexpr bool DRAW_WORLD_STRUCTURE_TEST = false;
-    inline constexpr bool QUIT_ON_ESC = false;
+    inline constexpr bool QUIT_ON_ESC = true;
 #else  // !ALX_ENABLE_DEBUG
     inline constexpr bool DRAW_GROUND_AREAS = false;
     inline constexpr bool DRAW_FIXTURE_COLLISION_AREAS = false;

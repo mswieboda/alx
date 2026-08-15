@@ -7,7 +7,7 @@ enum class MenuItem : uint8_t { Start, Options, Quit, Count };
 
 class StartScene : public Scene {
 private:
-    int m_selected_index = 0;
+    MenuItem m_selected_item = MenuItem::Start;
 
 public:
     void init(SceneManager& sm) override;

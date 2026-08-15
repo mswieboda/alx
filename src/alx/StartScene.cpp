@@ -3,7 +3,9 @@
 #include <array>
 #include <string_view>
 
+#include "Debug.h"
 #include "Game.h"
+#include "core/Log.h"
 #include "core/Input.h"
 #include "core/SceneManager.h"
 #include "alx/Action.h"
@@ -35,23 +37,30 @@ namespace alx {
   }
 
 void StartScene::init(SceneManager& sm) {
-    background_color = 0xFF131313; // very dark gray
-
-    // TODO: probably can use the default?
-    // Draw::set_y_sort_mode(Draw::YSortMode::YPlusHeight);
-
-    m_selected_index = 3;
+    background_color = 0xFF090909; // very dark gray
 }
 
 void StartScene::update(SceneManager& sm, float raw_dt) {
-    // TODO: temporary ESC before we have menu items
-    if (Input::is_key_just_pressed(KeyCode::Escape)) {
+    // TODO: keeping ESC in here, not sure if i want to kill that later
+    // but it's WAYYY faster for testing, maybe in debug only?
+    if (Debug::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
         sm.m_is_quit = true;
-    }
-
-    if (Action::is_just_pressed(Action::Menu)) {
-        auto main_scene = std::make_unique<alx::MainScene>();
-        sm.change_scene(std::move(main_scene));
+    } else if (Action::is_just_pressed(Action::Menu)) {
+        if (m_selected_item == MenuItem::Start) {
+            // TODO: this needs to do the menu item we selected
+            auto main_scene = std::make_unique<alx::MainScene>();
+            sm.change_scene(std::move(main_scene));
+        } else if (m_selected_item == MenuItem::Quit) {
+            sm.m_is_quit = true;
+        }
+    } else if (Action::is_just_pressed(Action::MoveUp)) {
+        auto idx = static_cast<uint8_t>(m_selected_item);
+        idx = idx == 0 ? static_cast<uint8_t>(MenuItem::Count) - 1 : idx - 1;
+        m_selected_item = static_cast<MenuItem>(idx);
+    } else if (Action::is_just_pressed(Action::MoveDown)) {
+        auto idx = static_cast<uint8_t>(m_selected_item);
+        idx = idx + 1 >= static_cast<uint8_t>(MenuItem::Count) ? 0 : idx + 1;
+        m_selected_item = static_cast<MenuItem>(idx);
     }
 }
 
@@ -71,10 +80,16 @@ void StartScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
 
     // x,y centered screen center
     text_y = Game::half_screen_height - line_height(TextStyles::font.size, TextStyles::scale) / 2.0f;
-    for (size_t i = 0; i < static_cast<size_t>(MenuItem::Count); i++) {
-        std::string_view text = menu_items[i];
-        draw_menu_item(text, TextStyles::scale_med, text_y);
-        text_y += line_height(TextStyles::font.size, TextStyles::scale_med, TextStyles::menu_item_text_line_height);
+    for (size_t idx = 0; idx < static_cast<size_t>(MenuItem::Count); idx++) {
+        std::string_view text = menu_items[idx];
+
+        auto selected_idx = static_cast<uint8_t>(m_selected_item);
+        bool is_selected = selected_idx == idx;
+        int scale = is_selected ? TextStyles::scale_med : TextStyles::scale;
+
+        draw_menu_item(text, scale, text_y);
+
+        text_y += line_height(TextStyles::font.size, scale, TextStyles::menu_item_text_line_height);
     }
 }
 
