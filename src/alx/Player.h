@@ -91,7 +91,7 @@ struct Player : public Entity {
     struct State {
         static constexpr int DEFAULT_MAX_HP = 5;
         static constexpr float IFRAME_DURATION = 0.5f;
-        static constexpr float DEFEAT_DURATION = 2.0f;
+        static constexpr float DEFEAT_DURATION = 1.5f;
 
         int hp = DEFAULT_MAX_HP;
         int max_hp = DEFAULT_MAX_HP;

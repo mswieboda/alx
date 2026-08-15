@@ -22,7 +22,6 @@ void SceneManager::fade_and_swap(float dt) {
     if (m_fade_timer < fade_duration) return;
 
     if (m_transition_state == TransitionState::FadingOut) {
-        Log::debug_t("[SceneManager::fade_and_swap] >>> swap to m_next_scene");
         m_current_scene = std::move(m_next_scene);
         m_current_scene->init(*this);
         m_transition_state = TransitionState::FadingIn;
@@ -33,7 +32,6 @@ void SceneManager::fade_and_swap(float dt) {
 }
 
 void SceneManager::change_scene(std::unique_ptr<Scene> new_scene) {
-    Log::debug_t("[SceneManager::change_scene] >>> init fade, set m_next_scene");
     m_transition_state = TransitionState::FadingOut;
     m_fade_timer = 0.0f;
     m_next_scene = std::move(new_scene);

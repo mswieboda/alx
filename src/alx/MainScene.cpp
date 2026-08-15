@@ -20,6 +20,7 @@
 #include "alx/ParticleEmitters.h"
 #include "alx/TelemetryDumper.h"
 #include "alx/StartScene.h"
+#include "alx/TextStyles.h"
 
 namespace alx {
 
@@ -238,6 +239,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     if (m_paused) return;
 
     update_victory_condition(raw_dt);
+    update_game_over_fade(raw_dt);
     update_time_dilation_hotkeys();
 
     const float dt = raw_dt * m_time_scale;
@@ -256,8 +258,6 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         update_headless_defense(raw_dt);
     }
 #endif // ALX_ENABLE_HEADLESS
-
-    update_player_respawn();
 
     m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
     if (m_enemy_manager.consume_tower_spawned_event()) {
@@ -308,6 +308,19 @@ void MainScene::update_victory_condition(float raw_dt) {
     }
 }
 
+void MainScene::update_game_over_fade(float raw_dt) {
+    if (m_player.state.defeated) {
+        if (m_player.state.defeat_timer <= 0.0f) {
+            if (!m_is_game_over) {
+                m_is_game_over = true;
+                m_game_over_fade_timer = GAME_OVER_FADE_DURATION;
+            } else if (m_game_over_fade_timer > 0.0f) {
+                m_game_over_fade_timer -= raw_dt;
+            }
+        }
+    }
+}
+
 void MainScene::update_time_dilation_hotkeys() {
     if constexpr (ALX_ENABLE_DEBUG) {
         if (Input::is_key_just_pressed(KeyCode::Key1)) {
@@ -319,17 +332,6 @@ void MainScene::update_time_dilation_hotkeys() {
         } else if (Input::is_key_just_pressed(KeyCode::Key4)) {
             m_time_scale = 10.0f;
         }
-    }
-}
-
-void MainScene::update_player_respawn() {
-    if (m_player.state.defeated && m_player.state.defeat_timer <= 0.0f) {
-        m_player.state.hp = m_player.state.max_hp;
-        m_player.state.defeated = false;
-        m_player.state.iframe_timer = Player::State::IFRAME_DURATION;
-
-        setup_player_at_spawn(m_player_spawn);
-        m_player.sync_prev_transforms();
     }
 }
 
@@ -529,6 +531,7 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
     draw_vignette_surge();
     draw_hud();
     m_enemy_manager.draw_threat_indicators(m_camera);
+    draw_game_over_fade();
 }
 
 void MainScene::draw_vignette_surge() {
@@ -603,7 +606,6 @@ void MainScene::draw_hud() {
 
     const uint32_t text_color = 0xFF00CCCC;
     const uint32_t shadow_color = 0xFF003344;
-    const FontData& font = Assets::Fonts::fant_8;
     const int line_h_padding = 4;
     int ly = line_h_padding;
 
@@ -612,14 +614,14 @@ void MainScene::draw_hud() {
         Draw::text_shadow(
             6, ly,
             Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
-            text_color, shadow_color, 1, Layer::HUD_Text, &font
+            text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     } else {
         // \x03 = Heart icon
         Draw::text_shadow(
             6, ly,
             Draw::fmt("\x03 %d", m_player.state.hp),
-            text_color, shadow_color, 1, Layer::HUD_Text, &font
+            text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
 
@@ -627,40 +629,76 @@ void MainScene::draw_hud() {
     int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
     const char* icon = m_twilight_level >= 0.5f ? "\x08" : "\x0F";
     std::string_view twilight_str = Draw::fmt("%s %d%%", icon, twilight_pct);
-    int twilight_width = Draw::text_width(twilight_str, 1, &font);
+    int twilight_width = Draw::text_width(twilight_str, 1, &TextStyles::font);
     Draw::text_shadow(
         screen_width / 2 - twilight_width / 2, ly,
         twilight_str,
-        text_color, shadow_color, 1, Layer::HUD_Text, &font
+        text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
     );
 
     if (m_can_build) {
         // selected build fixture
         std::string_view build_str = Draw::fmt("build: %s (%d)", selected_name, cost);
-        int build_width = Draw::text_width(build_str, 1, &font);
+        int build_width = Draw::text_width(build_str, 1, &TextStyles::font);
         Draw::text_shadow(
             screen_width - 6 - build_width, ly,
             build_str,
-            text_color, shadow_color, 1, Layer::HUD_Text, &font
+            text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
 
-    ly += font.size + line_h_padding;
+    ly += TextStyles::font.size + line_h_padding;
 
     if constexpr (Debug::SHOW_SEED) {
         std::string_view seed_str = Draw::fmt(Random::is_custom_seeded() ? "seed: %u (custom)" : "seed: %u", Random::active_seed());
-        int bottom_y = Game::HEIGHT - font.size - line_h_padding;
+        int bottom_y = Game::HEIGHT - TextStyles::font.size - line_h_padding;
         Draw::text(
             6, bottom_y,
             seed_str,
-            text_color, 1, Layer::HUD_Text, &font
+            text_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
 
-    draw_victory_and_pause_overlays(screen_width, Game::HEIGHT, font);
+    draw_victory_and_pause_overlays(screen_width, Game::HEIGHT, TextStyles::font);
+    draw_game_over_hud();
+}
+
+void MainScene::draw_game_over_fade() {
+    if (!m_is_game_over) return;
+
+    // fade in
+    float fade_progress = 1.0 - std::clamp(m_game_over_fade_timer / GAME_OVER_FADE_DURATION, 0.0f, 1.0f);
+
+    // TODO: tweak this, this is just a quick dirty thing, we shouldn't use magic numbers
+    uint32_t alpha = (uint32_t) (fade_progress * 0.5f * 255.0f + 0.5f); // rounded, max partial % (25% gray)
+    uint32_t fade_color = alpha << 24;
+
+    Draw::rect(
+        0, 0,
+        Game::WIDTH, Game::HEIGHT,
+        fade_color,
+        true, // fill
+        1, // thickness (ignored)
+        alx::Layer::HUD_Overlay
+    );
+}
+
+void MainScene::draw_game_over_hud() {
+    if (!m_is_game_over || m_game_over_fade_timer >= 0.0f) return;
+
+    // TODO: move strings up as constants, etc
+    std::string_view game_over_str = "YOU DIED!";
+    int text_width = Draw::text_width(game_over_str, 2, &TextStyles::font);
+    Draw::text(
+        Game::WIDTH / 2 - text_width / 2,
+        Game::HEIGHT / 2 - TextStyles::font.size,
+        game_over_str,
+        COLOR_GAME_OVER_TEXT, 2, Layer::HUD_OverlayText, &TextStyles::font
+    );
 }
 
 void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_height, const FontData& font) {
+    // TODO: move strings up as constants, etc
     if (m_victory_achieved) {
         std::string_view win_str = "YOU WIN!";
         int win_w = Draw::text_width(win_str, 2, &font);
@@ -668,7 +706,7 @@ void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_hei
             screen_width / 2 - win_w / 2,
             screen_height / 2 - font.size,
             win_str,
-            COLOR_VICTORY_TEXT, 2, Layer::HUD_Text, &font
+            COLOR_VICTORY_TEXT, 2, Layer::HUD_OverlayText, &font
         );
     } else if (m_paused) {
         std::string_view pause_str = "PAUSED";
@@ -677,7 +715,7 @@ void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_hei
             screen_width / 2 - pause_w / 2,
             screen_height / 2 - font.size,
             pause_str,
-            COLOR_PAUSE_TEXT, 2, Layer::HUD_Text, &font
+            COLOR_PAUSE_TEXT, 2, Layer::HUD_OverlayText, &font
         );
     } else if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
         int remaining_sec = std::max(0, static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer)));
@@ -687,7 +725,7 @@ void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_hei
             screen_width / 2 - count_w / 2,
             screen_height / 2 - font.size / 2,
             count_str,
-            COLOR_VICTORY_TEXT, 1, Layer::HUD_Text, &font
+            COLOR_VICTORY_TEXT, 1, Layer::HUD_OverlayText, &font
         );
     }
 }

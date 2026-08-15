@@ -22,7 +22,9 @@ private:
     static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
     static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;
     static constexpr uint32_t COLOR_VICTORY_TEXT = 0xFF00FF88;
+    static constexpr uint32_t COLOR_GAME_OVER_TEXT = 0xFF66001C;
     static constexpr uint32_t COLOR_PAUSE_TEXT   = 0xFFFFCC00;
+    static constexpr float GAME_OVER_FADE_DURATION = 0.5f; // sec
 
     Tiles m_tiles;
     Network m_network;
@@ -38,9 +40,14 @@ private:
     bool m_is_headless = false;
     float m_headless_defend_timer = 0.0f;
 #endif
+    // victory
     float m_victory_hold_timer = 0.0f;
     bool m_victory_achieved = false;
     std::vector<uint32_t> m_twilight_pixel_buffer;
+
+    // game over
+    bool m_is_game_over = false;
+    float m_game_over_fade_timer = 0.0f;
 
     // Level-specific features
     bool m_can_build = false;
@@ -122,6 +129,7 @@ private:
 #endif
     void update_tick_simulation(float dt);
     void update_victory_condition(float raw_dt);
+    void update_game_over_fade(float raw_dt);
     void update_time_dilation_hotkeys();
     void update_player_respawn();
     void update_sword_slash_trail();
@@ -129,6 +137,8 @@ private:
     void draw_twilight(std::vector<uint32_t>& pixel_buffer, float alpha);
     void draw_vignette_surge();
     void draw_hud();
+    void draw_game_over_fade();
+    void draw_game_over_hud();
     void load_tiles_and_network(const Level& level);
     void setup_player_at_spawn(GridPos spawn_pos);
     void load_dark_towers(std::span<const DarkTowerSpawn> spawns);

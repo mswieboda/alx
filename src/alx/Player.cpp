@@ -508,7 +508,7 @@ void Player::draw(std::vector<uint32_t>& pixel_buffer, float alpha, bool can_bui
         SHADOW_RY_RATIO_OF_RX
     );
 
-    // Player body (with i-frame flashing and defeat concealment)
+    // Player body (with i-frame flashing)
     if (auto* anim = std::get_if<AnimatedSpriteRender>(&visual)) {
         bool skip_sprite = false;
         if (state.iframe_timer > 0.0f) {
@@ -517,7 +517,7 @@ void Player::draw(std::vector<uint32_t>& pixel_buffer, float alpha, bool can_bui
                 skip_sprite = true;
             }
         }
-        if (!skip_sprite && !state.defeated) {
+        if (!skip_sprite) {
             draw_player_sprite(*anim, world_draw_x, world_draw_y, transform.z_index, world_bottom_y);
         }
     }
