@@ -221,10 +221,32 @@ void MainScene::dump_telemetry_snapshot() {
 #endif // ALX_ENABLE_TELEMETRY
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
+    if (m_is_game_over && m_game_over_fade_timer <= 0.0f) {
+        m_game_over_menu.update_navigation();
+        if (m_game_over_menu.is_confirmed()) {
+            switch (m_game_over_menu.selected_item<GameOverItem>()) {
+                case GameOverItem::Retry: {
+                    auto scene_ptr = std::make_unique<alx::MainScene>();
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case GameOverItem::Quit: {
+                    auto scene_ptr = std::make_unique<alx::StartScene>();
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case GameOverItem::Count:
+                    break;
+            }
+        }
+        return;
+    }
+
     // TODO: temporary ESC before we have menu items
     if (Input::is_key_just_pressed(KeyCode::Escape)) {
       auto scene_ptr = std::make_unique<alx::StartScene>();
       sm.change_scene(std::move(scene_ptr));
+      return;
     }
 
     if (Action::is_just_pressed(Action::Menu)) {
@@ -684,17 +706,35 @@ void MainScene::draw_game_over_fade() {
 }
 
 void MainScene::draw_game_over_hud() {
-    if (!m_is_game_over || m_game_over_fade_timer >= 0.0f) return;
+    if (!m_is_game_over || m_game_over_fade_timer > 0.0f) return;
 
-    // TODO: move strings up as constants, etc
-    std::string_view game_over_str = "YOU DIED!";
-    int text_width = Draw::text_width(game_over_str, 2, &TextStyles::font);
-    Draw::text(
-        Game::WIDTH / 2 - text_width / 2,
-        Game::HEIGHT / 2 - TextStyles::font.size,
-        game_over_str,
-        COLOR_GAME_OVER_TEXT, 2, Layer::HUD_OverlayText, &TextStyles::font
+    static constexpr std::string_view GAME_OVER_TITLE = "YOU DIED!";
+    const int title_scale = TextStyles::scale_big;
+    const int title_width = Draw::text_width(GAME_OVER_TITLE, title_scale, &TextStyles::font);
+    const int title_height = Menu::calculate_line_height(TextStyles::font.size, title_scale);
+
+    const float title_x = Game::half_screen_width - (title_width / 2.0f);
+    const float title_y = Game::half_screen_height - title_height - Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale);
+
+    Draw::text_shadow(
+        title_x,
+        title_y,
+        GAME_OVER_TITLE,
+        COLOR_GAME_OVER_TEXT,
+        0xFF000000,
+        title_scale,
+        Layer::HUD_OverlayText,
+        &TextStyles::font
     );
+
+    const float menu_start_y = Game::half_screen_height + (Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale) / 2.0f);
+    m_game_over_menu.draw({
+        .center_x = static_cast<float>(Game::half_screen_width),
+        .start_y = menu_start_y,
+        .layer = Layer::HUD_OverlayText,
+        .color = TextStyles::color,
+        .color_shadow = TextStyles::color_shadow,
+    });
 }
 
 void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_height, const FontData& font) {

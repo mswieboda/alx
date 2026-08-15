@@ -1,6 +1,8 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <span>
+#include <string_view>
 #include <vector>
 #include "core/Scene.h"
 #include "alx/Camera.h"
@@ -10,8 +12,11 @@
 #include "alx/EnemyManager.h"
 #include "alx/ParticleSystem.h"
 #include "alx/Levels.h"
+#include "alx/Menu.h"
 
 namespace alx {
+
+enum class GameOverItem : uint8_t { Retry, Quit, Count };
 
 class MainScene : public Scene {
 private:
@@ -48,6 +53,10 @@ private:
     // game over
     bool m_is_game_over = false;
     float m_game_over_fade_timer = 0.0f;
+    static constexpr std::array<std::string_view, static_cast<size_t>(GameOverItem::Count)> GAME_OVER_ITEMS = {
+        "Retry", "Quit"
+    };
+    Menu m_game_over_menu{GAME_OVER_ITEMS};
 
     // Level-specific features
     bool m_can_build = false;
@@ -195,4 +204,3 @@ public:
 };
 
 } // namespace alx
-
