@@ -12,7 +12,6 @@ private:
     std::vector<uint32_t> m_pixel_buffer;
     float m_vignette_timer{0.0f};
 
-    static constexpr float VIGNETTE_DURATION = 1.0f;
     static constexpr float VIGNETTE_PEAK_INTENSITY = 0.33f;
     static constexpr float VIGNETTE_INNER_RADIUS = 0.90f;
     static constexpr float VIGNETTE_OUTER_RADIUS = 1.05f;
@@ -20,6 +19,8 @@ private:
     static constexpr uint32_t TWILIGHT_RGB = 0x00130C1A;
 
 public:
+    static constexpr float VIGNETTE_DURATION = 1.0f;
+
     void init(int width, int height);
     void update(float dt) noexcept;
     void trigger_vignette_surge(float duration = VIGNETTE_DURATION) noexcept;

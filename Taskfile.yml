@@ -318,7 +318,7 @@ tasks:
     silent: true
     cmds:
       - task: run-headless
-        vars: { build: Release }
+        vars: { build: Release, CLI_ARGS: '{{.CLI_ARGS}}' }
 
   clean-release:
     desc: Clean Release build

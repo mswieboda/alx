@@ -15,6 +15,7 @@ class Tiles;
 
 class MainSceneTelemetry {
 private:
+#if ALX_ENABLE_TELEMETRY
     static constexpr float ROLLING_WINDOW_SHORT_SEC = 3.0f;
     static constexpr float ROLLING_WINDOW_LONG_SEC = 15.0f;
     static constexpr size_t ROLLING_BUFFER_MAX_SAMPLES = 960; // 16s @ 60fps
@@ -29,6 +30,8 @@ private:
     size_t m_rolling_sample_count{0};
 
     float m_twilight_delta_per_sec{0.0f};
+    float m_telemetry_dump_timer{0.0f};
+#endif // ALX_ENABLE_TELEMETRY
 
     // Last Event Tracking
     float m_last_event_delta{0.0f};
@@ -40,10 +43,6 @@ private:
     float m_peak_twilight{0.0f};
     float m_min_twilight{1.0f};
     double m_sum_twilight{0.0};
-
-#if ALX_ENABLE_TELEMETRY
-    float m_telemetry_dump_timer{0.0f};
-#endif
 
 #if ALX_ENABLE_HEADLESS
     bool m_is_headless{false};
@@ -62,7 +61,11 @@ public:
     void record_event(float delta, const char* cause, float sim_elapsed_sec);
     void update_metrics(float dt, float current_twilight, float prev_twilight);
 
+#if ALX_ENABLE_TELEMETRY
     [[nodiscard]] float calculate_rolling_rate(float duration_sec = ROLLING_WINDOW_SHORT_SEC) const;
+#else
+    [[nodiscard]] constexpr float calculate_rolling_rate(float = 3.0f) const { return 0.0f; }
+#endif // ALX_ENABLE_TELEMETRY
 
 #if ALX_ENABLE_TELEMETRY
     void update_telemetry_dump(

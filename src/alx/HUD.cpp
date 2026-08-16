@@ -188,21 +188,21 @@ void draw_game_over_menu(const Menu& game_over_menu) {
 void draw_victory_and_pause_overlays(bool victory, bool paused, int screen_width, int screen_height) {
     if (victory) {
         static constexpr std::string_view win_str = "YOU WIN!";
-        int win_w = Draw::text_width(win_str, 2, &TextStyles::font);
+        int win_w = Draw::text_width(win_str, TextStyles::scale_med, &TextStyles::font);
         Draw::text(
             screen_width / 2 - win_w / 2,
             screen_height / 2 - TextStyles::font.size,
             win_str,
-            COLOR_VICTORY_TEXT, 2, Layer::HUD_OverlayText, &TextStyles::font
+            COLOR_VICTORY_TEXT, TextStyles::scale_med, Layer::HUD_OverlayText, &TextStyles::font
         );
     } else if (paused) {
         static constexpr std::string_view pause_str = "PAUSED";
-        int pause_w = Draw::text_width(pause_str, 2, &TextStyles::font);
+        int pause_w = Draw::text_width(pause_str, TextStyles::scale_med, &TextStyles::font);
         Draw::text(
             screen_width / 2 - pause_w / 2,
             screen_height / 2 - TextStyles::font.size,
             pause_str,
-            COLOR_PAUSE_TEXT, 2, Layer::HUD_OverlayText, &TextStyles::font
+            COLOR_PAUSE_TEXT, TextStyles::scale_med, Layer::HUD_OverlayText, &TextStyles::font
         );
     }
 }

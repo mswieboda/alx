@@ -57,6 +57,14 @@ struct HeadlessSummaryStats {
 #  endif
 #endif
 
+#ifndef ALX_ENABLE_HEADLESS
+#  ifdef DEBUG
+#    define ALX_ENABLE_HEADLESS 1
+#  else
+#    define ALX_ENABLE_HEADLESS 0
+#  endif
+#endif
+
 class TelemetryDumper {
 public:
     static constexpr const char* TELEMETRY_FILE_PATH = "/tmp/alx_telemetry.json";
@@ -64,11 +72,15 @@ public:
 
 #if ALX_ENABLE_TELEMETRY
     static bool dump_snapshot(const TelemetrySnapshot& snapshot);
-    static void print_summary_report(const HeadlessSummaryStats& stats);
 #else
     static inline bool dump_snapshot(const TelemetrySnapshot&) noexcept { return true; }
+#endif // ALX_ENABLE_TELEMETRY
+
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
+    static void print_summary_report(const HeadlessSummaryStats& stats);
+#else
     static inline void print_summary_report(const HeadlessSummaryStats&) noexcept {}
-#endif
+#endif // ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 };
 
 } // namespace alx

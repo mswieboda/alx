@@ -1,14 +1,15 @@
 #include "alx/TelemetryDumper.h"
+#include <cstdio>
+#include <cmath>
 
 #if ALX_ENABLE_TELEMETRY
-
 #include "core/Log.h"
-#include <cstdio>
 #include <filesystem>
-#include <cmath>
+#endif // ALX_ENABLE_TELEMETRY
 
 namespace alx {
 
+#if ALX_ENABLE_TELEMETRY
 bool TelemetryDumper::dump_snapshot(const TelemetrySnapshot& snapshot) {
     FILE* file = std::fopen(TELEMETRY_TMP_PATH, "w");
     if (!file) {
@@ -80,7 +81,9 @@ bool TelemetryDumper::dump_snapshot(const TelemetrySnapshot& snapshot) {
 
     return true;
 }
+#endif // ALX_ENABLE_TELEMETRY
 
+#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
     int init_pct = static_cast<int>(std::round(stats.initial_twilight * 100.0f));
     int final_pct = static_cast<int>(std::round(stats.final_twilight * 100.0f));
@@ -138,7 +141,6 @@ void TelemetryDumper::print_summary_report(const HeadlessSummaryStats& stats) {
         stats.spires_cleanse_rate_per_sec
     );
 }
+#endif // ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
 
 } // namespace alx
-
-#endif // ALX_ENABLE_TELEMETRY

@@ -28,7 +28,7 @@ private:
     static constexpr float TWILIGHT_HOLD_THRESHOLD = 0.0f;
     static constexpr float TWILIGHT_MAX = 0.99f;
     static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.03f;
-    static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
+    static constexpr float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     static constexpr float VICTORY_HOLD_DURATION_SEC = 15.0f;
     static constexpr float VICTORY_HOLD_DRAIN_RATE = 2.0f;
     static constexpr float GAME_OVER_FADE_DURATION = 0.5f; // sec
@@ -39,9 +39,8 @@ private:
     EnemyManager m_enemy_manager;
     ParticleSystem m_particle_system;
     alx::Camera m_camera;
-    float m_sim_timer = 0;
-    float m_last_dt = 0.016f;
-    const float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
+    float m_sim_timer{0.0f};
+    float m_last_dt{0.016f};
     bool m_paused = false;
     // victory
     float m_victory_hold_timer = 0.0f;
@@ -93,9 +92,9 @@ private:
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress);
 
 public:
-    void trigger_vignette_surge(float duration = 1.0f);
+    void trigger_vignette_surge(float duration = TwilightOverlay::VIGNETTE_DURATION);
     void trigger_tower_spawn_alert(
-        float vignette_duration = 1.0f,
+        float vignette_duration = TwilightOverlay::VIGNETTE_DURATION,
         float shake_intensity = CAMERA_SHAKE_PEAK_INTENSITY,
         float shake_duration = CAMERA_SHAKE_DURATION
     );

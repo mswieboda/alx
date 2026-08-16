@@ -16,8 +16,10 @@ void MainSceneTelemetry::reset(float initial_twilight) {
     m_peak_twilight = initial_twilight;
     m_min_twilight = initial_twilight;
     m_sum_twilight = 0.0;
+#if ALX_ENABLE_TELEMETRY
     m_rolling_sample_head = 0;
     m_rolling_sample_count = 0;
+#endif // ALX_ENABLE_TELEMETRY
     m_last_event_delta = 0.0f;
     m_last_event_cause = "None";
     m_last_event_timestamp = 0.0f;
@@ -34,18 +36,22 @@ void MainSceneTelemetry::update_metrics(float dt, float current_twilight, float 
     m_min_twilight = std::min(m_min_twilight, current_twilight);
     m_sum_twilight += current_twilight;
 
+#if ALX_ENABLE_TELEMETRY
     const float frame_delta = current_twilight - prev_twilight;
     m_twilight_delta_per_sec = (dt > 0.0001f) ? (frame_delta / dt) : 0.0f;
 
-#if ALX_ENABLE_TELEMETRY
     m_rolling_samples[m_rolling_sample_head] = RollingSample{ dt, frame_delta };
     m_rolling_sample_head = (m_rolling_sample_head + 1) % ROLLING_BUFFER_MAX_SAMPLES;
     if (m_rolling_sample_count < ROLLING_BUFFER_MAX_SAMPLES) {
         ++m_rolling_sample_count;
     }
+#else
+    (void)dt;
+    (void)prev_twilight;
 #endif // ALX_ENABLE_TELEMETRY
 }
 
+#if ALX_ENABLE_TELEMETRY
 float MainSceneTelemetry::calculate_rolling_rate(float duration_sec) const {
     if (m_rolling_sample_count == 0) return 0.0f;
 
@@ -65,6 +71,7 @@ float MainSceneTelemetry::calculate_rolling_rate(float duration_sec) const {
     if (total_dt <= 0.0001f) return 0.0f;
     return total_delta / total_dt;
 }
+#endif // ALX_ENABLE_TELEMETRY
 
 #if ALX_ENABLE_TELEMETRY
 void MainSceneTelemetry::update_telemetry_dump(

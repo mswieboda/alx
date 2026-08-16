@@ -1,4 +1,5 @@
 #include "alx/Tiles.h"
+#include <iterator>
 #include "alx/Camera.h"
 #include "core/Draw.h"
 #include "assets/Images.h"
@@ -21,7 +22,7 @@ void draw_terrain_tile(const Tile& tile, int world_x, int world_y, int tile_size
         default:               frame_index = 0; break;
     }
 
-    if (frame_index < 5) {
+    if (frame_index < std::size(Assets::Images::tileset_frames)) {
         const auto& frame = Assets::Images::tileset_frames[frame_index];
         Draw::sprite(
             static_cast<float>(world_x),
