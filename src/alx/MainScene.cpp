@@ -236,7 +236,10 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         }
 #endif // ALX_ENABLE_HEADLESS
 
-        m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
+        const bool is_frenzy = (m_victory_hold_timer > 0.0f) && !m_victory_achieved;
+        const float frenzy_multiplier = is_frenzy ? FrenzyConstants::get_frenzy_multiplier(m_current_level_id) : FrenzyConstants::DEFAULT_FREQ_MULTIPLIER;
+
+        m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level, is_frenzy, frenzy_multiplier);
         if (m_enemy_manager.consume_tower_spawned_event()) {
             trigger_tower_spawn_alert();
             Audio::play_sfx(SFX::dark_tower_spawn());

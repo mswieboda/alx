@@ -23,48 +23,64 @@
 namespace alx {
 
 namespace DarkTowerConstants {
-    static constexpr float SPAWN_INTERVAL_MIN = 6.0f;
-    static constexpr float SPAWN_INTERVAL_MAX = 12.0f;
-    static constexpr float INITIAL_SPAWN_DELAY = 3.0f;
-    static constexpr int WAVE_EGG_COUNT_MIN = 1;
-    static constexpr int WAVE_EGG_COUNT_MAX = 3;
-    static constexpr int MAX_ACTIVE_EGGS_PER_TOWER = 5;
-    static constexpr float SPAWN_TILE_OFFSET_MIN_RATIO = 0.25f;
-    static constexpr float SPAWN_TILE_OFFSET_MAX_RATIO = 2.00f;
-    static constexpr int SPAWN_RING_SEARCH_STEPS = 16;
-    static constexpr int MAX_ACTIVE_DARK_TOWERS = 3;
-    static constexpr float TELEGRAPH_DURATION = 1.0f;
-    static constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
-    static constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
+    constexpr float SPAWN_INTERVAL_MIN = 6.0f;
+    constexpr float SPAWN_INTERVAL_MAX = 12.0f;
+    constexpr float INITIAL_SPAWN_DELAY = 3.0f;
+    constexpr int WAVE_EGG_COUNT_MIN = 1;
+    constexpr int WAVE_EGG_COUNT_MAX = 3;
+    constexpr int MAX_ACTIVE_EGGS_PER_TOWER = 5;
+    constexpr float SPAWN_TILE_OFFSET_MIN_RATIO = 0.25f;
+    constexpr float SPAWN_TILE_OFFSET_MAX_RATIO = 2.00f;
+    constexpr int SPAWN_RING_SEARCH_STEPS = 16;
+    constexpr int MAX_ACTIVE_DARK_TOWERS = 3;
+    constexpr float TELEGRAPH_DURATION = 1.0f;
+    constexpr float CRITICAL_TWILIGHT_THRESHOLD = 0.75f;
+    constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
 
     // Twilight Scaling Curve Thresholds & Exponent
-    static constexpr float TWILIGHT_LOW_THRESHOLD = 0.05f;
-    static constexpr float TWILIGHT_HIGH_THRESHOLD = 0.90f;
-    static constexpr float DEFAULT_CURVE_EXPONENT = 0.69f;
+    constexpr float TWILIGHT_LOW_THRESHOLD = 0.05f;
+    constexpr float TWILIGHT_HIGH_THRESHOLD = 0.90f;
+    constexpr float DEFAULT_CURVE_EXPONENT = 0.69f;
 
     // Pulse & Egg Twilight Bumps
-    static constexpr float PULSE_INTERVAL_MIN = 7.0f;
-    static constexpr float PULSE_INTERVAL_MAX = 15.0f;
-    static constexpr float PULSE_TWILIGHT_INCREASE = 0.03f;
-    static constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.003f;
+    constexpr float PULSE_INTERVAL_MIN = 7.0f;
+    constexpr float PULSE_INTERVAL_MAX = 15.0f;
+    constexpr float PULSE_TWILIGHT_INCREASE = 0.03f;
+    constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.003f;
 
     // Inverse Twilight Cooldown Scaling (Seconds)
     // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
-    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 25.0f;
-    static constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 35.0f;
+    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 25.0f;
+    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 35.0f;
 
     // Low Twilight (0.0 = Purified room): Faster tower spawn cooldown range (escalation)
-    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 17.0f;
-    static constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 29.0f;
+    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 17.0f;
+    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 29.0f;
 
     // Normal Periodic Emergence Settings (for Twilight > 10%)
-    static constexpr float EMERGENCE_COOLDOWN_MIN = 45.0f;
-    static constexpr float EMERGENCE_COOLDOWN_MAX = 60.0f;
+    constexpr float EMERGENCE_COOLDOWN_MIN = 45.0f;
+    constexpr float EMERGENCE_COOLDOWN_MAX = 60.0f;
 
     // Low Twilight Crunch Emergence Settings (for Twilight <= 10%)
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 30.0f;
-    static constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 45.0f;
-}
+    constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 30.0f;
+    constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 45.0f;
+} // namespace DarkTowerConstants
+
+namespace FrenzyConstants {
+    constexpr float FREQ_MULTIPLIER_LV1 = 1.20f; // Level 1: +20% spawn frequency
+    constexpr float FREQ_MULTIPLIER_LV2 = 1.35f; // Level 2: +35% spawn frequency
+    constexpr float FREQ_MULTIPLIER_LV3 = 1.50f; // Level 3: +50% spawn frequency
+    constexpr float DEFAULT_FREQ_MULTIPLIER = 1.0f;
+
+    [[nodiscard]] constexpr float get_frenzy_multiplier(int level_id) noexcept {
+        switch (level_id) {
+            case 1: return FREQ_MULTIPLIER_LV1;
+            case 2: return FREQ_MULTIPLIER_LV2;
+            case 3: return FREQ_MULTIPLIER_LV3;
+            default: return (level_id > 3) ? FREQ_MULTIPLIER_LV3 : DEFAULT_FREQ_MULTIPLIER;
+        }
+    }
+} // namespace FrenzyConstants
 
 struct CachedThreatPos {
     float world_x = 0.0f;
@@ -116,7 +132,9 @@ private:
     float m_pending_twilight_increase = 0.0f;
     bool m_tower_spawned_event = false;
     int m_last_destroyed_tile_index = -1;
-
+    bool m_is_frenzy = false;
+    float m_frenzy_multiplier = 1.0f;
+    float m_frenzy_timer = 0.0f;
 
 public:
     void clear();
@@ -134,14 +152,15 @@ public:
     std::vector<WorldStructure>& structures() { return m_world_structures; }
     const std::vector<WorldStructure>& structures() const { return m_world_structures; }
 
+    [[nodiscard]] bool is_frenzy() const noexcept { return m_is_frenzy; }
+    [[nodiscard]] float frenzy_multiplier() const noexcept { return m_frenzy_multiplier; }
+
     float consume_pending_twilight_increase();
     [[nodiscard]] bool consume_tower_spawned_event();
 
-
     void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false);
 
-
-    void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr, float twilight_level = 0.0f);
+    void update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles = nullptr, float twilight_level = 0.0f, bool is_frenzy = false, float frenzy_multiplier = 1.0f);
 
 
     bool is_solid_ground(const Collision::Circle& ground, const Tiles& tiles, const Network& network) const;

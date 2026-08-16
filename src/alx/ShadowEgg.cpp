@@ -50,7 +50,7 @@ void ShadowEgg::take_damage(int amount) {
     }
 }
 
-void ShadowEgg::update(float dt) {
+void ShadowEgg::update(float dt, bool is_frenzy, float frenzy_multiplier) {
     if (hatched || destroyed) return;
     
     if (in_flight()) {
@@ -72,8 +72,9 @@ void ShadowEgg::update(float dt) {
         invulnerable_timer = std::max(0.0f, invulnerable_timer - dt);
     }
     
-    incubation_timer -= dt;
-    wobble_time += dt;
+    const float rate_mult = is_frenzy ? frenzy_multiplier : 1.0f;
+    incubation_timer -= dt * rate_mult;
+    wobble_time += dt * rate_mult;
     
     if (incubation_timer <= 0.0f) {
         incubation_timer = 0.0f;
@@ -82,7 +83,7 @@ void ShadowEgg::update(float dt) {
     }
 }
 
-void ShadowEgg::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
+void ShadowEgg::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy, float frenzy_timer) const {
     if (hatched || destroyed) return;
     
     float draw_x = x;
@@ -115,25 +116,39 @@ void ShadowEgg::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
     // Egg Y rendering position shifted upwards by arc flight offset
     float render_y = draw_y - height_arc_offset;
 
+    // Frenzy outer pulsing aura (Layer::WorldObjBG)
+    if (is_frenzy) {
+        constexpr float frenzy_pulse_speed = 8.0f;
+        float pulse_val = std::sin(frenzy_timer * frenzy_pulse_speed) * 0.5f + 0.5f;
+        uint32_t aura_alpha = static_cast<uint32_t>(0x30 + static_cast<uint8_t>(pulse_val * 0x40));
+        uint32_t aura_col = (aura_alpha << 24) | (ShadowEggConstants::COLOR_FRENZY_AURA_BASE & 0x00FFFFFF);
+        Draw::rect(draw_x - 1.0f, render_y - 1.0f, width + 2.0f, height + 2.0f, aura_col, false, 1, Layer::WorldObj, sort_y);
+    }
+
     // Main egg body (Layered blocks for pixel-art oval)
     // Dark base (12x16)
     Draw::rect(draw_x, render_y + 2.0f, width, height - 4.0f, 0xFF1B112C, true, 1, Layer::WorldObj, sort_y);
     Draw::rect(draw_x + 2.0f, render_y, width - 4.0f, height, 0xFF1B112C, true, 1, Layer::WorldObj, sort_y);
     
     // Middle twilight layer (8x12)
-    Draw::rect(draw_x + 2.0f, render_y + 3.0f, width - 4.0f, height - 6.0f, 0xFF2A153D, true, 1, Layer::WorldObj, sort_y);
-    Draw::rect(draw_x + 3.0f, render_y + 2.0f, width - 6.0f, height - 4.0f, 0xFF2A153D, true, 1, Layer::WorldObj, sort_y);
+    uint32_t mid_color = is_frenzy ? 0xFF3D1525 : 0xFF2A153D;
+    Draw::rect(draw_x + 2.0f, render_y + 3.0f, width - 4.0f, height - 6.0f, mid_color, true, 1, Layer::WorldObj, sort_y);
+    Draw::rect(draw_x + 3.0f, render_y + 2.0f, width - 6.0f, height - 4.0f, mid_color, true, 1, Layer::WorldObj, sort_y);
     
     // Inner pulse layer
     float pulse = std::sin(wobble_time * 5.0f) * 0.5f + 0.5f;
     uint32_t pulse_color = (pulse > 0.5f) ? 0xFF772299 : 0xFF551177;
+    if (is_frenzy) {
+        pulse_color = (pulse > 0.5f) ? ShadowEggConstants::COLOR_FRENZY_PULSE_HIGH : ShadowEggConstants::COLOR_FRENZY_PULSE_LOW;
+    }
     if (invulnerable_timer > 0.0f) {
-        pulse_color = 0xFF9933CC; // Bright glowing purple when incubating shield is active
+        pulse_color = is_frenzy ? 0xFFFF3366 : 0xFF9933CC; // Bright glowing purple/crimson when incubating shield is active
     }
     Draw::rect(draw_x + 4.0f, render_y + 4.0f, width - 8.0f, height - 8.0f, pulse_color, true, 1, Layer::WorldObj, sort_y);
     
     // Top highlight (glint)
-    Draw::rect(draw_x + 4.0f, render_y + 1.0f, 4.0f, 2.0f, 0xFF8844AA, true, 1, Layer::WorldObj, sort_y);
+    uint32_t glint_color = is_frenzy ? 0xFFAA4466 : 0xFF8844AA;
+    Draw::rect(draw_x + 4.0f, render_y + 1.0f, 4.0f, 2.0f, glint_color, true, 1, Layer::WorldObj, sort_y);
 }
 
 } // namespace alx

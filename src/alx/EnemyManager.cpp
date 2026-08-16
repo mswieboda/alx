@@ -43,6 +43,9 @@ namespace alx {
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
         m_last_destroyed_tile_index = -1;
+        m_is_frenzy = false;
+        m_frenzy_multiplier = 1.0f;
+        m_frenzy_timer = 0.0f;
     }
 
     void EnemyManager::register_corrupted_tiles(const std::vector<std::pair<int, int>>& coords, const Tiles& tiles) {
@@ -301,7 +304,15 @@ namespace alx {
         m_next_scan_interval = Random::get_float(INDICATOR_SCAN_INTERVAL_MIN, INDICATOR_SCAN_INTERVAL_MAX);
     }
 
-    void EnemyManager::update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles, float twilight_level) {
+    void EnemyManager::update(float dt, Player* player, const Tiles& tiles, Network& network, ParticleSystem* particles, float twilight_level, bool is_frenzy, float frenzy_multiplier) {
+        m_is_frenzy = is_frenzy;
+        m_frenzy_multiplier = is_frenzy ? frenzy_multiplier : 1.0f;
+        if (m_is_frenzy) {
+            m_frenzy_timer += dt;
+        } else {
+            m_frenzy_timer = 0.0f;
+        }
+
         m_scan_timer += dt;
         m_scan_age += dt;
         if (m_scan_timer >= m_next_scan_interval) {
@@ -325,9 +336,9 @@ namespace alx {
                     }
                 }
                 
-                // Spawner Logic with twilight speedup
+                // Spawner Logic with twilight speedup and frenzy multiplier
                 float speedup = (twilight_level >= DarkTowerConstants::CRITICAL_TWILIGHT_THRESHOLD) ? DarkTowerConstants::TWILIGHT_SPEEDUP_FACTOR : 1.0f;
-                struct_obj.spawn_timer += dt * speedup;
+                struct_obj.spawn_timer += dt * speedup * m_frenzy_multiplier;
 
                 if (struct_obj.spawn_timer >= struct_obj.next_spawn_cooldown) {
                     struct_obj.spawn_timer = 0.0f;
@@ -338,7 +349,7 @@ namespace alx {
         }
 
         // Emergence Spawner Loop: Continuous global Dark Tower emergence across all unoccupied corrupted tiles
-        m_tower_emergence_timer += dt;
+        m_tower_emergence_timer += dt * m_frenzy_multiplier;
         if (m_tower_emergence_timer >= m_next_emergence_cooldown) {
             m_tower_emergence_timer = 0.0f;
             float base_cd = 0.0f;
@@ -361,7 +372,7 @@ namespace alx {
         
         // Process Shadow Eggs
         for (auto it = m_shadow_eggs.begin(); it != m_shadow_eggs.end(); ) {
-            it->update(dt);
+            it->update(dt, m_is_frenzy, m_frenzy_multiplier);
             if (it->hatched) {
                 if (particles) ParticleEmitters::spawn_egg_hatch(*particles, it->center_x(), it->center_y());
                 Enemy& e = m_enemies.emplace_back(it->x, it->y);
@@ -1356,19 +1367,19 @@ namespace alx {
 
         for (const auto& struct_obj : m_world_structures) {
             if (!cam || cam->is_aabb_visible(struct_obj.transform.x, struct_obj.transform.y, struct_obj.transform.width, struct_obj.transform.height)) {
-                struct_obj.draw(pixel_buffer, alpha);
+                struct_obj.draw(pixel_buffer, alpha, m_is_frenzy, m_frenzy_timer);
             }
         }
 
         for (const auto& egg : m_shadow_eggs) {
             if (!cam || cam->is_aabb_visible(egg.x, egg.y, egg.width, egg.height)) {
-                egg.draw(pixel_buffer, alpha);
+                egg.draw(pixel_buffer, alpha, m_is_frenzy, m_frenzy_timer);
             }
         }
 
         for (const auto& enemy : m_enemies) {
             if (!cam || cam->is_aabb_visible(enemy.transform.x, enemy.transform.y, enemy.transform.width, enemy.transform.height)) {
-                enemy.draw(pixel_buffer, alpha);
+                enemy.draw(pixel_buffer, alpha, m_is_frenzy, m_frenzy_timer);
             }
         }
 

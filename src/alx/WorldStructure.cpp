@@ -74,15 +74,15 @@ void WorldStructure::update(float dt) {
     }
 }
 
-void WorldStructure::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
+void WorldStructure::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy, float frenzy_timer) const {
     if (!active) return;
 
     if (type == StructureType::DarkTower) {
-        draw_dark_tower(screen_buffer, alpha);
+        draw_dark_tower(screen_buffer, alpha, is_frenzy, frenzy_timer);
     }
 }
 
-void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float alpha) const {
+void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy, float frenzy_timer) const {
     float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
     float world_draw_y = Draw::interpolate(transform_prev.y, transform.y, alpha);
     float world_draw_w = transform.width;
@@ -118,10 +118,30 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         0.3f
     );
 
+    // Frenzy outer pulsing aura outline around Dark Tower monolith
+    if (is_frenzy) {
+        constexpr float frenzy_pulse_speed = 8.0f;
+        float pulse_val = std::sin(frenzy_timer * frenzy_pulse_speed) * 0.5f + 0.5f;
+        uint32_t aura_alpha = static_cast<uint32_t>(0x30 + static_cast<uint8_t>(pulse_val * 0x48));
+        uint32_t aura_col = (aura_alpha << 24) | (COLOR_FRENZY_AURA_BASE & 0x00FFFFFF);
+        Draw::rect(
+            world_draw_x - 1.0f,
+            world_draw_y - 1.0f,
+            world_draw_w + 2.0f,
+            world_draw_h + 2.0f,
+            aura_col,
+            false, 1,
+            transform.z_index,
+            roof_sort_y
+        );
+    }
+
     // 2. Main obsidian monolith body column (3x4 tile rect)
     uint32_t body_color = 0xFF120B1C; // Deep Dusky Obsidian
     if (hit_flash_timer > 0.0f) {
         body_color = 0xFF661188; // Vibrant Purple hit flash
+    } else if (is_frenzy) {
+        body_color = 0xFF220B16; // Subtle crimson-tinted dusk
     }
 
     Draw::rect(
@@ -136,12 +156,13 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     );
 
     // 3. Dark trim accent border (uses transform.z_index and roof_sort_y to match building layering)
+    uint32_t trim_color = is_frenzy ? COLOR_FRENZY_TRIM : 0xFF2A153D;
     Draw::rect(
         world_draw_x,
         world_draw_y,
         world_draw_w,
         world_draw_h,
-        0xFF2A153D,
+        trim_color,
         false, 2,
         transform.z_index,
         roof_sort_y
@@ -155,18 +176,18 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
     float shoulder_right_x = world_draw_x + world_draw_w;
     float shoulder_y = world_draw_y;
 
-    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, roof_sort_y);
-    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, 0xFF2A153D, 2, Layer::WorldObjSpireTop, roof_sort_y);
+    Draw::line(top_cx, top_y, shoulder_left_x, shoulder_y, trim_color, 2, Layer::WorldObjSpireTop, roof_sort_y);
+    Draw::line(top_cx, top_y, shoulder_right_x, shoulder_y, trim_color, 2, Layer::WorldObjSpireTop, roof_sort_y);
 
-    // 5. Pulsing violet core diamond in upper section of tower
+    // 5. Pulsing violet/crimson core diamond in upper section of tower
     float core_cx = top_cx;
     float core_cy = world_draw_y + 24.0f;
     bool telegraph = is_telegraphing(1.0f);
-    float pulse_speed = telegraph ? 12.0f : 3.0f;
+    float pulse_speed = telegraph ? 12.0f : (is_frenzy ? 7.0f : 3.0f);
     float pulse = std::sin(pulse_timer * pulse_speed) * 0.5f + 0.5f; // 0.0 to 1.0 sine pulse
     float core_r = (telegraph ? 8.0f : 6.0f) + pulse * 3.0f;
 
-    uint32_t core_color = telegraph ? 0xFFFF0055 : 0xFF8800AA; // Crimson warning vs Violet
+    uint32_t core_color = telegraph ? 0xFFFF0055 : (is_frenzy ? COLOR_FRENZY_CORE : 0xFF8800AA);
     Draw::circle(
         core_cx,
         core_cy,
@@ -177,7 +198,7 @@ void WorldStructure::draw_dark_tower(std::vector<uint32_t>& screen_buffer, float
         roof_sort_y
     );
 
-    uint32_t aura_color = telegraph ? 0xFFFF44AA : 0xFFCC44FF;
+    uint32_t aura_color = telegraph ? 0xFFFF44AA : (is_frenzy ? COLOR_FRENZY_CORE_AURA : 0xFFCC44FF);
     Draw::circle(
         core_cx,
         core_cy,

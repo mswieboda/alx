@@ -103,6 +103,9 @@ struct Enemy : public Entity {
     static constexpr float PLAYER_ATTACK_REACH_PADDING = 4.0f; // Extra reach padding (px) for melee attack trigger on player
     static constexpr float PLAYER_ATTACK_RECOIL_REST_TIME = 0.5f; // Recoil rest time after attacking player
 
+    static constexpr uint32_t COLOR_FRENZY_TINT      = 0x66FF1133;
+    static constexpr uint32_t COLOR_FRENZY_AURA_BASE = 0x00FF2233;
+
     int hp = DEFAULT_MAX_HP;
     float speed = SPEED;
     float move_dx = 0.0f;
@@ -160,11 +163,11 @@ struct Enemy : public Entity {
 
     bool is_dead() const { return hp <= 0; }
 
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha) const;
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy = false, float frenzy_timer = 0.0f) const;
 
 private:
     void draw_shadow(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y) const;
-    void draw_body(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y) const;
+    void draw_body(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y, bool is_frenzy = false, float frenzy_timer = 0.0f) const;
     void draw_debug_overlays(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y) const;
 };
 

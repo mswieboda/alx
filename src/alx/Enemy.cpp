@@ -98,7 +98,7 @@ void Enemy::take_damage(int amount, float kb_dx, float kb_dy, float kb_speed, fl
     provoked_timer = EnemyAggroConstants::PROVOKED_AGGRO_DURATION;
 }
 
-void Enemy::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
+void Enemy::draw(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy, float frenzy_timer) const {
     if (!active) return;
 
     float world_draw_x = Draw::interpolate(transform_prev.x, transform.x, alpha);
@@ -108,7 +108,7 @@ void Enemy::draw(std::vector<uint32_t>& screen_buffer, float alpha) const {
     int world_bottom_y = static_cast<int>(world_draw_y + world_draw_h);
 
     draw_shadow(world_draw_x, world_draw_y, world_draw_w, world_draw_h, world_bottom_y);
-    draw_body(world_draw_x, world_draw_y, world_draw_w, world_draw_h, world_bottom_y);
+    draw_body(world_draw_x, world_draw_y, world_draw_w, world_draw_h, world_bottom_y, is_frenzy, frenzy_timer);
     draw_debug_overlays(world_draw_x, world_draw_y, world_draw_w, world_draw_h, world_bottom_y);
 }
 
@@ -123,7 +123,7 @@ void Enemy::draw_shadow(float draw_x, float draw_y, float draw_w, float draw_h, 
     );
 }
 
-void Enemy::draw_body(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y) const {
+void Enemy::draw_body(float draw_x, float draw_y, float draw_w, float draw_h, int sort_y, bool is_frenzy, float frenzy_timer) const {
     if (auto* rect = std::get_if<RectangleRender>(&visual)) {
         uint32_t body_color = rect->color;
         if (state == EnemyState::HitStun && state_timer > (HIT_STUN_DURATION - 0.08f)) {
@@ -136,6 +136,31 @@ void Enemy::draw_body(float draw_x, float draw_y, float draw_w, float draw_h, in
             uint32_t b = ((flash_col & 0xFF) * a + (body_color & 0xFF) * inv_a) / 255;
 
             body_color = (body_color & 0xFF000000) | (r << 16) | (g << 8) | b;
+        } else if (is_frenzy) {
+            constexpr float frenzy_pulse_speed = 6.0f;
+            float frenzy_pulse = std::sin(frenzy_timer * frenzy_pulse_speed) * 0.5f + 0.5f;
+            uint32_t a = static_cast<uint32_t>(0x25 + static_cast<uint8_t>(frenzy_pulse * 0x35));
+            uint32_t inv_a = 255 - a;
+
+            uint32_t r = (((COLOR_FRENZY_TINT >> 16) & 0xFF) * a + ((body_color >> 16) & 0xFF) * inv_a) / 255;
+            uint32_t g = (((COLOR_FRENZY_TINT >> 8) & 0xFF) * a + ((body_color >> 8) & 0xFF) * inv_a) / 255;
+            uint32_t b = ((COLOR_FRENZY_TINT & 0xFF) * a + (body_color & 0xFF) * inv_a) / 255;
+
+            body_color = (body_color & 0xFF000000) | (r << 16) | (g << 8) | b;
+
+            // Subtle pulsing red frenzy outline around the enemy
+            uint32_t aura_alpha = static_cast<uint32_t>(0x20 + static_cast<uint8_t>(frenzy_pulse * 0x40));
+            uint32_t aura_col = (aura_alpha << 24) | (COLOR_FRENZY_AURA_BASE & 0x00FFFFFF);
+            Draw::rect(
+                draw_x - 1.0f,
+                draw_y - 1.0f,
+                draw_w + 2.0f,
+                draw_h + 2.0f,
+                aura_col,
+                false, 1,
+                transform.z_index,
+                sort_y
+            );
         }
 
         Draw::rect(

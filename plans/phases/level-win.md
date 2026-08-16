@@ -41,12 +41,12 @@ graph TD
   - **"Play Again"**: Restarts the run / level.
   - **"Main Menu"**: Returns to the main title screen.
 
-### [PH-FRNZ]: Phase 3 - Dark Tower Frenzy Mode (Tier 2 High Impact)
-- [ ] `[FRNZ]`: Per-Level Spawn Interval Acceleration — Speed up Dark Tower spawn rate and enemy emergence during active hold:
+### [PH-FRNZ]: Phase 3 - Dark Tower Frenzy Mode (Tier 2 High Impact) (COMPLETED)
+- [x] `[FRNZ]`: Per-Level Spawn Interval Acceleration — Speed up Dark Tower spawn rate and enemy emergence during active hold:
   - **Level 1**: `+20%` spawn frequency.
   - **Level 2**: `+35%` spawn frequency.
   - **Level 3**: `+50%` spawn frequency.
-- [ ] `[FRNV]`: Frenzy Visual Tint — Apply a subtle red pulse/tint effect to active Dark Towers and mobs while the hold countdown is active.
+- [x] `[FRNV]`: Frenzy Visual Tint — Apply a subtle red pulse/tint effect to active Dark Towers and mobs while the hold countdown is active.
 
 ### [PH-FXAU]: Phase 4 - Shockwave Visuals & Audio Feedback (Tier 2 High Impact)
 - [ ] `[RSCH]`: Rasterizer Ring Research — Inspect software rendering capabilities in `src/engine/` to evaluate feasibility of a hollow circle / ring mask.
@@ -57,3 +57,27 @@ graph TD
 ### [PH-PLSH]: Phase 5 - Optional Stretch Polish (Tier 3 Nice-to-Have)
 - [ ] `[SPRP]`: Spire Resonance Pulse — Trigger synchronized concentric light pulses around active Spires as they refine during the hold.
 - [ ] `[STAT]`: Final Victory Stats — Optionally display clear time and alloy collected on the Level 3 victory overlay.
+
+---
+
+## 3. Handoff & Architectural Context for Next Agent
+
+### Recent Codebase Architecture (Post-Refactor Commit `21c6b6e`)
+- **HUD & UI**: Fully decoupled into [`HUD.h`](file:///Users/matt/code/cpp/alx/src/alx/HUD.h) and [`HUD.cpp`](file:///Users/matt/code/cpp/alx/src/alx/HUD.cpp). All HUD drawing flows through `HUD::draw(hud_state, game_over_menu, victory_menu, screen_w, screen_h)`.
+- **Top In-Game Bar**: Rendered via `Draw::rect_rounded` (width `120px`, height `16px`, radius `3px`, border `2px`). Shows Cleanse Cyan (`0xDD33FFFF`) fill during 15s hold and Twilight Violet (`0xCC662288`) fill during normal play.
+- **Level Transitions**: Parameterized `MainScene(int initial_level_id)` triggers `SceneManager::change_scene` with 0.3s fade-out &rarr; level swap &rarr; 0.3s fade-in.
+
+### Phase 3: Dark Tower Frenzy Mode (`[PH-FRNZ]`)
+- **Frenzy Multipliers**: Scale Dark Tower spawn frequency during active hold (`m_victory_hold_timer > 0.0f` or `m_twilight_level <= TWILIGHT_HOLD_THRESHOLD`):
+  - **Level 1**: `+20%` (e.g. `cooldown * 0.833f`)
+  - **Level 2**: `+35%` (e.g. `cooldown * 0.740f`)
+  - **Level 3**: `+50%` (e.g. `cooldown * 0.667f`)
+- **Visual Tint (`[FRNV]`)**: Subtle pulsing red tint/outline on active Dark Towers and emerging mobs while hold is active.
+
+### Phase 4: Shockwave Visuals & Audio (`[PH-FXAU]`)
+- **Hollow Ring / Circle Rasterizer (`[RSCH]` / `[FLSH]`)**:
+  - Research whether `Draw::circle` / `Draw::oval` or a dedicated hollow ring rasterizer pass can render an expanding light shockwave from the map/room center over 1.0s.
+  - **Fallback**: If hollow ring rasterization is too complex or costly, fall back to a full-screen white-hot flash.
+- **Audio Feedback (`[SFXT]` / `[SFXW]`)**:
+  - `[SFXT]`: Subtle, low/medium pitch metronome tick for each whole second countdown tick (avoid high-pitched annoying clicks).
+  - `[SFXW]`: Bright, triumphant GBA-style victory chime/arpeggio when hold timer hits 0s. Zero `.mod` music modifications needed.

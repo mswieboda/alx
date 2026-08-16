@@ -18,6 +18,11 @@ struct WorldStructure : public Entity {
     static constexpr int DARK_TOWER_TILE_HEIGHT = 4;
     static constexpr int DEFAULT_DARK_TOWER_MAX_HP = 8;
 
+    static constexpr uint32_t COLOR_FRENZY_AURA_BASE = 0x00FF1133;
+    static constexpr uint32_t COLOR_FRENZY_TRIM      = 0xFF7A1528;
+    static constexpr uint32_t COLOR_FRENZY_CORE      = 0xFFFF1133;
+    static constexpr uint32_t COLOR_FRENZY_CORE_AURA = 0xFFFF4466;
+
     StructureType type = StructureType::DarkTower;
     int hp = DEFAULT_DARK_TOWER_MAX_HP;
     int max_hp = DEFAULT_DARK_TOWER_MAX_HP;
@@ -40,10 +45,10 @@ struct WorldStructure : public Entity {
     void take_damage(int amount);
 
     void update(float dt);
-    void draw(std::vector<uint32_t>& screen_buffer, float alpha) const;
+    void draw(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy = false, float frenzy_timer = 0.0f) const;
 
 private:
-    void draw_dark_tower(std::vector<uint32_t>& screen_buffer, float alpha) const;
+    void draw_dark_tower(std::vector<uint32_t>& screen_buffer, float alpha, bool is_frenzy = false, float frenzy_timer = 0.0f) const;
 };
 
 } // namespace alx
