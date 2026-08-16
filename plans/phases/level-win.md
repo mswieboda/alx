@@ -48,11 +48,11 @@ graph TD
   - **Level 3**: `+50%` spawn frequency.
 - [x] `[FRNV]`: Frenzy Visual Tint — Apply a subtle red pulse/tint effect to active Dark Towers and mobs while the hold countdown is active.
 
-### [PH-FXAU]: Phase 4 - Shockwave Visuals & Audio Feedback (Tier 2 High Impact)
-- [ ] `[RSCH]`: Rasterizer Ring Research — Inspect software rendering capabilities in `src/engine/` to evaluate feasibility of a hollow circle / ring mask.
-- [ ] `[FLSH]`: Room Shockwave Expansion — Expand a radial light ring outward from the room/map center across the viewport over 1.0s. If ring rasterization is cost-prohibitive, fall back to a full-screen white-hot flash.
-- [ ] `[SFXT]`: Hold Countdown SFX Ticking — Play a soft, non-intrusive low/medium metronome audio click on each whole second countdown tick.
-- [ ] `[SFXW]`: Triumphant Victory Chime — Play a bright GBA-style victory chime SFX when the hold timer hits 0s.
+### [PH-FXAU]: Phase 4 - Shockwave Visuals & Audio Feedback (Tier 2 High Impact) (COMPLETED)
+- [x] `[RSCH]`: Rasterizer Ring Research — Inspect software rendering capabilities in `src/engine/` to evaluate feasibility of a hollow circle / ring mask.
+- [x] `[FLSH]`: Room Shockwave Expansion — Expand a radial light ring outward from the room/map center across the viewport over 1.0s. If ring rasterization is cost-prohibitive, fall back to a full-screen white-hot flash.
+- [x] `[SFXT]`: Hold Countdown SFX Ticking — Play a soft, non-intrusive low/medium metronome audio click on each whole second countdown tick.
+- [x] `[SFXW]`: Triumphant Victory Chime — Play a bright GBA-style victory chime SFX when the hold timer hits 0s.
 
 ### [PH-PLSH]: Phase 5 - Optional Stretch Polish (Tier 3 Nice-to-Have)
 - [ ] `[SPRP]`: Spire Resonance Pulse — Trigger synchronized concentric light pulses around active Spires as they refine during the hold.

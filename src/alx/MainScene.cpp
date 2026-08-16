@@ -41,6 +41,11 @@ void MainScene::load_level(int level_id) {
     m_player_spawn = lvl->player_spawn;
     m_twilight_level = std::clamp(lvl->initial_twilight, TWILIGHT_MIN, TWILIGHT_MAX);
     m_can_build = lvl->can_build;
+    m_victory_hold_timer = 0.0f;
+    m_victory_sequence_timer = 0.0f;
+    m_last_countdown_second = -1;
+    m_victory_achieved = false;
+    m_is_victory_screen = false;
 
     m_tiles = Tiles(lvl->map_width, lvl->map_height);
     m_network = Network(lvl->map_width, lvl->map_height);
@@ -279,12 +284,24 @@ void MainScene::update_victory_condition(float raw_dt) {
             m_time_to_zero_twilight = m_sim_elapsed_sec;
         }
         m_victory_hold_timer += raw_dt;
+
+        // Whole-second countdown audio ticking
+        if (!m_victory_achieved) {
+            int remaining_sec = static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer));
+            remaining_sec = std::clamp(remaining_sec, 1, static_cast<int>(VICTORY_HOLD_DURATION_SEC));
+            if (m_last_countdown_second != remaining_sec) {
+                m_last_countdown_second = remaining_sec;
+                Audio::play_sfx(SFX::countdown_tick());
+            }
+        }
+
         if (m_victory_hold_timer >= VICTORY_HOLD_DURATION_SEC) {
             m_victory_hold_timer = VICTORY_HOLD_DURATION_SEC;
             if (!m_victory_achieved) {
                 m_victory_achieved = true;
                 m_victory_sequence_timer = VICTORY_SEQUENCE_DURATION;
                 m_can_build = false;
+                Audio::play_sfx(SFX::victory_chime());
             }
         }
     } else {
@@ -292,7 +309,10 @@ void MainScene::update_victory_condition(float raw_dt) {
             m_victory_hold_timer = std::max(0.0f, m_victory_hold_timer - (raw_dt * VICTORY_HOLD_DRAIN_RATE));
             if (m_victory_hold_timer <= 0.0f && !m_victory_achieved) {
                 m_time_to_zero_twilight = -1.0f;
+                m_last_countdown_second = -1;
             }
+        } else {
+            m_last_countdown_second = -1;
         }
     }
 }
@@ -407,6 +427,10 @@ void MainScene::draw_world(std::vector<uint32_t>& pixel_buffer, float alpha) {
     m_enemy_manager.draw_enemies(pixel_buffer, alpha);
     m_player.draw(pixel_buffer, alpha, m_can_build, &m_tiles, &m_network);
     m_particle_system.draw(&m_camera);
+
+    if (m_victory_achieved && m_victory_sequence_timer > 0.0f) {
+        draw_victory_shockwave(alpha);
+    }
 }
 
 void MainScene::trigger_vignette_surge(float duration) {
@@ -422,6 +446,16 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
     m_twilight_overlay.draw(m_twilight_level, m_camera, m_player.center_x(alpha), m_player.center_y(alpha), m_player.wand_radius);
     m_twilight_overlay.draw_vignette_surge();
     m_enemy_manager.draw_threat_indicators(m_camera);
+
+    // Brief white-hot screen flash at the beginning of the victory sequence (first 0.35s)
+    if (m_victory_achieved && m_victory_sequence_timer > 0.0f) {
+        float progress = 1.0f - (m_victory_sequence_timer / VICTORY_SEQUENCE_DURATION);
+        float flash_progress = std::clamp(progress / 0.35f, 0.0f, 1.0f);
+        if (flash_progress < 1.0f) {
+            uint32_t flash_a = static_cast<uint32_t>((1.0f - flash_progress) * 90.0f);
+            Draw::rect(0, 0, Game::WIDTH, Game::HEIGHT, (flash_a << 24) | (SHOCKWAVE_FLASH_COLOR & 0x00FFFFFF), true, 1, 95);
+        }
+    }
 
     const FixtureType sel_type = m_player.selected_fixture_type();
     const HUDState hud_state{
@@ -443,6 +477,35 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
         .is_victory_screen = m_is_victory_screen,
     };
     HUD::draw(hud_state, m_game_over_menu, m_victory_menu, Game::WIDTH, Game::HEIGHT);
+}
+
+void MainScene::draw_victory_shockwave(float alpha) {
+    float progress = 1.0f - (m_victory_sequence_timer / VICTORY_SEQUENCE_DURATION);
+    progress = std::clamp(progress, 0.0f, 1.0f);
+
+    float center_x = static_cast<float>(m_tiles.width() * m_tiles.tile_size()) * 0.5f;
+    float center_y = static_cast<float>(m_tiles.height() * m_tiles.tile_size()) * 0.5f;
+
+    // Expand radial light ring outward across the room/viewport
+    float max_radius = std::sqrt(center_x * center_x + center_y * center_y) + static_cast<float>(m_tiles.tile_size() * 2);
+    float ring_radius = progress * max_radius;
+
+    float thickness_f = std::lerp(SHOCKWAVE_MAX_RING_THICKNESS, SHOCKWAVE_MIN_RING_THICKNESS, progress);
+    int thickness = std::max(1, static_cast<int>(std::round(thickness_f)));
+
+    float fade = 1.0f - progress;
+    uint32_t alpha_byte = static_cast<uint32_t>(std::clamp(fade * 230.0f, 0.0f, 255.0f));
+    uint32_t primary_color = (alpha_byte << 24) | (SHOCKWAVE_COLOR_PRIMARY & 0x00FFFFFF);
+
+    // Primary bright expanding shockwave ring
+    Draw::circle(center_x, center_y, ring_radius, primary_color, false, thickness, Layer::WorldObjSpireTop);
+
+    // Inner concentric harmonic pulse ring
+    if (ring_radius > 16.0f) {
+        uint32_t inner_alpha = static_cast<uint32_t>(alpha_byte * 0.5f);
+        uint32_t inner_color = (inner_alpha << 24) | (SHOCKWAVE_COLOR_ACCENT & 0x00FFFFFF);
+        Draw::circle(center_x, center_y, ring_radius * 0.85f, inner_color, false, std::max(1, thickness - 1), Layer::WorldObjSpireTop);
+    }
 }
 
 void MainScene::draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress) {

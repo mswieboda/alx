@@ -223,6 +223,36 @@ namespace SFX {
         return p;
     }
 
+    // Hold Countdown Ticking: Soft, non-intrusive low/medium metronome click
+    inline SfxrParams countdown_tick() {
+        SfxrParams p;
+        p.gain = 0.22f; // % baseline gain (soft, non-intrusive)
+        p.wave_type = SINE;
+        p.attack_time = 0.001f;
+        p.sustain_time = 0.010f;
+        p.decay_time = 0.040f;
+        p.start_frequency = 0.240f;
+        p.min_frequency = 0.080f;
+        p.slide = -0.180f;
+        return p;
+    }
+
+    // Victory Cleanse Chime: Bright, triumphant GBA-style victory chime
+    inline SfxrParams victory_chime() {
+        SfxrParams p;
+        p.gain = 0.50f;
+        p.wave_type = SINE;
+        p.attack_time = 0.005f;
+        p.sustain_time = 0.180f;
+        p.decay_time = 0.550f;
+        p.start_frequency = 0.520f;
+        p.min_frequency = 0.120f;
+        p.slide = 0.280f;
+        p.vibrato_depth = 0.220f;
+        p.vibrato_speed = 0.350f;
+        return p;
+    }
+
     // Legacy presets
     inline SfxrParams phaser() { return sword_swipe(); }
     inline SfxrParams explosion() { return player_death(); }

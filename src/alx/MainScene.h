@@ -47,6 +47,7 @@ private:
     // victory
     float m_victory_hold_timer = 0.0f;
     float m_victory_sequence_timer = 0.0f;
+    int m_last_countdown_second = -1;
     bool m_victory_achieved = false;
     bool m_is_victory_screen = false;
     static constexpr std::array<std::string_view, static_cast<size_t>(VictoryMenuItem::Count)> VICTORY_MENU_ITEMS = {
@@ -54,6 +55,12 @@ private:
     };
     Menu m_victory_menu{VICTORY_MENU_ITEMS};
     TwilightOverlay m_twilight_overlay;
+
+    static constexpr float SHOCKWAVE_MAX_RING_THICKNESS = 5.0f;
+    static constexpr float SHOCKWAVE_MIN_RING_THICKNESS = 1.0f;
+    static constexpr uint32_t SHOCKWAVE_COLOR_PRIMARY   = 0x00E0FFFF;
+    static constexpr uint32_t SHOCKWAVE_COLOR_ACCENT    = 0x0033FFFF;
+    static constexpr uint32_t SHOCKWAVE_FLASH_COLOR     = 0x00E0FFFF;
 
     // game over
     bool m_is_game_over = false;
@@ -98,6 +105,7 @@ private:
     void load_dark_towers(std::span<const DarkTowerSpawn> spawns);
     void reset_level_telemetry();
     void draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress);
+    void draw_victory_shockwave(float alpha);
 
 public:
     void trigger_vignette_surge(float duration = TwilightOverlay::VIGNETTE_DURATION);
