@@ -636,23 +636,32 @@ void MainScene::draw_hud() {
     const int line_h_padding = 4;
     int ly = line_h_padding;
 
+    const int bar_w = HUD_BAR_WIDTH;
+    const int bar_h = HUD_BAR_HEIGHT;
+    const int bar_x = screen_width / 2 - bar_w / 2;
+    const int bar_y = ly;
+    const int text_y = bar_y + (bar_h - TextStyles::font.size) / 2;
+
     if (m_can_build) {
         // \x03 = Heart icon, \x04 = Gem/Alloy icon
         Draw::text_shadow(
-            6, ly,
+            6, text_y,
             Draw::fmt("\x03 %d \x04 %d", m_player.state.hp, m_player.cursed_alloy()),
             text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     } else {
         // \x03 = Heart icon
         Draw::text_shadow(
-            6, ly,
+            6, text_y,
             Draw::fmt("\x03 %d", m_player.state.hp),
             text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
 
     std::string_view center_str{};
+    float progress = 0.0f;
+    uint32_t fill_color = HUD_BAR_FILL_TWILIGHT;
+
     if (m_twilight_level <= TWILIGHT_HOLD_THRESHOLD || m_victory_hold_timer > 0.0f) {
         int remaining_sec = std::clamp(
             static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer)),
@@ -660,31 +669,51 @@ void MainScene::draw_hud() {
             static_cast<int>(VICTORY_HOLD_DURATION_SEC)
         );
         center_str = Draw::fmt("HOLD: %2ds", remaining_sec);
+        progress = std::clamp(m_victory_hold_timer / VICTORY_HOLD_DURATION_SEC, 0.0f, 1.0f);
+        fill_color = HUD_BAR_FILL_HOLD;
     } else {
         int twilight_pct = std::max(0, static_cast<int>(m_twilight_level * 100.0f));
         const char* icon = m_twilight_level >= 0.5f ? "\x08" : "\x0F";
         center_str = Draw::fmt("%s %d%%", icon, twilight_pct);
+        progress = std::clamp(m_twilight_level / TWILIGHT_MAX, 0.0f, 1.0f);
+        fill_color = HUD_BAR_FILL_TWILIGHT;
     }
 
+    // 1. Background Track
+    Draw::rect_rounded(
+        static_cast<float>(bar_x), static_cast<float>(bar_y),
+        static_cast<float>(bar_w), static_cast<float>(bar_h),
+        HUD_BAR_CORNER_RADIUS,
+        HUD_BAR_BG_COLOR, true, 1, Layer::HUD_BG
+    );
+
+    // 2. Dynamic Progress Fill (Inset by border thickness)
+    const int inset = HUD_BAR_BORDER_THICKNESS;
+    const int max_fill_w = bar_w - inset * 2;
+    const int fill_h = bar_h - inset * 2;
+    const int fill_w = static_cast<int>(std::round(max_fill_w * progress));
+    if (fill_w > 0) {
+        const float fill_radius = std::min(HUD_BAR_CORNER_RADIUS - 1.0f, static_cast<float>(fill_w) / 2.0f);
+        Draw::rect_rounded(
+            static_cast<float>(bar_x + inset), static_cast<float>(bar_y + inset),
+            static_cast<float>(fill_w), static_cast<float>(fill_h),
+            std::max(0.0f, fill_radius),
+            fill_color, true, 1, Layer::HUD_BG
+        );
+    }
+
+    // 3. 2px Rounded Border
+    Draw::rect_rounded(
+        static_cast<float>(bar_x), static_cast<float>(bar_y),
+        static_cast<float>(bar_w), static_cast<float>(bar_h),
+        HUD_BAR_CORNER_RADIUS,
+        HUD_BAR_BORDER_COLOR, false, HUD_BAR_BORDER_THICKNESS, Layer::HUD_BG
+    );
+
+    // 4. Centered Overlay Text
     int center_text_w = Draw::text_width(center_str, 1, &TextStyles::font);
-    int pill_w = center_text_w + HUD_PILL_PADDING_X * 2;
-    int pill_h = TextStyles::font.size + HUD_PILL_PADDING_Y * 2;
-    int pill_x = screen_width / 2 - pill_w / 2;
-    int pill_y = ly - HUD_PILL_PADDING_Y;
-
-    Draw::rect(
-        static_cast<float>(pill_x), static_cast<float>(pill_y),
-        static_cast<float>(pill_w), static_cast<float>(pill_h),
-        HUD_PILL_BG_COLOR, true, 1, Layer::HUD_BG
-    );
-    Draw::rect(
-        static_cast<float>(pill_x), static_cast<float>(pill_y),
-        static_cast<float>(pill_w), static_cast<float>(pill_h),
-        HUD_PILL_BORDER_COLOR, false, 1, Layer::HUD_BG
-    );
-
     Draw::text_shadow(
-        screen_width / 2 - center_text_w / 2, ly,
+        screen_width / 2 - center_text_w / 2, text_y,
         center_str,
         text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
     );
@@ -694,13 +723,13 @@ void MainScene::draw_hud() {
         std::string_view build_str = Draw::fmt("build: %s (%d)", selected_name, cost);
         int build_width = Draw::text_width(build_str, 1, &TextStyles::font);
         Draw::text_shadow(
-            screen_width - 6 - build_width, ly,
+            screen_width - 6 - build_width, text_y,
             build_str,
             text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
 
-    ly += TextStyles::font.size + line_h_padding;
+    ly += bar_h + line_h_padding;
 
     if constexpr (Debug::SHOW_SEED) {
         std::string_view seed_str = Draw::fmt(Random::is_custom_seeded() ? "seed: %u (custom)" : "seed: %u", Random::active_seed());

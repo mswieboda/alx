@@ -76,6 +76,67 @@ void rect(RenderTarget target, int rx, int ry, int rw, int rh, uint32_t color, b
     }
 }
 
+void rect_rounded(RenderTarget target, int rx, int ry, int rw, int rh, int radius, uint32_t color, bool fill, int thickness) {
+    if (!target.is_valid() || rw <= 0 || rh <= 0) return;
+    int r = std::clamp(radius, 0, std::min(rw, rh) / 2);
+    if (r <= 0) {
+        rect(target, rx, ry, rw, rh, color, fill, thickness);
+        return;
+    }
+
+    int start_x = std::max(0, rx), end_x = std::min(target.width, rx + rw);
+    int start_y = std::max(0, ry), end_y = std::min(target.height, ry + rh);
+    uint32_t alpha = (color >> 24) & 0xFF;
+    if (alpha == 0) return;
+
+    int r_sq = r * r;
+    int inner_r = std::max(0, r - thickness);
+    int inner_r_sq = inner_r * inner_r;
+    int t = thickness;
+
+    int cx_left = r;
+    int cx_right = rw - 1 - r;
+    int cy_top = r;
+    int cy_bottom = rh - 1 - r;
+
+    for (int y = start_y; y < end_y; ++y) {
+        int dy = y - ry;
+        for (int x = start_x; x < end_x; ++x) {
+            int dx = x - rx;
+
+            bool in_left = (dx < r);
+            bool in_right = (dx >= rw - r);
+            bool in_top = (dy < r);
+            bool in_bottom = (dy >= rh - r);
+
+            if ((in_left || in_right) && (in_top || in_bottom)) {
+                int cx = in_left ? cx_left : cx_right;
+                int cy = in_top ? cy_top : cy_bottom;
+                int cdx = dx - cx;
+                int cdy = dy - cy;
+                int dist_sq = cdx * cdx + cdy * cdy;
+
+                if (dist_sq > r_sq) continue;
+
+                if (!fill) {
+                    if (t > 0 && dist_sq < inner_r_sq) continue;
+                }
+            } else if (!fill) {
+                if (t <= 0 || !(dx < t || dx >= rw - t || dy < t || dy >= rh - t)) {
+                    continue;
+                }
+            }
+
+            uint32_t idx = static_cast<uint32_t>(y * target.width + x);
+            if (alpha == 0xFF) {
+                target.pixels[idx] = color;
+            } else {
+                target.pixels[idx] = blend_pixel(target.pixels[idx], color);
+            }
+        }
+    }
+}
+
 void oval(RenderTarget target, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness) {
     if (!target.is_valid() || rx <= 0.0f || ry <= 0.0f) return;
 

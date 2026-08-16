@@ -32,10 +32,14 @@ private:
     static constexpr uint32_t COLOR_GAME_OVER_TEXT = 0xFF66001C;
     static constexpr uint32_t COLOR_PAUSE_TEXT   = 0xFFFFCC00;
     static constexpr float GAME_OVER_FADE_DURATION = 0.5f; // sec
-    static constexpr uint32_t HUD_PILL_BG_COLOR = 0xCC00141C;
-    static constexpr uint32_t HUD_PILL_BORDER_COLOR = 0xFF004455;
-    static constexpr int HUD_PILL_PADDING_X = 6;
-    static constexpr int HUD_PILL_PADDING_Y = 2;
+    static constexpr int HUD_BAR_WIDTH = 120;
+    static constexpr int HUD_BAR_HEIGHT = 16;
+    static constexpr float HUD_BAR_CORNER_RADIUS = 3.0f;
+    static constexpr int HUD_BAR_BORDER_THICKNESS = 2;
+    static constexpr uint32_t HUD_BAR_BG_COLOR = 0xCC00141C;
+    static constexpr uint32_t HUD_BAR_BORDER_COLOR = 0xFF004455;
+    static constexpr uint32_t HUD_BAR_FILL_HOLD = 0xDD33FFFF;
+    static constexpr uint32_t HUD_BAR_FILL_TWILIGHT = 0xCC662288;
 
     Tiles m_tiles;
     Network m_network;

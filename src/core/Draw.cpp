@@ -199,6 +199,15 @@ namespace Draw {
         g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y, RectData{ dw, dh, color, fill, thickness } });
     }
 
+    void rect_rounded(float x, float y, float width, float height, float radius, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
+        auto [dx, dy, dw, dh] = transform_rect(x, y, width, height);
+        int override_y = transform_sort_y_override(sort_y_override);
+        int rad = std::clamp(static_cast<int>(std::round(scale_dim(radius))), 0, std::min(dw, dh) / 2);
+
+        int sort_y = calc_sort_y(dy, dh, override_y);
+        g_queue.push_back({ static_cast<float>(dx), static_cast<float>(dy), z_index, sort_y, RectRoundedData{ dw, dh, rad, color, fill, thickness } });
+    }
+
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness, int z_index, int sort_y_override) {
         float dcx = transform_x(cx);
         float dcy = transform_y(cy);
@@ -321,6 +330,9 @@ namespace Draw {
                 }
                 else if constexpr (std::is_same_v<T, RectData>) {
                     DrawPixels::rect(target, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.width, arg.height, arg.color, arg.fill, arg.thickness);
+                }
+                else if constexpr (std::is_same_v<T, RectRoundedData>) {
+                    DrawPixels::rect_rounded(target, static_cast<int>(cmd.x), static_cast<int>(cmd.y), arg.width, arg.height, arg.radius, arg.color, arg.fill, arg.thickness);
                 }
                 else if constexpr (std::is_same_v<T, OvalData>) {
                     DrawPixels::oval(target, arg.cx, arg.cy, arg.rx, arg.ry, arg.color, arg.fill, arg.thickness);

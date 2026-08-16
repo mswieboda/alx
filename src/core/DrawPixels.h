@@ -15,6 +15,8 @@ namespace DrawPixels {
 
     void rect(RenderTarget target, int rx, int ry, int rw, int rh, uint32_t color, bool fill, int thickness);
 
+    void rect_rounded(RenderTarget target, int rx, int ry, int rw, int rh, int radius, uint32_t color, bool fill, int thickness);
+
     void oval(RenderTarget target, float cx, float cy, float rx, float ry, uint32_t color, bool fill, int thickness);
 
     void line(RenderTarget target, int x1, int y1, int x2, int y2, uint32_t color, int thickness);

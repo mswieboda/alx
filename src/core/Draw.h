@@ -53,6 +53,15 @@ namespace Draw {
         int thickness;
     };
 
+    struct RectRoundedData {
+        int width;
+        int height;
+        int radius;
+        uint32_t color;
+        bool fill;
+        int thickness;
+    };
+
     struct OvalData {
         float cx;
         float cy;
@@ -105,7 +114,7 @@ namespace Draw {
         float y;
         int z_index;
         int sort_y;
-        std::variant<TextData, RectData, OvalData, SpriteData, BlendPixelsData, LineData, VignetteData> data;
+        std::variant<TextData, RectData, RectRoundedData, OvalData, SpriteData, BlendPixelsData, LineData, VignetteData> data;
     };
 
     // --- 3. PUBLIC PIPELINE INTERFACE ---
@@ -139,6 +148,7 @@ namespace Draw {
                      const FontData* font = &Font::DEFAULT_BLANK,
                      int sort_y_override = NO_SORT_Y_OVERRIDE);
     void rect(float x, float y, float width, float height, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
+    void rect_rounded(float x, float y, float width, float height, float radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void oval(float cx, float cy, float rx, float ry, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void circle(float cx, float cy, float radius, uint32_t color, bool fill = true, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
     void line(float x1, float y1, float x2, float y2, uint32_t color, int thickness = 1, int z_index = 1, int sort_y_override = NO_SORT_Y_OVERRIDE);
