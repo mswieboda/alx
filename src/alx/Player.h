@@ -171,9 +171,15 @@ private:
     GridPos m_last_drag_tile_pos{-32768, -32768};
     bool m_played_shortage_sfx = false;
 
+    // Sword slash tip tracking for gapless swipe line rendering
+    float m_slash_prev_tip_x = 0.0f;
+    float m_slash_prev_tip_y = 0.0f;
+    bool m_slash_was_attacking = false;
+
     void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
     void update_actions(float dt, const Tiles& tiles, Network& network, bool can_build, ParticleSystem* particle_system = nullptr);
     void update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr);
+    void update_sword_slash_trail(ParticleSystem* particle_system);
 };
 
 } // namespace alx

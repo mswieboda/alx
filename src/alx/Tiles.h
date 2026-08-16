@@ -7,6 +7,8 @@
 
 namespace alx {
 
+class Camera;
+
 class Tiles {
 private:
     int m_width = 20;
@@ -18,6 +20,9 @@ public:
     Tiles(int width = 20, int height = 15, int tile_size = Game::TILE_SIZE);
 
     void resize(int width, int height);
+
+    void draw(const Camera& camera) const;
+    void draw(int min_tx, int max_tx, int min_ty, int max_ty) const;
 
     [[nodiscard]] bool in_bounds(GridPos pos) const noexcept;
     [[nodiscard]] bool in_bounds(int x, int y) const noexcept;

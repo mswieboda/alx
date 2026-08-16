@@ -33,33 +33,33 @@ This plan details a phased, zero-overhead decomposition into modular components,
 
 ## Actionable Phases & Task Breakdown
 
-### `### [PH-HUDO]`: Phase 1 - In-Game HUD & Overlay Separation (`HUD.h` / `HUD.cpp`)
-- [ ] `[HUD-DATA]`: Define `struct HUDState` and extraction helper functions in `src/alx/HUD.h` to decouple UI presentation from scene state.
-- [ ] `[HUD-IMPL]`: Migrate `draw_hud()`, `draw_game_over_fade()`, `draw_game_over_hud()`, and `draw_victory_and_pause_overlays()` into `src/alx/HUD.cpp`.
-- [ ] `[HUD-INTG]`: Replace inline HUD calls in [`MainScene::draw_screen()`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp#L556) with a single composed `HUD::draw()` call.
+### `### [PH-HUDO]`: Phase 1 - In-Game HUD & Overlay Separation (`HUD.h` / `HUD.cpp`) (COMPLETED)
+- [x] `[HUD-DATA]`: Define `struct HUDState` and extraction helper functions in `src/alx/HUD.h` to decouple UI presentation from scene state.
+- [x] `[HUD-IMPL]`: Migrate `draw_hud()`, `draw_game_over_fade()`, `draw_game_over_hud()`, and `draw_victory_and_pause_overlays()` into `src/alx/HUD.cpp`.
+- [x] `[HUD-INTG]`: Replace inline HUD calls in [`MainScene::draw_screen()`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp#L556) with a single composed `HUD::draw()` call.
 
-### `### [PH-TWFX]`: Phase 2 - Twilight Mist & Screen FX Isolation (`TwilightOverlay.h` / `TwilightOverlay.cpp`)
-- [ ] `[TW-DECL]`: Create `class TwilightOverlay` in `src/alx/TwilightOverlay.h` owning `m_pixel_buffer` and `m_vignette_timer`.
-- [ ] `[TW-IMPL]`: Move `draw_twilight()` radial software rasterization and `draw_vignette_surge()` to `src/alx/TwilightOverlay.cpp`.
-- [ ] `[TW-INTG]`: Integrate `TwilightOverlay` instance into `MainScene`, routing `trigger_vignette_surge` and overlay drawing through it.
+### `### [PH-TWFX]`: Phase 2 - Twilight Mist & Screen FX Isolation (`TwilightOverlay.h` / `TwilightOverlay.cpp`) (COMPLETED)
+- [x] `[TW-DECL]`: Create `class TwilightOverlay` in `src/alx/TwilightOverlay.h` owning `m_pixel_buffer` and `m_vignette_timer`.
+- [x] `[TW-IMPL]`: Move `draw_twilight()` radial software rasterization and `draw_vignette_surge()` to `src/alx/TwilightOverlay.cpp`.
+- [x] `[TW-INTG]`: Integrate `TwilightOverlay` instance into `MainScene`, routing `trigger_vignette_surge` and overlay drawing through it.
 
-### `### [PH-TELEM]`: Phase 3 - Telemetry & Headless Tracker Isolation (`MainSceneTelemetry.h` / `MainSceneTelemetry.cpp`)
-- [ ] `[TELM-DECL]`: Create `MainSceneTelemetry` component with full telemetry fields under `#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS` and zero-cost stubs otherwise.
-- [ ] `[TELM-IMPL]`: Move `record_twilight_event()`, `calculate_rolling_twilight_rate()`, `dump_telemetry_snapshot()`, `update_headless_defense()`, and `print_headless_summary_report()` into `src/alx/MainSceneTelemetry.cpp`.
-- [ ] `[TELM-INTG]`: Replace bloated telemetry members in [`MainScene.h`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.h) with a clean `MainSceneTelemetry m_telemetry` instance.
+### `### [PH-TELEM]`: Phase 3 - Telemetry & Headless Tracker Isolation (`MainSceneTelemetry.h` / `MainSceneTelemetry.cpp`) (COMPLETED)
+- [x] `[TELM-DECL]`: Create `MainSceneTelemetry` component with full telemetry fields under `#if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS` and zero-cost stubs otherwise.
+- [x] `[TELM-IMPL]`: Move `record_twilight_event()`, `calculate_rolling_twilight_rate()`, `dump_telemetry_snapshot()`, `update_headless_defense()`, and `print_headless_summary_report()` into `src/alx/MainSceneTelemetry.cpp`.
+- [x] `[TELM-INTG]`: Replace bloated telemetry members in [`MainScene.h`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.h) with a clean `MainSceneTelemetry m_telemetry` instance.
 
-### `### [PH-TRDR]`: Phase 4 - Delegate Terrain Tile Drawing to `Tiles`
-- [ ] `[TILE-DRAW]`: Add `void draw(const Camera& camera)` to [`Tiles.h`](file:///Users/matt/code/cpp/alx/src/alx/Tiles.h) and [`Tiles.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Tiles.cpp).
-- [ ] `[TILE-IMPL]`: Relocate `draw_terrain_tile()` and tile camera bounding box loops from `MainScene.cpp` to `Tiles.cpp`.
-- [ ] `[TILE-INTG]`: Simplify `MainScene::draw_tiles_and_network()` into clean sequential calls: `m_tiles.draw(m_camera)` and `m_network.draw(...)`.
+### `### [PH-TRDR]`: Phase 4 - Delegate Terrain Tile Drawing to `Tiles` (COMPLETED)
+- [x] `[TILE-DRAW]`: Add `void draw(const Camera& camera)` to [`Tiles.h`](file:///Users/matt/code/cpp/alx/src/alx/Tiles.h) and [`Tiles.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Tiles.cpp).
+- [x] `[TILE-IMPL]`: Relocate `draw_terrain_tile()` and tile camera bounding box loops from `MainScene.cpp` to `Tiles.cpp`.
+- [x] `[TILE-INTG]`: Simplify `MainScene::draw_tiles_and_network()` into clean sequential calls: `m_tiles.draw(m_camera)` and `m_network.draw(...)`.
 
-### `### [PH-PLFX]`: Phase 5 - Move Sword Slash FX Trail to `Player`
-- [ ] `[SWFX-DECL]`: Add sword trail tip position tracking state (`m_slash_prev_tip_x/y`, `m_slash_was_attacking`) to [`Player.h`](file:///Users/matt/code/cpp/alx/src/alx/Player.h).
-- [ ] `[SWFX-IMPL]`: Move `update_sword_slash_trail()` logic inside `Player::update()` in [`Player.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Player.cpp) where `ParticleSystem*` is already passed.
-- [ ] `[SWFX-INTG]`: Remove `update_sword_slash_trail()` and associated tip tracking fields from `MainScene`.
+### `### [PH-PLFX]`: Phase 5 - Move Sword Slash FX Trail to `Player` (COMPLETED)
+- [x] `[SWFX-DECL]`: Add sword trail tip position tracking state (`m_slash_prev_tip_x/y`, `m_slash_was_attacking`) to [`Player.h`](file:///Users/matt/code/cpp/alx/src/alx/Player.h).
+- [x] `[SWFX-IMPL]`: Move `update_sword_slash_trail()` logic inside `Player::update()` in [`Player.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Player.cpp) where `ParticleSystem*` is already passed.
+- [x] `[SWFX-INTG]`: Remove `update_sword_slash_trail()` and associated tip tracking fields from `MainScene`.
 
-### `### [PH-DEAD]`: Phase 6 - Prune Dead Methods
-- [ ] `[DED-PRUN]`: Remove unused `is_connectable_fixture()`, `connects_dark_mana()`, and `is_node_fixture()` methods from `MainScene.h` and `MainScene.cpp`.
+### `### [PH-DEAD]`: Phase 6 - Prune Dead Methods (COMPLETED)
+- [x] `[DED-PRUN]`: Remove unused `is_connectable_fixture()`, `connects_dark_mana()`, and `is_node_fixture()` methods from `MainScene.h` and `MainScene.cpp`.
 
 ---
 

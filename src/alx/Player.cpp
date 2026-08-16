@@ -754,6 +754,8 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
             update_build_actions(tiles, network, particle_system);
         }
     }
+
+    update_sword_slash_trail(particle_system);
 }
 
 void Player::update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system) {
@@ -821,6 +823,48 @@ void Player::update_build_actions(const Tiles& tiles, Network& network, Particle
             Audio::play_sfx(SFX::build_snap());
         }
     }
+}
+
+void Player::update_sword_slash_trail(ParticleSystem* particle_system) {
+    if (!particle_system) return;
+
+    if (!is_attacking()) {
+        m_slash_was_attacking = false;
+        return;
+    }
+
+    const Collision::Circle hit_circle = attack_hit_circle(1.0f);
+    const float pcx = center_x(1.0f);
+    const float pcy = center_y(1.0f);
+
+    float dir_x = hit_circle.cx - pcx;
+    float dir_y = hit_circle.cy - pcy;
+    const float len = std::sqrt(dir_x * dir_x + dir_y * dir_y);
+    if (len > 0.001f) {
+        dir_x /= len;
+        dir_y /= len;
+    } else {
+        dir_x = 0.0f;
+        dir_y = 1.0f;
+    }
+
+    const float curr_tip_x = hit_circle.cx + dir_x * (hit_circle.radius - 1.0f);
+    const float curr_tip_y = hit_circle.cy + dir_y * (hit_circle.radius - 1.0f);
+
+    if (!m_slash_was_attacking) {
+        m_slash_prev_tip_x = curr_tip_x;
+        m_slash_prev_tip_y = curr_tip_y;
+        m_slash_was_attacking = true;
+    }
+
+    const int player_sort_y = static_cast<int>(transform.y + transform.height);
+    ParticleEmitters::spawn_sword_slash_trail(
+        *particle_system, m_slash_prev_tip_x, m_slash_prev_tip_y, curr_tip_x, curr_tip_y,
+        swing_progress_curr, Layer::WorldObjFX, Layer::WorldObj, player_sort_y
+    );
+
+    m_slash_prev_tip_x = curr_tip_x;
+    m_slash_prev_tip_y = curr_tip_y;
 }
 
 } // namespace alx
