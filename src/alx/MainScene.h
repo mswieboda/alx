@@ -21,15 +21,21 @@ enum class GameOverItem : uint8_t { Retry, Quit, Count };
 class MainScene : public Scene {
 private:
     // --- CONSTANTS ---
+    static constexpr float TWILIGHT_MIN = -0.03f;
+    static constexpr float TWILIGHT_HOLD_THRESHOLD = 0.0f;
     static constexpr float TWILIGHT_MAX = 0.99f;
     static constexpr float TWILIGHT_DECREASE_PER_MANA = 0.03f;
     static constexpr float TELEMETRY_DUMP_INTERVAL = 0.1f;
-    static constexpr float VICTORY_TWILIGHT_THRESHOLD = 0.01f;
-    static constexpr float VICTORY_HOLD_DURATION_SEC = 60.0f;
+    static constexpr float VICTORY_HOLD_DURATION_SEC = 15.0f;
+    static constexpr float VICTORY_HOLD_DRAIN_RATE = 2.0f;
     static constexpr uint32_t COLOR_VICTORY_TEXT = 0xFF00FF88;
     static constexpr uint32_t COLOR_GAME_OVER_TEXT = 0xFF66001C;
     static constexpr uint32_t COLOR_PAUSE_TEXT   = 0xFFFFCC00;
     static constexpr float GAME_OVER_FADE_DURATION = 0.5f; // sec
+    static constexpr uint32_t HUD_PILL_BG_COLOR = 0xCC00141C;
+    static constexpr uint32_t HUD_PILL_BORDER_COLOR = 0xFF004455;
+    static constexpr int HUD_PILL_PADDING_X = 6;
+    static constexpr int HUD_PILL_PADDING_Y = 2;
 
     Tiles m_tiles;
     Network m_network;

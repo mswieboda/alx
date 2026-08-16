@@ -47,7 +47,7 @@ void MainScene::load_level(int level_id) {
 
     m_current_level_id = level_id;
     m_player_spawn = lvl->player_spawn;
-    m_twilight_level = std::clamp(lvl->initial_twilight, 0.0f, TWILIGHT_MAX);
+    m_twilight_level = std::clamp(lvl->initial_twilight, TWILIGHT_MIN, TWILIGHT_MAX);
     m_can_build = lvl->can_build;
 
     m_tiles = Tiles(lvl->map_width, lvl->map_height);
@@ -296,7 +296,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
     if (tw_inc > 0.0f) {
-        m_twilight_level = std::clamp(m_twilight_level + tw_inc, 0.0f, TWILIGHT_MAX);
+        m_twilight_level = std::clamp(m_twilight_level + tw_inc, TWILIGHT_MIN, TWILIGHT_MAX);
         record_twilight_event(tw_inc, "Tower/Fixture Corruption");
         Audio::play_sfx(SFX::twilight_pulse());
     }
@@ -313,20 +313,26 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 }
 
 void MainScene::update_victory_condition(float raw_dt) {
-    if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
+    if (m_twilight_level <= TWILIGHT_HOLD_THRESHOLD) {
         if (m_time_to_zero_twilight < 0.0f) {
             m_time_to_zero_twilight = m_sim_elapsed_sec;
         }
         m_victory_hold_timer += raw_dt;
         if (m_victory_hold_timer >= VICTORY_HOLD_DURATION_SEC) {
+            m_victory_hold_timer = VICTORY_HOLD_DURATION_SEC;
             if (!m_victory_achieved) {
                 m_victory_achieved = true;
                 m_paused = true;
                 Audio::pause_music();
             }
         }
-    } else if (!m_victory_achieved) {
-        m_victory_hold_timer = 0.0f;
+    } else {
+        if (m_victory_hold_timer > 0.0f) {
+            m_victory_hold_timer = std::max(0.0f, m_victory_hold_timer - (raw_dt * VICTORY_HOLD_DRAIN_RATE));
+            if (m_victory_hold_timer <= 0.0f && !m_victory_achieved) {
+                m_time_to_zero_twilight = -1.0f;
+            }
+        }
     }
 }
 
@@ -406,11 +412,11 @@ void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
 
         if (Action::is_pressed(Action::DebugTwUp)) {
             m_twilight_level += 1 * dt;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            m_twilight_level = std::clamp(m_twilight_level, TWILIGHT_MIN, TWILIGHT_MAX);
             record_twilight_event(1.0f * dt, "Debug TwUp");
         } else if (Action::is_pressed(Action::DebugTwDown)) {
             m_twilight_level -= 1 * dt;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            m_twilight_level = std::clamp(m_twilight_level, TWILIGHT_MIN, TWILIGHT_MAX);
             record_twilight_event(-1.0f * dt, "Debug TwDown");
         }
     }
@@ -502,8 +508,7 @@ void MainScene::update_tick_simulation(float dt) {
         NetworkSimResults sim_res = m_network.sim_tick();
         if (sim_res.spires_converted > 0) {
             float dec = TWILIGHT_DECREASE_PER_MANA * sim_res.spires_converted;
-            m_twilight_level -= dec;
-            m_twilight_level = std::clamp(m_twilight_level, 0.0f, TWILIGHT_MAX);
+            m_twilight_level = std::clamp(m_twilight_level - dec, TWILIGHT_MIN, TWILIGHT_MAX);
             record_twilight_event(-dec, "Spire Cleanse");
             Audio::play_sfx(SFX::spire_burn());
         }
@@ -647,14 +652,40 @@ void MainScene::draw_hud() {
         );
     }
 
-    // \x0F = Twilight starburst icon, \x08 = Cleanse icon
-    int twilight_pct = static_cast<int>(m_twilight_level * 100.0f);
-    const char* icon = m_twilight_level >= 0.5f ? "\x08" : "\x0F";
-    std::string_view twilight_str = Draw::fmt("%s %d%%", icon, twilight_pct);
-    int twilight_width = Draw::text_width(twilight_str, 1, &TextStyles::font);
+    std::string_view center_str{};
+    if (m_twilight_level <= TWILIGHT_HOLD_THRESHOLD || m_victory_hold_timer > 0.0f) {
+        int remaining_sec = std::clamp(
+            static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer)),
+            0,
+            static_cast<int>(VICTORY_HOLD_DURATION_SEC)
+        );
+        center_str = Draw::fmt("HOLD: %2ds", remaining_sec);
+    } else {
+        int twilight_pct = std::max(0, static_cast<int>(m_twilight_level * 100.0f));
+        const char* icon = m_twilight_level >= 0.5f ? "\x08" : "\x0F";
+        center_str = Draw::fmt("%s %d%%", icon, twilight_pct);
+    }
+
+    int center_text_w = Draw::text_width(center_str, 1, &TextStyles::font);
+    int pill_w = center_text_w + HUD_PILL_PADDING_X * 2;
+    int pill_h = TextStyles::font.size + HUD_PILL_PADDING_Y * 2;
+    int pill_x = screen_width / 2 - pill_w / 2;
+    int pill_y = ly - HUD_PILL_PADDING_Y;
+
+    Draw::rect(
+        static_cast<float>(pill_x), static_cast<float>(pill_y),
+        static_cast<float>(pill_w), static_cast<float>(pill_h),
+        HUD_PILL_BG_COLOR, true, 1, Layer::HUD_BG
+    );
+    Draw::rect(
+        static_cast<float>(pill_x), static_cast<float>(pill_y),
+        static_cast<float>(pill_w), static_cast<float>(pill_h),
+        HUD_PILL_BORDER_COLOR, false, 1, Layer::HUD_BG
+    );
+
     Draw::text_shadow(
-        screen_width / 2 - twilight_width / 2, ly,
-        twilight_str,
+        screen_width / 2 - center_text_w / 2, ly,
+        center_str,
         text_color, shadow_color, 1, Layer::HUD_Text, &TextStyles::font
     );
 
@@ -756,16 +787,6 @@ void MainScene::draw_victory_and_pause_overlays(int screen_width, int screen_hei
             screen_height / 2 - font.size,
             pause_str,
             COLOR_PAUSE_TEXT, 2, Layer::HUD_OverlayText, &font
-        );
-    } else if (m_twilight_level < VICTORY_TWILIGHT_THRESHOLD) {
-        int remaining_sec = std::max(0, static_cast<int>(std::ceil(VICTORY_HOLD_DURATION_SEC - m_victory_hold_timer)));
-        std::string_view count_str = Draw::fmt("TWILIGHT CLEARED IN: %ds", remaining_sec);
-        int count_w = Draw::text_width(count_str, 1, &font);
-        Draw::text(
-            screen_width / 2 - count_w / 2,
-            screen_height / 2 - font.size / 2,
-            count_str,
-            COLOR_VICTORY_TEXT, 1, Layer::HUD_OverlayText, &font
         );
     }
 }
