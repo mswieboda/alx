@@ -136,12 +136,33 @@ void MainScene::dump_telemetry_snapshot() {
 }
 
 void MainScene::update(SceneManager& sm, float raw_dt) {
+    if (m_is_victory_screen) {
+        m_victory_menu.update_navigation();
+        if (m_victory_menu.is_confirmed()) {
+            switch (m_victory_menu.selected_item<VictoryMenuItem>()) {
+                case VictoryMenuItem::PlayAgain: {
+                    auto scene_ptr = std::make_unique<alx::MainScene>(1);
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case VictoryMenuItem::MainMenu: {
+                    auto scene_ptr = std::make_unique<alx::StartScene>();
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case VictoryMenuItem::Count:
+                    break;
+            }
+        }
+        return;
+    }
+
     if (m_is_game_over && m_game_over_fade_timer <= 0.0f) {
         m_game_over_menu.update_navigation();
         if (m_game_over_menu.is_confirmed()) {
             switch (m_game_over_menu.selected_item<GameOverItem>()) {
                 case GameOverItem::Retry: {
-                    auto scene_ptr = std::make_unique<alx::MainScene>();
+                    auto scene_ptr = std::make_unique<alx::MainScene>(m_current_level_id);
                     sm.change_scene(std::move(scene_ptr));
                     return;
                 }
@@ -179,40 +200,60 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     update_game_over_fade(raw_dt);
     update_time_dilation_hotkeys();
 
+    if (m_victory_achieved) {
+        if (m_victory_sequence_timer > 0.0f) {
+            m_victory_sequence_timer = std::max(0.0f, m_victory_sequence_timer - raw_dt);
+            if (m_victory_sequence_timer <= 0.0f) {
+                if (Levels::has_level(m_current_level_id + 1)) {
+                    auto scene_ptr = std::make_unique<alx::MainScene>(m_current_level_id + 1);
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                } else {
+                    m_is_victory_screen = true;
+                    Audio::pause_music();
+                    return;
+                }
+            }
+        }
+    }
+
     const float dt = raw_dt * m_time_scale;
     m_last_dt = dt;
     ++m_sim_tick_count;
     m_sim_elapsed_sec += dt;
     const float prev_twilight = m_twilight_level;
 
-    update_tick_simulation(dt);
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
     m_camera.update(dt, m_player.facing_dx, m_player.facing_dy, m_player.input_buffer.was_moving);
     m_player.update(dt, m_tiles, m_network, m_camera, m_can_build, &m_enemy_manager.structures(), &m_particle_system);
 
+    if (!m_victory_achieved) {
+        update_tick_simulation(dt);
+
 #if ALX_ENABLE_HEADLESS
-    if (m_telemetry.is_headless()) {
-        update_headless_defense(raw_dt);
-    }
+        if (m_telemetry.is_headless()) {
+            update_headless_defense(raw_dt);
+        }
 #endif // ALX_ENABLE_HEADLESS
 
-    m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
-    if (m_enemy_manager.consume_tower_spawned_event()) {
-        trigger_tower_spawn_alert();
-        Audio::play_sfx(SFX::dark_tower_spawn());
+        m_enemy_manager.update(dt, &m_player, m_tiles, m_network, &m_particle_system, m_twilight_level);
+        if (m_enemy_manager.consume_tower_spawned_event()) {
+            trigger_tower_spawn_alert();
+            Audio::play_sfx(SFX::dark_tower_spawn());
+        }
+
+        float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
+        if (tw_inc > 0.0f) {
+            m_twilight_level = std::clamp(m_twilight_level + tw_inc, TWILIGHT_MIN, TWILIGHT_MAX);
+            record_twilight_event(tw_inc, "Tower/Fixture Corruption");
+            Audio::play_sfx(SFX::twilight_pulse());
+        }
+
+        update_twilight_metrics(dt, prev_twilight);
     }
 
     m_twilight_overlay.update(dt);
     m_particle_system.update(dt);
-
-    float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
-    if (tw_inc > 0.0f) {
-        m_twilight_level = std::clamp(m_twilight_level + tw_inc, TWILIGHT_MIN, TWILIGHT_MAX);
-        record_twilight_event(tw_inc, "Tower/Fixture Corruption");
-        Audio::play_sfx(SFX::twilight_pulse());
-    }
-
-    update_twilight_metrics(dt, prev_twilight);
 
     m_telemetry.update_telemetry_dump(
         raw_dt,
@@ -239,8 +280,8 @@ void MainScene::update_victory_condition(float raw_dt) {
             m_victory_hold_timer = VICTORY_HOLD_DURATION_SEC;
             if (!m_victory_achieved) {
                 m_victory_achieved = true;
-                m_paused = true;
-                Audio::pause_music();
+                m_victory_sequence_timer = VICTORY_SEQUENCE_DURATION;
+                m_can_build = false;
             }
         }
     } else {
@@ -396,8 +437,9 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
         .is_game_over = m_is_game_over,
         .game_over_fade_timer = m_game_over_fade_timer,
         .game_over_fade_duration = GAME_OVER_FADE_DURATION,
+        .is_victory_screen = m_is_victory_screen,
     };
-    HUD::draw(hud_state, m_game_over_menu, Game::WIDTH, Game::HEIGHT);
+    HUD::draw(hud_state, m_game_over_menu, m_victory_menu, Game::WIDTH, Game::HEIGHT);
 }
 
 void MainScene::draw_tiles_and_network(std::vector<uint32_t>& pixel_buffer, float progress) {

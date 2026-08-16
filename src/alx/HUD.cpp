@@ -12,7 +12,7 @@
 
 namespace alx::HUD {
 
-void draw(const HUDState& state, const Menu& game_over_menu, int screen_width, int screen_height) {
+void draw(const HUDState& state, const Menu& game_over_menu, const Menu& victory_menu, int screen_width, int screen_height) {
     draw_in_game_bar(state, screen_width, screen_height);
     draw_victory_and_pause_overlays(state.victory, state.paused, screen_width, screen_height);
 
@@ -22,6 +22,8 @@ void draw(const HUDState& state, const Menu& game_over_menu, int screen_width, i
         } else {
             draw_game_over_menu(game_over_menu);
         }
+    } else if (state.is_victory_screen) {
+        draw_victory_menu(victory_menu);
     }
 }
 
@@ -185,17 +187,38 @@ void draw_game_over_menu(const Menu& game_over_menu) {
     });
 }
 
-void draw_victory_and_pause_overlays(bool victory, bool paused, int screen_width, int screen_height) {
-    if (victory) {
-        static constexpr std::string_view win_str = "YOU WIN!";
-        int win_w = Draw::text_width(win_str, TextStyles::scale_med, &TextStyles::font);
-        Draw::text(
-            screen_width / 2 - win_w / 2,
-            screen_height / 2 - TextStyles::font.size,
-            win_str,
-            COLOR_VICTORY_TEXT, TextStyles::scale_med, Layer::HUD_OverlayText, &TextStyles::font
-        );
-    } else if (paused) {
+void draw_victory_menu(const Menu& victory_menu) {
+    static constexpr std::string_view VICTORY_TITLE = "AETHERLUX RESTORED";
+    const int title_scale = TextStyles::scale_big;
+    const int title_width = Draw::text_width(VICTORY_TITLE, title_scale, &TextStyles::font);
+    const int title_height = Menu::calculate_line_height(TextStyles::font.size, title_scale);
+
+    const float title_x = Game::half_screen_width - (title_width / 2.0f);
+    const float title_y = Game::half_screen_height - title_height - Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale);
+
+    Draw::text_shadow(
+        title_x,
+        title_y,
+        VICTORY_TITLE,
+        COLOR_VICTORY_TEXT,
+        0xFF000000,
+        title_scale,
+        Layer::HUD_OverlayText,
+        &TextStyles::font
+    );
+
+    const float menu_start_y = Game::half_screen_height + (Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale) / 2.0f);
+    victory_menu.draw({
+        .center_x = static_cast<float>(Game::half_screen_width),
+        .start_y = menu_start_y,
+        .layer = Layer::HUD_OverlayText,
+        .color = TextStyles::color,
+        .color_shadow = TextStyles::color_shadow,
+    });
+}
+
+void draw_victory_and_pause_overlays(bool, bool paused, int screen_width, int screen_height) {
+    if (paused) {
         static constexpr std::string_view pause_str = "PAUSED";
         int pause_w = Draw::text_width(pause_str, TextStyles::scale_med, &TextStyles::font);
         Draw::text(

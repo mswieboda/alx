@@ -20,6 +20,7 @@
 namespace alx {
 
 enum class GameOverItem : uint8_t { Retry, Quit, Count };
+enum class VictoryMenuItem : uint8_t { PlayAgain, MainMenu, Count };
 
 class MainScene : public Scene {
 private:
@@ -31,6 +32,7 @@ private:
     static constexpr float SIM_TICK_RATE = 0.6f; // Speed of the mana flow
     static constexpr float VICTORY_HOLD_DURATION_SEC = 15.0f;
     static constexpr float VICTORY_HOLD_DRAIN_RATE = 2.0f;
+    static constexpr float VICTORY_SEQUENCE_DURATION = 1.0f; // 1s win sequence before transition
     static constexpr float GAME_OVER_FADE_DURATION = 0.5f; // sec
 
     Tiles m_tiles;
@@ -44,7 +46,13 @@ private:
     bool m_paused = false;
     // victory
     float m_victory_hold_timer = 0.0f;
+    float m_victory_sequence_timer = 0.0f;
     bool m_victory_achieved = false;
+    bool m_is_victory_screen = false;
+    static constexpr std::array<std::string_view, static_cast<size_t>(VictoryMenuItem::Count)> VICTORY_MENU_ITEMS = {
+        "Play Again", "Main Menu"
+    };
+    Menu m_victory_menu{VICTORY_MENU_ITEMS};
     TwilightOverlay m_twilight_overlay;
 
     // game over
@@ -107,6 +115,8 @@ public:
     void dump_telemetry_snapshot();
     Camera& camera() override { return m_camera; }
     const Camera& camera() const override { return m_camera; }
+
+    explicit MainScene(int initial_level_id = 1) : m_current_level_id(initial_level_id) {}
 
     void init(SceneManager& sm) override;
     void load_level(int level_id);
