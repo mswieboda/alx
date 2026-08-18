@@ -12,7 +12,7 @@ enum class TransitionState {
 };
 
 class SceneManager {
-    static constexpr float fade_duration = 0.3f; // secs for fade in/out
+    static constexpr float fade_duration = 0.2f; // secs for fade in/out
 
 private:
     std::unique_ptr<Scene> m_current_scene;
@@ -35,7 +35,7 @@ public:
     SceneManager(SceneManager&&) noexcept;
     SceneManager& operator=(SceneManager&&) noexcept;
 
-    void change_scene(std::unique_ptr<Scene> new_scene);
+    void change_scene(std::unique_ptr<Scene> new_scene, bool force = false);
     void update(float dt);
     void draw(std::vector<uint32_t>& pixel_buffer, float alpha = 1.0f);
 

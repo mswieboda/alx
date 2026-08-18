@@ -23,7 +23,9 @@ void SceneManager::fade_and_swap(float dt) {
 
     if (m_transition_state == TransitionState::FadingOut) {
         m_current_scene = std::move(m_next_scene);
-        m_current_scene->init(*this);
+        if (m_current_scene) {
+            m_current_scene->init(*this);
+        }
         m_transition_state = TransitionState::FadingIn;
         m_fade_timer = 0.0f;
     } else { // FadingIn (can't be None via way `update` calls `fade_and_swap`)
@@ -31,7 +33,21 @@ void SceneManager::fade_and_swap(float dt) {
     }
 }
 
-void SceneManager::change_scene(std::unique_ptr<Scene> new_scene) {
+void SceneManager::change_scene(std::unique_ptr<Scene> new_scene, bool force) {
+    if (m_transition_state != TransitionState::None && !force) {
+        return;
+    }
+
+    if (!m_current_scene) {
+        m_current_scene = std::move(new_scene);
+        if (m_current_scene) {
+            m_current_scene->init(*this);
+        }
+        m_transition_state = TransitionState::FadingIn;
+        m_fade_timer = 0.0f;
+        return;
+    }
+
     m_transition_state = TransitionState::FadingOut;
     m_fade_timer = 0.0f;
     m_next_scene = std::move(new_scene);
@@ -40,7 +56,7 @@ void SceneManager::change_scene(std::unique_ptr<Scene> new_scene) {
 void SceneManager::update(float dt) {
     fade_and_swap(dt);
 
-    if (m_current_scene) {
+    if (m_current_scene && m_transition_state != TransitionState::FadingOut) {
         m_current_scene->sync_prev_transforms();
         m_current_scene->update_entities(dt);
         m_current_scene->update(*this, dt);
