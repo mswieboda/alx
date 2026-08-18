@@ -42,12 +42,21 @@ inline constexpr uint32_t COLOR_TEXT_SHADOW = 0xFF003344;
 inline constexpr uint32_t COLOR_VICTORY_TEXT = 0xFF00FF88;
 inline constexpr uint32_t COLOR_GAME_OVER_TEXT = 0xFF66001C;
 inline constexpr uint32_t COLOR_PAUSE_TEXT = 0xFFFFCC00;
+inline constexpr uint32_t COLOR_OVERLAY_BACKDROP = 0x80000000;
 inline constexpr int PADDING_SIDE = 6;
 inline constexpr int PADDING_VERTICAL = 4;
 
 void draw(const HUDState& state, const Menu& game_over_menu, const Menu& victory_menu, int screen_width, int screen_height);
 void draw_in_game_bar(const HUDState& state, int screen_width, int screen_height);
 void draw_game_over_fade(float fade_timer, float duration, int screen_width, int screen_height);
+void draw_overlay_menu(
+    std::string_view title,
+    uint32_t title_color,
+    const Menu& menu,
+    int screen_width = Game::WIDTH,
+    int screen_height = Game::HEIGHT,
+    bool draw_backdrop = true
+);
 void draw_game_over_menu(const Menu& game_over_menu);
 void draw_victory_menu(const Menu& victory_menu);
 void draw_victory_and_pause_overlays(bool victory, bool paused, int screen_width, int screen_height);

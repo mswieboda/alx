@@ -157,10 +157,27 @@ void draw_game_over_fade(float fade_timer, float duration, int screen_width, int
     );
 }
 
-void draw_game_over_menu(const Menu& game_over_menu) {
-    static constexpr std::string_view GAME_OVER_TITLE = "YOU DIED!";
+void draw_overlay_menu(
+    std::string_view title,
+    uint32_t title_color,
+    const Menu& menu,
+    int screen_width,
+    int screen_height,
+    bool draw_backdrop
+) {
+    if (draw_backdrop) {
+        Draw::rect(
+            0, 0,
+            screen_width, screen_height,
+            COLOR_OVERLAY_BACKDROP,
+            true,
+            1,
+            Layer::HUD_Overlay
+        );
+    }
+
     const int title_scale = TextStyles::scale_big;
-    const int title_width = Draw::text_width(GAME_OVER_TITLE, title_scale, &TextStyles::font);
+    const int title_width = Draw::text_width(title, title_scale, &TextStyles::font);
     const int title_height = Menu::calculate_line_height(TextStyles::font.size, title_scale);
 
     const float title_x = Game::half_screen_width - (title_width / 2.0f);
@@ -169,8 +186,8 @@ void draw_game_over_menu(const Menu& game_over_menu) {
     Draw::text_shadow(
         title_x,
         title_y,
-        GAME_OVER_TITLE,
-        COLOR_GAME_OVER_TEXT,
+        title,
+        title_color,
         0xFF000000,
         title_scale,
         Layer::HUD_OverlayText,
@@ -178,7 +195,7 @@ void draw_game_over_menu(const Menu& game_over_menu) {
     );
 
     const float menu_start_y = Game::half_screen_height + (Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale) / 2.0f);
-    game_over_menu.draw({
+    menu.draw({
         .center_x = static_cast<float>(Game::half_screen_width),
         .start_y = menu_start_y,
         .layer = Layer::HUD_OverlayText,
@@ -187,34 +204,12 @@ void draw_game_over_menu(const Menu& game_over_menu) {
     });
 }
 
+void draw_game_over_menu(const Menu& game_over_menu) {
+    draw_overlay_menu("YOU DIED!", COLOR_GAME_OVER_TEXT, game_over_menu, Game::WIDTH, Game::HEIGHT, true);
+}
+
 void draw_victory_menu(const Menu& victory_menu) {
-    static constexpr std::string_view VICTORY_TITLE = "AETHERLUX RESTORED";
-    const int title_scale = TextStyles::scale_big;
-    const int title_width = Draw::text_width(VICTORY_TITLE, title_scale, &TextStyles::font);
-    const int title_height = Menu::calculate_line_height(TextStyles::font.size, title_scale);
-
-    const float title_x = Game::half_screen_width - (title_width / 2.0f);
-    const float title_y = Game::half_screen_height - title_height - Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale);
-
-    Draw::text_shadow(
-        title_x,
-        title_y,
-        VICTORY_TITLE,
-        COLOR_VICTORY_TEXT,
-        0xFF000000,
-        title_scale,
-        Layer::HUD_OverlayText,
-        &TextStyles::font
-    );
-
-    const float menu_start_y = Game::half_screen_height + (Menu::calculate_line_height(TextStyles::font.size, TextStyles::scale) / 2.0f);
-    victory_menu.draw({
-        .center_x = static_cast<float>(Game::half_screen_width),
-        .start_y = menu_start_y,
-        .layer = Layer::HUD_OverlayText,
-        .color = TextStyles::color,
-        .color_shadow = TextStyles::color_shadow,
-    });
+    draw_overlay_menu("AETHERLUX RESTORED", COLOR_VICTORY_TEXT, victory_menu, Game::WIDTH, Game::HEIGHT, true);
 }
 
 void draw_victory_and_pause_overlays(bool, bool paused, int screen_width, int screen_height) {

@@ -84,7 +84,7 @@
 - [x] **`[TRNS]`**: Scene Transitions — Smooth fade-to-black transitions between scenes. 0.5 day.
 - [x] **`[GOVR]`**: Game Over Scene — Death freeze (1s) -> fade to black -> "You Died" (Retry Level / Quit to Title). 0.5 day.
 - [x] **`[LVCM]`**: Win Condition Tuning & Level Clear Screen — 15s hold countdown, light flash FX, Level Clear screen with stats. 1.0 day.
-- [ ] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
+- [~] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
 - [ ] **`[TWBAR]`**: Twilight Momentum Barometer — Rolling 15s average delta calculation + directional arrow indicator. 0.5 day.
 - [ ] **`[TUTR]`**: Contextual Text Prompts — Fade-in/fade-out message overlay trigger system. 0.5 day.
 
