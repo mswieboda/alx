@@ -57,25 +57,25 @@ Currently, `HUD.cpp` contains duplicate drawing logic for Game Over and Victory 
   - Centered [`Menu`](file:///Users/matt/code/cpp/alx/src/alx/Menu.h) instance using consistent colors (`TextStyles::color`, `TextStyles::color_shadow`) and spacing.
 - [x] `[ROVR]`: Refactor Game Over & Victory Renderers — Update `draw_game_over_menu` and `draw_victory_menu` to leverage the unified overlay menu helper.
 
-### [PH-PAUS]: Phase 2 - Pause Menu Items & Actions
-- [ ] `[PMOD]`: Pause Menu Item Definition — Define `PauseMenuItem` enum and array in [`MainScene.h`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.h):
+### [PH-PAUS]: Phase 2 - Pause Menu Items & Actions (COMPLETED)
+- [x] `[PMOD]`: Pause Menu Item Definition — Define `PauseMenuItem` enum and array in [`MainScene.h`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.h):
   ```cpp
   enum class PauseMenuItem : uint8_t { Resume, Retry, MainMenu, Count };
   ```
   Items array: `{"Resume", "Retry", "Main Menu"}`.
-- [ ] `[PACT]`: Pause Menu Action Execution — In [`MainScene.cpp`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp), handle confirmed item choices:
+- [x] `[PACT]`: Pause Menu Action Execution — In [`MainScene.cpp`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp), handle confirmed item choices:
   - **Resume**: Set `m_paused = false`, call `Audio::resume_music()`.
   - **Retry**: Switch scene to a fresh `alx::MainScene(m_current_level_id)`.
   - **Main Menu**: Switch scene to `alx::StartScene()`.
 
-### [PH-PCTR]: Phase 3 - GBA Controller Action Controls & UX Flow
-- [ ] `[PKEY]`: GBA-Style Action Navigation & Quick-Resume:
+### [PH-PCTR]: Phase 3 - GBA Controller Action Controls & UX Flow (COMPLETED)
+- [x] `[PKEY]`: GBA-Style Action Navigation & Quick-Resume:
   - `Action::Menu` (Start / Enter) toggles pause on and off.
   - While paused, `Action::Cancel` (Button B / K / X) and `Action::Menu` (Start) immediately unpause.
   - `Action::ActionBtn` (Button A / J / Z) confirms the highlighted menu item.
   - `Action::MoveUp` / `MoveDown` navigates the menu with existing audio feedback.
-- [ ] `[PRST]`: Cursor Reset on Open — Reset `m_pause_menu.set_selected_item(PauseMenuItem::Resume)` every time the pause menu is opened so the player always starts on "Resume".
+- [x] `[PRST]`: Cursor Reset on Open — Reset `m_pause_menu.set_selected_item(PauseMenuItem::Resume)` every time the pause menu is opened so the player always starts on "Resume".
 
-### [PH-SIMA]: Phase 4 - Audio & Simulation Hygiene
-- [ ] `[AUDP]`: Background Music & Audio Hygiene — Call `Audio::pause_music()` upon pausing and `Audio::resume_music()` upon unpausing. Navigation SFX remain active.
-- [ ] `[SIMH]`: Clean Simulation Tick Freeze — Ensure all world state updates (player, camera, enemy manager, particles, telemetry, twilight metrics) are fully frozen during pause while HUD and overlay continue to render.
+### [PH-SIMA]: Phase 4 - Audio & Simulation Hygiene (COMPLETED)
+- [x] `[AUDP]`: Background Music & Audio Hygiene — Call `Audio::pause_music()` upon pausing and `Audio::resume_music()` upon unpausing. Navigation SFX remain active.
+- [x] `[SIMH]`: Clean Simulation Tick Freeze — Ensure all world state updates (player, camera, enemy manager, particles, telemetry, twilight metrics) are fully frozen during pause while HUD and overlay continue to render.

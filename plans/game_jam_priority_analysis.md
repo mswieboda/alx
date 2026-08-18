@@ -17,12 +17,12 @@
 | **Build Mode Systems** | ✅ Functional | Grid cursor, fixture placement, cost deduction, cardinal locking (`PH-BLDM`). |
 | **Enemies & Dark Towers** | ⚠️ Functional | ShadowCreep / Dusk mob, egg hatching, dark tower emergence, and pulse logic exist. |
 | **Twilight System** | ✅ Functional | Per-room twilight level, spire reduction, screen-space overlay. |
-| **Title Screen Scene** | ❌ Missing | Game boots directly into gameplay without a main menu. |
-| **Pause Menu System** | ❌ Placeholder | Pause currently displays static "PAUSED" text with no resume/restart/quit options. |
-| **Game Over Experience** | ❌ Missing | Player death currently auto-respawns instantly with no dramatic feedback or menu choices. |
-| **Level Clear / Victory Experience** | ❌ Placeholder | Win condition currently displays static "YOU WIN!" text without stats or level transition. |
+| **Title Screen Scene** | ✅ Missing | Game boots directly into gameplay without a main menu. |
+| **Pause Menu System** | ✅ Solid | Pause overlay with Resume, Retry, and Main Menu options. |
+| **Game Over Experience** | ✅ Missing | Player death currently auto-respawns instantly with no dramatic feedback or menu choices. |
+| **Level Clear / Victory Experience** | ✅ Placeholder | Win condition currently displays static "YOU WIN!" text without stats or level transition. |
 | **Scaffolded 3-Level Content** | ⚠️ Partial | Level 1 map exists; Levels 2 & 3 are 5x5 placeholders. |
-| **Scene Transitions** | ❌ Missing | Hard cuts between states; no fade-to-black or iris wipe transitions. |
+| **Scene Transitions** | ✅ Missing | Hard cuts between states; no fade-to-black or iris wipe transitions. |
 
 > [!NOTE]
 > **Key Takeaway**: The engine, audio synthesis, particle effects, and network simulation are much farther along than initially assumed. The primary remaining hurdle is building the **Game Shell** (Title, Game Over, Level Clear, Pause), adding **Readability** (Twilight Momentum Barometer, Contextual Prompts), and authoring the **Scaffolded 3-Level Progression**.
@@ -84,7 +84,7 @@
 - [x] **`[TRNS]`**: Scene Transitions — Smooth fade-to-black transitions between scenes. 0.5 day.
 - [x] **`[GOVR]`**: Game Over Scene — Death freeze (1s) -> fade to black -> "You Died" (Retry Level / Quit to Title). 0.5 day.
 - [x] **`[LVCM]`**: Win Condition Tuning & Level Clear Screen — 15s hold countdown, light flash FX, Level Clear screen with stats. 1.0 day.
-- [~] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
+- [x] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
 - [ ] **`[TWBAR]`**: Twilight Momentum Barometer — Rolling 15s average delta calculation + directional arrow indicator. 0.5 day.
 - [ ] **`[TUTR]`**: Contextual Text Prompts — Fade-in/fade-out message overlay trigger system. 0.5 day.
 

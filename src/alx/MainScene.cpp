@@ -183,23 +183,51 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         return;
     }
 
-    // TODO: temporary ESC before we have menu items
-    if (Input::is_key_just_pressed(KeyCode::Escape)) {
-      auto scene_ptr = std::make_unique<alx::StartScene>();
-      sm.change_scene(std::move(scene_ptr));
-      return;
-    }
-
-    if (Action::is_just_pressed(Action::Menu)) {
-        m_paused = !m_paused;
-        if (m_paused) {
-            Audio::pause_music();
-        } else {
-            Audio::resume_music();
+    if constexpr (Debug::QUIT_ON_ESC) {
+        if (Input::is_key_just_pressed(KeyCode::Escape)) {
+            sm.m_is_quit = true;
+            return;
         }
     }
 
-    if (m_paused) return;
+    if (m_paused) {
+        if (Action::is_just_pressed(Action::Cancel) || Action::is_just_pressed(Action::Menu)) {
+            m_paused = false;
+            Audio::resume_music();
+            return;
+        }
+
+        m_pause_menu.update_navigation();
+
+        if (m_pause_menu.is_confirmed()) {
+            switch (m_pause_menu.selected_item<PauseMenuItem>()) {
+                case PauseMenuItem::Resume:
+                    m_paused = false;
+                    Audio::resume_music();
+                    return;
+                case PauseMenuItem::Retry: {
+                    auto scene_ptr = std::make_unique<alx::MainScene>(m_current_level_id);
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case PauseMenuItem::MainMenu: {
+                    auto scene_ptr = std::make_unique<alx::StartScene>();
+                    sm.change_scene(std::move(scene_ptr));
+                    return;
+                }
+                case PauseMenuItem::Count:
+                    break;
+            }
+        }
+        return;
+    }
+
+    if (Action::is_just_pressed(Action::Menu)) {
+        m_paused = true;
+        m_pause_menu.set_selected_item(PauseMenuItem::Resume);
+        Audio::pause_music();
+        return;
+    }
 
     update_victory_condition(raw_dt);
     update_game_over_fade(raw_dt);
@@ -476,7 +504,12 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
         .game_over_fade_duration = GAME_OVER_FADE_DURATION,
         .is_victory_screen = m_is_victory_screen,
     };
-    HUD::draw(hud_state, m_game_over_menu, m_victory_menu, Game::WIDTH, Game::HEIGHT);
+
+    const Menu& active_menu = m_paused
+        ? m_pause_menu
+        : (m_is_victory_screen ? m_victory_menu : m_game_over_menu);
+
+    HUD::draw(hud_state, active_menu, Game::WIDTH, Game::HEIGHT);
 }
 
 void MainScene::draw_victory_shockwave(float alpha) {

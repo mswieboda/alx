@@ -21,6 +21,7 @@ namespace alx {
 
 enum class GameOverItem : uint8_t { Retry, Quit, Count };
 enum class VictoryMenuItem : uint8_t { PlayAgain, MainMenu, Count };
+enum class PauseMenuItem : uint8_t { Resume, Retry, MainMenu, Count };
 
 class MainScene : public Scene {
 private:
@@ -44,6 +45,10 @@ private:
     float m_sim_timer{0.0f};
     float m_last_dt{0.016f};
     bool m_paused = false;
+    static constexpr std::array<std::string_view, static_cast<size_t>(PauseMenuItem::Count)> PAUSE_MENU_ITEMS = {
+        "Resume", "Retry", "Main Menu"
+    };
+    Menu m_pause_menu{PAUSE_MENU_ITEMS};
     // victory
     float m_victory_hold_timer = 0.0f;
     float m_victory_sequence_timer = 0.0f;

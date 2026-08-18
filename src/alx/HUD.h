@@ -46,7 +46,7 @@ inline constexpr uint32_t COLOR_OVERLAY_BACKDROP = 0x80000000;
 inline constexpr int PADDING_SIDE = 6;
 inline constexpr int PADDING_VERTICAL = 4;
 
-void draw(const HUDState& state, const Menu& game_over_menu, const Menu& victory_menu, int screen_width, int screen_height);
+void draw(const HUDState& state, const Menu& menu, int screen_width, int screen_height);
 void draw_in_game_bar(const HUDState& state, int screen_width, int screen_height);
 void draw_game_over_fade(float fade_timer, float duration, int screen_width, int screen_height);
 void draw_overlay_menu(
@@ -59,7 +59,7 @@ void draw_overlay_menu(
 );
 void draw_game_over_menu(const Menu& game_over_menu);
 void draw_victory_menu(const Menu& victory_menu);
-void draw_victory_and_pause_overlays(bool victory, bool paused, int screen_width, int screen_height);
+void draw_pause_menu(const Menu& pause_menu);
 
 } // namespace HUD
 

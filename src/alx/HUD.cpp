@@ -12,18 +12,19 @@
 
 namespace alx::HUD {
 
-void draw(const HUDState& state, const Menu& game_over_menu, const Menu& victory_menu, int screen_width, int screen_height) {
+void draw(const HUDState& state, const Menu& menu, int screen_width, int screen_height) {
     draw_in_game_bar(state, screen_width, screen_height);
-    draw_victory_and_pause_overlays(state.victory, state.paused, screen_width, screen_height);
 
-    if (state.is_game_over) {
+    if (state.paused) {
+        draw_pause_menu(menu);
+    } else if (state.is_game_over) {
         if (state.game_over_fade_timer > 0.0f) {
             draw_game_over_fade(state.game_over_fade_timer, state.game_over_fade_duration, screen_width, screen_height);
         } else {
-            draw_game_over_menu(game_over_menu);
+            draw_game_over_menu(menu);
         }
     } else if (state.is_victory_screen) {
-        draw_victory_menu(victory_menu);
+        draw_victory_menu(menu);
     }
 }
 
@@ -212,17 +213,8 @@ void draw_victory_menu(const Menu& victory_menu) {
     draw_overlay_menu("AETHERLUX RESTORED", COLOR_VICTORY_TEXT, victory_menu, Game::WIDTH, Game::HEIGHT, true);
 }
 
-void draw_victory_and_pause_overlays(bool, bool paused, int screen_width, int screen_height) {
-    if (paused) {
-        static constexpr std::string_view pause_str = "PAUSED";
-        int pause_w = Draw::text_width(pause_str, TextStyles::scale_med, &TextStyles::font);
-        Draw::text(
-            screen_width / 2 - pause_w / 2,
-            screen_height / 2 - TextStyles::font.size,
-            pause_str,
-            COLOR_PAUSE_TEXT, TextStyles::scale_med, Layer::HUD_OverlayText, &TextStyles::font
-        );
-    }
+void draw_pause_menu(const Menu& pause_menu) {
+    draw_overlay_menu("PAUSED", COLOR_TEXT, pause_menu, Game::WIDTH, Game::HEIGHT, true);
 }
 
 } // namespace alx::HUD
