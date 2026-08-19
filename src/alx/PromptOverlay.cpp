@@ -87,7 +87,7 @@ size_t PromptOverlay::format_tokens(std::string_view input, char* out_buf, size_
     return out_idx;
 }
 
-void PromptOverlay::show(
+bool PromptOverlay::show(
     std::string_view text,
     PromptType type,
     PromptId id,
@@ -98,32 +98,9 @@ void PromptOverlay::show(
     format_tokens(text, formatted_buf, PromptMessage::max_text_length);
     const std::string_view resolved_text{formatted_buf};
 
-    if (id != PromptId::none) {
-        m_seen_history.set(static_cast<size_t>(id));
-    }
-
     if (m_state == PromptState::inactive) {
-        m_current.set_text(resolved_text);
-        m_current.type = type;
-        m_current.id = id;
-        m_current.hold_duration_sec = hold_duration;
-        m_current.is_sticky = is_sticky;
-
-        m_state = PromptState::fade_in;
-        m_state_timer_sec = 0.0f;
-        m_alpha = 0.0f;
-        m_slide_offset_y = prompt_style::slide_distance_px;
-        return;
-    }
-
-    // Preemption for critical threats over lower-priority active prompts
-    if (type == PromptType::alert && m_current.type != PromptType::alert) {
-        if (m_queue_count < max_queued_prompts) {
-            for (size_t i = m_queue_count; i > 0; --i) {
-                m_queue[i] = m_queue[i - 1];
-            }
-            m_queue[0] = m_current;
-            ++m_queue_count;
+        if (id != PromptId::none) {
+            m_seen_history.set(static_cast<size_t>(id));
         }
         m_current.set_text(resolved_text);
         m_current.type = type;
@@ -135,11 +112,39 @@ void PromptOverlay::show(
         m_state_timer_sec = 0.0f;
         m_alpha = 0.0f;
         m_slide_offset_y = prompt_style::slide_distance_px;
-        return;
+        return true;
+    }
+
+    // Preemption for critical threats over lower-priority active prompts
+    if (type == PromptType::alert && m_current.type != PromptType::alert) {
+        if (m_queue_count < max_queued_prompts) {
+            for (size_t i = m_queue_count; i > 0; --i) {
+                m_queue[i] = m_queue[i - 1];
+            }
+            m_queue[0] = m_current;
+            ++m_queue_count;
+        }
+        if (id != PromptId::none) {
+            m_seen_history.set(static_cast<size_t>(id));
+        }
+        m_current.set_text(resolved_text);
+        m_current.type = type;
+        m_current.id = id;
+        m_current.hold_duration_sec = hold_duration;
+        m_current.is_sticky = is_sticky;
+
+        m_state = PromptState::fade_in;
+        m_state_timer_sec = 0.0f;
+        m_alpha = 0.0f;
+        m_slide_offset_y = prompt_style::slide_distance_px;
+        return true;
     }
 
     // Standard queuing
     if (m_queue_count < max_queued_prompts) {
+        if (id != PromptId::none) {
+            m_seen_history.set(static_cast<size_t>(id));
+        }
         PromptMessage msg{
             .id = id,
             .type = type,
@@ -150,7 +155,10 @@ void PromptOverlay::show(
         msg.set_text(resolved_text);
         m_queue[m_queue_count] = msg;
         ++m_queue_count;
+        return true;
     }
+
+    return false;
 }
 
 bool PromptOverlay::try_show_cooldown(
@@ -166,10 +174,12 @@ bool PromptOverlay::try_show_cooldown(
         if (m_cooldown_timers[idx] > 0.0f) {
             return false;
         }
-        m_cooldown_timers[idx] = cooldown_sec;
     }
-    show(text, type, id, hold_duration, is_sticky);
-    return true;
+    const bool shown = show(text, type, id, hold_duration, is_sticky);
+    if (shown && id != PromptId::none) {
+        m_cooldown_timers[static_cast<size_t>(id)] = cooldown_sec;
+    }
+    return shown;
 }
 
 bool PromptOverlay::try_show_once(
@@ -185,8 +195,7 @@ bool PromptOverlay::try_show_once(
             return false;
         }
     }
-    show(text, type, id, hold_duration, is_sticky);
-    return true;
+    return show(text, type, id, hold_duration, is_sticky);
 }
 
 void PromptOverlay::dismiss() {

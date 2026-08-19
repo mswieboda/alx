@@ -131,6 +131,7 @@ private:
     bool m_attack_hit_registered = false;
     float m_pending_twilight_increase = 0.0f;
     bool m_tower_spawned_event = false;
+    // TODO(debug): Temporary test event for prompt system WIP; clean up when sensor hooks are complete
     bool m_mana_spark_fired_event = false;
     int m_last_destroyed_tile_index = -1;
     bool m_is_frenzy = false;

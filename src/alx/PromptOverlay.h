@@ -101,7 +101,7 @@ namespace prompt_style {
 
 class PromptOverlay {
 private:
-    static constexpr size_t max_queued_prompts = 4;
+    static constexpr size_t max_queued_prompts = 8;
     static constexpr size_t prompt_id_count = static_cast<size_t>(PromptId::Count);
 
     PromptMessage m_current{};
@@ -123,7 +123,7 @@ private:
 public:
     PromptOverlay() = default;
 
-    void show(
+    bool show(
         std::string_view text,
         PromptType type = PromptType::info,
         PromptId id = PromptId::none,

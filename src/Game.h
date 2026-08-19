@@ -19,9 +19,9 @@ namespace Game {
     constexpr int TILE_SIZE = 16;
 
     // dimension helpers
-    constexpr int half_screen_width = Game::WIDTH / 2.0f;
-    constexpr int half_screen_height = Game::HEIGHT / 2.0f;
-    constexpr int qtr_screen_height = Game::HEIGHT / 4.0f;
+    constexpr int half_screen_width = Game::WIDTH / 2;
+    constexpr int half_screen_height = Game::HEIGHT / 2;
+    constexpr int qtr_screen_height = Game::HEIGHT / 4;
 
     // Seed Configuration
     // Set CUSTOM_SEED to a positive integer (e.g. 1337) to force deterministic runs.
@@ -33,5 +33,6 @@ namespace Game {
     constexpr uint8_t REFINER_CONSUMING_WAIT_TICKS = 1;
     constexpr uint8_t LIGHT_SPIRE_TICKS_REQUIRED = 3;
     constexpr uint8_t LIGHT_MANA_TIME_TO_LIFE_TICKS = 20;
-}
+} // namespace Game
+
 
