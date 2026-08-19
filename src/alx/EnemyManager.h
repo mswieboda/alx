@@ -38,30 +38,30 @@ namespace DarkTowerConstants {
     constexpr float TWILIGHT_SPEEDUP_FACTOR = 1.25f;
 
     // Twilight Scaling Curve Thresholds & Exponent
-    constexpr float TWILIGHT_LOW_THRESHOLD = 0.05f;
+    constexpr float TWILIGHT_LOW_THRESHOLD = 0.075f;
     constexpr float TWILIGHT_HIGH_THRESHOLD = 0.90f;
-    constexpr float DEFAULT_CURVE_EXPONENT = 0.69f;
+    constexpr float DEFAULT_CURVE_EXPONENT = 0.66f;
 
     // Pulse & Egg Twilight Bumps
-    constexpr float PULSE_INTERVAL_MIN = 7.0f;
-    constexpr float PULSE_INTERVAL_MAX = 15.0f;
-    constexpr float PULSE_TWILIGHT_INCREASE = 0.03f;
-    constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.003f;
+    constexpr float PULSE_INTERVAL_MIN = 6.6f;
+    constexpr float PULSE_INTERVAL_MAX = 11.3f;
+    constexpr float PULSE_TWILIGHT_INCREASE = 0.05f;
+    constexpr float EGG_WAVE_TWILIGHT_INCREASE = 0.005f;
 
     // Inverse Twilight Cooldown Scaling (Seconds)
     // High Twilight (1.0 = Corrupted room): Slower tower spawn cooldown range
-    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 25.0f;
-    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 35.0f;
+    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MIN_COOLDOWN = 23.0f;
+    constexpr float TWILIGHT_CORRUPTED_EGG_SPAWN_MAX_COOLDOWN = 33.0f;
 
     // Low Twilight (0.0 = Purified room): Faster tower spawn cooldown range (escalation)
-    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 17.0f;
-    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 29.0f;
+    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MIN_COOLDOWN = 15.0f;
+    constexpr float TWILIGHT_PURIFIED_EGG_SPAWN_MAX_COOLDOWN = 25.0f;
 
-    // Normal Periodic Emergence Settings (for Twilight > 10%)
+    // Normal Periodic Emergence Settings (for Twilight > 10%) might be `TWILIGHT_LOW_THRESHOLD` instead
     constexpr float EMERGENCE_COOLDOWN_MIN = 45.0f;
     constexpr float EMERGENCE_COOLDOWN_MAX = 60.0f;
 
-    // Low Twilight Crunch Emergence Settings (for Twilight <= 10%)
+    // Low Twilight Crunch Emergence Settings (for Twilight <= 10%) might be `TWILIGHT_LOW_THRESHOLD` instead
     constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MIN = 30.0f;
     constexpr float CRUNCH_EMERGENCE_TOWER_SPAWN_COOLDOWN_MAX = 45.0f;
 } // namespace DarkTowerConstants
