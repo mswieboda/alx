@@ -15,6 +15,7 @@ class Tiles;
 class Network;
 class ParticleSystem;
 struct WorldStructure;
+class PromptOverlay;
 
 struct PlayerInputBuffer {
     static constexpr float FACING_DIAGONAL_LATCH_TIME = 0.050f; // 50ms (~3 frames at 60 FPS)
@@ -144,7 +145,16 @@ struct Player : public Entity {
     bool try_build_tile(const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr);
     bool try_remove_tile(const Tiles& tiles, Network& network);
 
-    void update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, bool can_build, const std::vector<WorldStructure>* structures = nullptr, ParticleSystem* particle_system = nullptr);
+    void update(
+        float dt,
+        const Tiles& tiles,
+        Network& network,
+        const alx::Camera& camera,
+        bool can_build,
+        const std::vector<WorldStructure>* structures = nullptr,
+        ParticleSystem* particle_system = nullptr,
+        PromptOverlay* prompt_overlay = nullptr
+    );
     void draw(std::vector<uint32_t>& screen_buffer, float alpha, bool can_build, const Tiles* tiles = nullptr, const Network* network = nullptr);
 
     int cursed_alloy() const { return m_cursed_alloy; }
@@ -177,9 +187,10 @@ private:
     bool m_slash_was_attacking = false;
 
     void update_movement(float dt, const Tiles& tiles, const Network& network, const alx::Camera& camera, const std::vector<WorldStructure>* structures = nullptr);
-    void update_actions(float dt, const Tiles& tiles, Network& network, bool can_build, ParticleSystem* particle_system = nullptr);
-    void update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr);
+    void update_actions(float dt, const Tiles& tiles, Network& network, bool can_build, ParticleSystem* particle_system = nullptr, PromptOverlay* prompt_overlay = nullptr);
+    void update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system = nullptr, PromptOverlay* prompt_overlay = nullptr);
     void update_sword_slash_trail(ParticleSystem* particle_system);
 };
+
 
 } // namespace alx

@@ -191,6 +191,7 @@ public:
 
     const std::vector<Enemy>& enemies() const { return m_enemies; }
     const std::vector<ShadowEgg>& shadow_eggs() const { return m_shadow_eggs; }
+    const std::vector<AlloyItem>& alloy_items() const { return m_alloy_items; }
 
 private:
     void update_threat_cache();

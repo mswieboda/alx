@@ -120,15 +120,16 @@ inline constexpr uint32_t prompt_border_tier2_rgba = 0xFFD82850;      // Crimson
 
 ---
 
-### `[PH-CTXP-TRIG]`: Phase 3 - Contextual Sensor & Systemic Hooks Architecture (`[TGSA]`)
+### `[PH-CTXP-TRIG]`: Phase 3 - Contextual Sensor & Systemic Hooks Architecture (`[TGSA]`) (COMPLETED)
 *Focus: Generic condition-sensing infrastructure, proximity detection, and systemic event dispatch without hardcoded copy.*
 
-- [ ] `[TGSA-PROX]`: **Contextual Proximity & State Sensor Engine**
+- [x] `[TGSA-PROX]`: **Contextual Proximity & State Sensor Engine**
   - Implement proximity detection ($d \le 32\text{px}$) to interactive points (unlinked fixtures, empty spires, alloy nodes).
   - Gate trigger checks against progression flags (e.g., `level.can_build`, inventory thresholds, combat state).
-- [ ] `[TGSA-HOOK]`: **Systemic Event Dispatch Wiring**
+- [x] `[TGSA-HOOK]`: **Systemic Event Dispatch Wiring**
   - Integrate dispatches into [`Player.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Player.cpp), [`Network.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Network.cpp), [`EnemyManager.cpp`](file:///Users/matt/code/cpp/alx/src/alx/EnemyManager.cpp), and [`MainScene.cpp`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp).
   - Connect player verbs to action-fulfillment events via `dismiss_if_matching(PromptId)`.
+
 
 ---
 

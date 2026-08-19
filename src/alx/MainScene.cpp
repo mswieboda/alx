@@ -42,6 +42,8 @@ void MainScene::load_level(int level_id) {
     m_twilight_level = std::clamp(lvl->initial_twilight, TWILIGHT_MIN, TWILIGHT_MAX);
     m_can_build = lvl->can_build;
     m_prompt_overlay.reset();
+    m_prompt_overlay.reset_room_cooldowns();
+    m_context_sensor.reset();
     m_victory_hold_timer = 0.0f;
     m_victory_sequence_timer = 0.0f;
     m_last_countdown_second = -1;
@@ -56,15 +58,9 @@ void MainScene::load_level(int level_id) {
     load_tiles_and_network(*lvl);
     load_dark_towers(lvl->dark_tower_spawns);
     reset_level_telemetry();
-
-#if ALX_ENABLE_DEBUG
-    // Test prompt queue for visual validation (Debug only)
-    m_prompt_overlay.show("[A] Mine alloy", PromptType::info, PromptId::mine_alloy_hint);
-    m_prompt_overlay.show("Low alloy (need 2)", PromptType::warning, PromptId::low_alloy_warning);
-    m_prompt_overlay.show("Surge incoming!", PromptType::alert, PromptId::surge_incoming_alert);
-    m_prompt_overlay.show("[R] Mana spark", PromptType::info, PromptId::mana_spark_hint, 0.0f, true);
-#endif // ALX_ENABLE_DEBUG
 }
+
+
 
 void MainScene::setup_player_at_spawn(GridPos spawn_pos) {
     const float spawn_x_px = spawn_pos.to_world_x(m_tiles.tile_size());
@@ -269,7 +265,8 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
 
     m_camera.follow(m_player.center_x(1.0f), m_player.center_y(1.0f));
     m_camera.update(dt, m_player.facing_dx, m_player.facing_dy, m_player.input_buffer.was_moving);
-    m_player.update(dt, m_tiles, m_network, m_camera, m_can_build, &m_enemy_manager.structures(), &m_particle_system);
+    m_player.update(dt, m_tiles, m_network, m_camera, m_can_build, &m_enemy_manager.structures(), &m_particle_system, &m_prompt_overlay);
+    m_context_sensor.update(dt, m_prompt_overlay, m_player, m_network, m_enemy_manager, m_tiles, m_can_build);
 
     if (!m_victory_achieved) {
         update_tick_simulation(dt);
@@ -287,13 +284,20 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
         if (m_enemy_manager.consume_tower_spawned_event()) {
             trigger_tower_spawn_alert();
             Audio::play_sfx(SFX::dark_tower_spawn());
+            m_prompt_overlay.try_show_cooldown(
+                "ALERT: Dark Tower emerged!",
+                PromptType::alert,
+                PromptId::tower_emerged_alert,
+                3.5f,
+                false,
+                15.0f
+            );
         }
 
-#if ALX_ENABLE_DEBUG
         if (m_enemy_manager.consume_mana_spark_fired_event()) {
             m_prompt_overlay.dismiss_if_matching(PromptId::mana_spark_hint);
         }
-#endif // ALX_ENABLE_DEBUG
+
 
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
         if (tw_inc > 0.0f) {
@@ -347,8 +351,10 @@ void MainScene::update_victory_condition(float raw_dt) {
                 m_victory_sequence_timer = VICTORY_SEQUENCE_DURATION;
                 m_can_build = false;
                 Audio::play_sfx(SFX::victory_chime());
+                m_prompt_overlay.show("Twilight dissipated - Room Cleared!", PromptType::info, PromptId::room_purified_info, 4.0f);
             }
         }
+
     } else {
         if (m_victory_hold_timer > 0.0f) {
             m_victory_hold_timer = std::max(0.0f, m_victory_hold_timer - (raw_dt * VICTORY_HOLD_DRAIN_RATE));
@@ -442,10 +448,13 @@ void MainScene::update_tick_simulation(float dt) {
             m_twilight_level = std::clamp(m_twilight_level - dec, TWILIGHT_MIN, TWILIGHT_MAX);
             record_twilight_event(-dec, "Spire Cleanse");
             Audio::play_sfx(SFX::spire_burn());
+            m_prompt_overlay.try_show_once("Spire energized - Twilight clearing", PromptType::info, PromptId::spire_linked_info, 3.0f);
         }
         if (sim_res.refiners_processed > 0) {
             Audio::play_sfx(SFX::mana_converted());
+            m_prompt_overlay.try_show_cooldown("Refiner purifying Dark Mana", PromptType::info, PromptId::refiner_active_info, 2.5f, false, 15.0f);
         }
+
 
         // Active dark mana refiner pool gurgling sound with dynamic pitch variation
         bool has_active_refiners = false;

@@ -13,6 +13,7 @@
 #include "alx/SFX.h"
 #include "alx/ParticleEmitters.h"
 #include "alx/ManaSpark.h"
+#include "alx/PromptOverlay.h"
 #include "core/Audio.h"
 #include "core/Draw.h"
 #include "core/Log.h"
@@ -464,7 +465,16 @@ bool Player::take_damage(int amount) {
     return true;
 }
 
-void Player::update(float dt, const Tiles& tiles, Network& network, const alx::Camera& camera, bool can_build, const std::vector<WorldStructure>* structures, ParticleSystem* particle_system) {
+void Player::update(
+    float dt,
+    const Tiles& tiles,
+    Network& network,
+    const alx::Camera& camera,
+    bool can_build,
+    const std::vector<WorldStructure>* structures,
+    ParticleSystem* particle_system,
+    PromptOverlay* prompt_overlay
+) {
     sync_prev_transforms();
 
     if (state.iframe_timer > 0.0f) {
@@ -479,8 +489,9 @@ void Player::update(float dt, const Tiles& tiles, Network& network, const alx::C
     }
 
     update_movement(dt, tiles, network, camera, structures);
-    update_actions(dt, tiles, network, can_build, particle_system);
+    update_actions(dt, tiles, network, can_build, particle_system, prompt_overlay);
 }
+
 
 void Player::draw(std::vector<uint32_t>& pixel_buffer, float alpha, bool can_build, const Tiles* tiles, const Network* network) {
     if (!active) return;
@@ -690,7 +701,7 @@ void Player::update_movement(float dt, const Tiles& tiles, const Network& networ
     clamp_transform_to_map_bounds(transform, GROUND_RADIUS_RATIO, GROUND_OFFSET_Y_RATIO, map_w, map_h);
 }
 
-void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool can_build, ParticleSystem* particle_system) {
+void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool can_build, ParticleSystem* particle_system, PromptOverlay* prompt_overlay) {
     if (attack_phase == AttackPhase::ActiveSweep) {
         swing_progress_prev = swing_progress_curr;
         attack_timer += dt;
@@ -714,6 +725,10 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
     bool btn_just_pressed = Action::is_attack();
     bool spark_just_pressed = Action::is_just_pressed(Action::ManaSpark);
     bool spark_held = Action::is_pressed(Action::ManaSpark);
+
+    if (is_panning && prompt_overlay) {
+        prompt_overlay->dismiss_if_matching(PromptId::camera_pan_hint);
+    }
     
     if (!m_is_charging_spark) {
         if (btn_just_pressed && attack_phase == AttackPhase::Idle) {
@@ -751,14 +766,14 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
         }
 
         if (can_build) {
-            update_build_actions(tiles, network, particle_system);
+            update_build_actions(tiles, network, particle_system, prompt_overlay);
         }
     }
 
     update_sword_slash_trail(particle_system);
 }
 
-void Player::update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system) {
+void Player::update_build_actions(const Tiles& tiles, Network& network, ParticleSystem* particle_system, PromptOverlay* prompt_overlay) {
     if (Action::is_build_cycle()) {
         if (m_selected_fixture_type == FixtureType::Pipe) {
             m_selected_fixture_type = FixtureType::Wall;
@@ -768,6 +783,9 @@ void Player::update_build_actions(const Tiles& tiles, Network& network, Particle
             m_selected_fixture_type = FixtureType::Spire;
         } else {
             m_selected_fixture_type = FixtureType::Pipe;
+        }
+        if (prompt_overlay) {
+            prompt_overlay->dismiss_if_matching(PromptId::cycle_fixture_hint);
         }
     }
 
@@ -792,12 +810,25 @@ void Player::update_build_actions(const Tiles& tiles, Network& network, Particle
                     Audio::play_sfx(SFX::wall_bump()); // [RSCK] Resource shortage gate audio cue
                     m_played_shortage_sfx = true;
                 }
+                if (prompt_overlay) {
+                    prompt_overlay->try_show_cooldown(
+                        "Insufficient Alloy",
+                        PromptType::warning,
+                        PromptId::low_alloy_warning,
+                        2.5f,
+                        false,
+                        5.0f
+                    );
+                }
                 m_last_drag_tile_pos = target_pos;
             } else {
                 bool placed = try_build_tile(tiles, network, particle_system);
                 m_last_drag_tile_pos = target_pos;
                 if (placed) {
                     m_played_shortage_sfx = false;
+                    if (prompt_overlay) {
+                        prompt_overlay->dismiss_if_matching(PromptId::place_pipe_hint);
+                    }
                 }
             }
         }
@@ -824,6 +855,7 @@ void Player::update_build_actions(const Tiles& tiles, Network& network, Particle
         }
     }
 }
+
 
 void Player::update_sword_slash_trail(ParticleSystem* particle_system) {
     if (!particle_system) return;

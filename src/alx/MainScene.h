@@ -18,6 +18,7 @@
 #include "alx/MainSceneTelemetry.h"
 #include "alx/TwilightMomentumTracker.h"
 #include "alx/PromptOverlay.h"
+#include "alx/PlayerContextSensor.h"
 
 namespace alx {
 
@@ -96,6 +97,7 @@ private:
     MainSceneTelemetry m_telemetry;
     TwilightMomentumTracker m_momentum_tracker;
     PromptOverlay m_prompt_overlay;
+    PlayerContextSensor m_context_sensor;
 
     static constexpr float CAMERA_SHAKE_PEAK_INTENSITY = 3.33f;
     static constexpr float CAMERA_SHAKE_DURATION = 1.33f;
