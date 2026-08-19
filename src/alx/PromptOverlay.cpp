@@ -1,8 +1,10 @@
 #include "alx/PromptOverlay.h"
 #include <algorithm>
 #include <cmath>
-#include "core/Draw.h"
+#include "alx/Action.h"
 #include "alx/TextStyles.h"
+#include "core/Draw.h"
+#include "core/Input.h"
 
 namespace alx {
 
@@ -25,6 +27,66 @@ uint32_t PromptOverlay::apply_alpha(uint32_t argb, float alpha) noexcept {
     return (scaled_a << 24) | (argb & 0x00FFFFFF);
 }
 
+size_t PromptOverlay::format_tokens(std::string_view input, char* out_buf, size_t max_out_len) noexcept {
+    if (out_buf == nullptr || max_out_len == 0) return 0;
+
+    const bool is_gamepad = ::Input::is_gamepad_connected();
+    size_t out_idx = 0;
+
+    auto append_str = [&](std::string_view s) {
+        for (char c : s) {
+            if (out_idx + 1 < max_out_len) {
+                out_buf[out_idx++] = c;
+            }
+        }
+    };
+
+    auto resolve_action_label = [&](std::string_view token) -> std::string_view {
+        if (is_gamepad) {
+            if (token == "ATTACK") return "[A]";
+            if (token == "PLACE") return "[X]";
+            if (token == "CANCEL" || token == "DEMOLISH") return "[B]";
+            if (token == "CYCLE") return "[Y]";
+            if (token == "PAN") return "[L]";
+            if (token == "SPARK") return "[ZR]";
+            if (token == "BUILD_MODE") return "[R]";
+            if (token == "FOUNDATION") return "[A]";
+            if (token == "MENU") return "[START]";
+        } else {
+            if (token == "ATTACK") return "[J]";
+            if (token == "PLACE") return "[U]";
+            if (token == "CANCEL" || token == "DEMOLISH") return "[K]";
+            if (token == "CYCLE") return "[I]";
+            if (token == "PAN") return "[Tab]";
+            if (token == "SPARK") return "[;]";
+            if (token == "BUILD_MODE") return "[L]";
+            if (token == "FOUNDATION") return "[Space]";
+            if (token == "MENU") return "[Enter]";
+        }
+        return {};
+    };
+
+    size_t i = 0;
+    while (i < input.size() && out_idx + 1 < max_out_len) {
+        if (input[i] == '{') {
+            const size_t close_pos = input.find('}', i + 1);
+            if (close_pos != std::string_view::npos) {
+                const std::string_view token = input.substr(i + 1, close_pos - (i + 1));
+                const std::string_view label = resolve_action_label(token);
+                if (!label.empty()) {
+                    append_str(label);
+                    i = close_pos + 1;
+                    continue;
+                }
+            }
+        }
+        out_buf[out_idx++] = input[i++];
+    }
+
+    out_buf[out_idx] = '\0';
+    return out_idx;
+}
+
 void PromptOverlay::show(
     std::string_view text,
     PromptType type,
@@ -32,8 +94,16 @@ void PromptOverlay::show(
     float hold_duration,
     bool is_sticky
 ) {
+    char formatted_buf[PromptMessage::max_text_length]{};
+    format_tokens(text, formatted_buf, PromptMessage::max_text_length);
+    const std::string_view resolved_text{formatted_buf};
+
+    if (id != PromptId::none) {
+        m_seen_history.set(static_cast<size_t>(id));
+    }
+
     if (m_state == PromptState::inactive) {
-        m_current.text = text;
+        m_current.set_text(resolved_text);
         m_current.type = type;
         m_current.id = id;
         m_current.hold_duration_sec = hold_duration;
@@ -55,7 +125,7 @@ void PromptOverlay::show(
             m_queue[0] = m_current;
             ++m_queue_count;
         }
-        m_current.text = text;
+        m_current.set_text(resolved_text);
         m_current.type = type;
         m_current.id = id;
         m_current.hold_duration_sec = hold_duration;
@@ -70,16 +140,53 @@ void PromptOverlay::show(
 
     // Standard queuing
     if (m_queue_count < max_queued_prompts) {
-        m_queue[m_queue_count] = PromptMessage{
-            .text = text,
+        PromptMessage msg{
             .id = id,
             .type = type,
             .hold_duration_sec = hold_duration,
             .dismiss_on_action = true,
             .is_sticky = is_sticky,
         };
+        msg.set_text(resolved_text);
+        m_queue[m_queue_count] = msg;
         ++m_queue_count;
     }
+}
+
+bool PromptOverlay::try_show_cooldown(
+    std::string_view text,
+    PromptType type,
+    PromptId id,
+    float hold_duration,
+    bool is_sticky,
+    float cooldown_sec
+) {
+    if (id != PromptId::none) {
+        const size_t idx = static_cast<size_t>(id);
+        if (m_cooldown_timers[idx] > 0.0f) {
+            return false;
+        }
+        m_cooldown_timers[idx] = cooldown_sec;
+    }
+    show(text, type, id, hold_duration, is_sticky);
+    return true;
+}
+
+bool PromptOverlay::try_show_once(
+    std::string_view text,
+    PromptType type,
+    PromptId id,
+    float hold_duration,
+    bool is_sticky
+) {
+    if (id != PromptId::none) {
+        const size_t idx = static_cast<size_t>(id);
+        if (m_seen_history.test(idx)) {
+            return false;
+        }
+    }
+    show(text, type, id, hold_duration, is_sticky);
+    return true;
 }
 
 void PromptOverlay::dismiss() {
@@ -104,7 +211,43 @@ void PromptOverlay::reset() {
     m_queue_count = 0;
 }
 
+void PromptOverlay::reset_room_cooldowns() {
+    m_cooldown_timers.fill(0.0f);
+}
+
+void PromptOverlay::reset_history() {
+    m_seen_history.reset();
+}
+
+void PromptOverlay::reset_all() {
+    reset();
+    reset_room_cooldowns();
+    reset_history();
+}
+
+bool PromptOverlay::has_seen(PromptId id) const noexcept {
+    if (id == PromptId::none) return false;
+    return m_seen_history.test(static_cast<size_t>(id));
+}
+
+bool PromptOverlay::is_on_cooldown(PromptId id) const noexcept {
+    if (id == PromptId::none) return false;
+    return m_cooldown_timers[static_cast<size_t>(id)] > 0.0f;
+}
+
+float PromptOverlay::cooldown_remaining(PromptId id) const noexcept {
+    if (id == PromptId::none) return 0.0f;
+    return m_cooldown_timers[static_cast<size_t>(id)];
+}
+
 void PromptOverlay::update(float dt) noexcept {
+    // 1. Update cooldown timers
+    for (float& cd : m_cooldown_timers) {
+        if (cd > 0.0f) {
+            cd = std::max(0.0f, cd - dt);
+        }
+    }
+
     if (m_state == PromptState::inactive) return;
 
     m_state_timer_sec += dt;
@@ -174,11 +317,11 @@ void PromptOverlay::update(float dt) noexcept {
 }
 
 void PromptOverlay::draw(int screen_width, int screen_height) const {
-    if (m_state == PromptState::inactive || m_alpha <= 0.005f || m_current.text.empty()) {
+    if (m_state == PromptState::inactive || m_alpha <= 0.005f || m_current.text().empty()) {
         return;
     }
 
-    const int text_w = Draw::text_width(m_current.text, 1, &TextStyles::font);
+    const int text_w = Draw::text_width(m_current.text(), 1, &TextStyles::font);
     const int box_w = text_w + (prompt_style::padding_x_px * 2);
     const int box_h = prompt_style::box_height_px;
 
@@ -222,7 +365,7 @@ void PromptOverlay::draw(int screen_width, int screen_height) const {
     Draw::text(
         text_x,
         text_y,
-        m_current.text,
+        m_current.text(),
         text_color,
         1,
         Layer::HUD_OverlayText,
