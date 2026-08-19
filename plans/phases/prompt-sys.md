@@ -106,31 +106,49 @@ inline constexpr uint32_t prompt_border_tier2_rgba = 0xFFD82850;      // Crimson
 ### `[PH-CTXP-QUEUE]`: Phase 2 - Lightweight Toast Queue Engine (`[LTQE]`)
 *Focus: Zero-allocation queue manager, priority preemption, once-only tracking, and action-fulfillment dismissal.*
 
-- [ ] `[LTQE-MGR]`: **Dual-Slot Queue Controller & Preemption**
-  - Implement `PromptController` maintaining 4-slot ring buffer.
-  - Support priority preemption: incoming Tier 2 (Threat) immediately interrupts active Tier 0/1 prompts with an accelerated fade-out / immediate entrance.
+- [ ] `[LTQE-MGR]`: **Dual-Slot Queue Controller & Accelerated Preemption**
+  - Maintain a static 4-slot ring buffer for prompt sequencing.
+  - Implement accelerated preemption: incoming Tier 2 (Threat) immediately interrupts active Tier 0/1 prompts, pushing the interrupted prompt back to the front of the queue, and enters active display instantly.
 - [ ] `[LTQE-DISM]`: **Action-Fulfillment Instant Dismissal**
   - Implement `dismiss_if_matching(PromptId id)` to transition state instantly to `fade_out` when the player executes the prompted action.
-- [ ] `[LTQE-COOL]`: **Cooldowns & Once-Only History Tracking**
-  - Implement bitset / lookup table for `PromptId` to track seen-once tutorial hints across level sessions.
-  - Enforce a 10s cooldown timer between repeated operational warnings.
+- [ ] `[LTQE-COOL]`: **Cooldowns & Hybrid Once-Only History Tracking**
+  - Implement a persistent run-scoped bitset (`PromptHistoryBitset`) for seen-once onboarding hints (`mine_alloy_hint`, `place_pipe_hint`, etc.).
+  - Implement per-room cooldown array (`PromptCooldownTracker`) enforcing 5-15s repeat intervals on warnings and alerts.
+- [ ] `[LTQE-TOK]`: **Dual Action Token & Text Formatter Engine**
+  - Implement lightweight parser replacing `{ATTACK}`, `{PLACE}`, `{CYCLE}`, `{PAN}`, `{SPARK}` with current active bindings (e.g., `[J]`, `[L+U]`, `[Q]`, `[R]`), while seamlessly accepting static string literals.
 
 ---
 
 ### `[PH-CTXP-TRIG]`: Phase 3 - Collaborative Trigger Brainstorming & Systemic Game Hooks (`[TPMV]`)
-*Focus: Brainstorming comprehensive trigger points with the user, curating concise vocabulary, and hooking triggers into gameplay systems.*
+*Focus: Curating the comprehensive trigger taxonomy, proximity sensing, and hooking triggers into gameplay systems.*
 
-- [ ] `[TRIG-BRAIN]`: **Collaborative Trigger & Message Brainstorming**
-  - Brainstorm and align with the user on all specific message trigger moments, conditions, and text strings.
-  - Scope conditions across:
-    - Early-game onboarding / controls (mining alloy, placing pipes, camera scouting).
-    - Network automation & logistics (connecting refiners to spires, unlinked pipe flow warnings, mana pressure).
-    - Economy & resources (insufficient alloy, full mana capacity).
-    - Twilight threats & combat (Dark Tower emergence alerts, Spire damage alerts, Twilight surge waves, low HP warnings).
-  - Define priority tiers, repeat cooldowns, and auto-dismissal actions for each brainstormed trigger.
-- [ ] `[TRIG-REG]`: **Systemic Trigger Dispatch Implementation**
-  - Hook the curated trigger list into gameplay systems (`Player.cpp`, `Network.cpp`, `EnemyManager.cpp`, `MainScene.cpp`).
-  - Wire action-fulfillment events (`dismiss_if_matching`) on player verb execution.
+- [ ] `[TRIG-TAX]`: **Curated Gameplay Trigger Matrix**
+  - Define full `PromptId` enumeration and parameter table:
+    1. **Onboarding / Controls (`[CAT-ONBD]`)**:
+       - `mine_alloy_hint` (Tier 0, Sticky, `{ATTACK} Mine Alloy`, dismiss on hit/mine rock, run-once)
+       - `place_pipe_hint` (Tier 0, Sticky, `Hold {PLACE} Lay Pipe`, dismiss on place pipe, run-once)
+       - `cycle_fixture_hint` (Tier 0, 4.0s hold, `{CYCLE} Cycle Fixture`, dismiss on cycle, run-once)
+       - `camera_pan_hint` (Tier 0, 3.5s hold, `Hold {PAN} Scout Room`, dismiss on pan, run-once)
+       - `mana_spark_hint` (Tier 0, Sticky, `{SPARK} Mana Spark`, dismiss on spark fire, run-once)
+    2. **Automation & Mana Logistics (`[CAT-AUTO]`)**:
+       - `pipe_unlinked_warning` (Tier 1, 3.0s hold, `Pipe unlinked / flow blocked`, 10s room cooldown)
+       - `refiner_active_info` (Tier 0, 2.5s hold, `Refiner purifying Dark Mana`, 15s room cooldown)
+       - `spire_linked_info` (Tier 0, 3.0s hold, `Spire energized - Twilight clearing`, room-once)
+       - `seep_depleted_info` (Tier 0, 2.5s hold, `Dark Seep exhausted`, room-once)
+    3. **Economy & Resources (`[CAT-ECON]`)**:
+       - `low_alloy_warning` (Tier 1, 2.5s hold, `Insufficient Alloy (need %d)`, 5s room cooldown)
+       - `storage_full_info` (Tier 1, 2.5s hold, `Alloy capacity full`, 15s room cooldown)
+    4. **Twilight Threats & Combat (`[CAT-THRT]`)**:
+       - `spire_attacked_alert` (Tier 2, 3.0s hold, `ALERT: Spire taking damage!`, 8s room cooldown)
+       - `surge_incoming_alert` (Tier 2, 3.5s hold, `ALERT: Twilight surge approaching!`, 12s room cooldown)
+       - `tower_emerged_alert` (Tier 2, 3.5s hold, `ALERT: Dark Tower emerged!`, room-once)
+       - `player_low_hp_alert` (Tier 2, 3.0s hold, `WARNING: Low health!`, 15s room cooldown)
+       - `room_purified_info` (Tier 0, 4.0s hold, `Room Purified!`, room-once)
+- [ ] `[TRIG-PROX]`: **Contextual Proximity & State Sensor**
+  - Evaluate player proximity ($d \le 32\text{px}$) to interactive entities (Alloy Rocks when alloy is 0, Seeps with unlinked pipes, empty Spires) to dispatch onboarding hints naturally.
+- [ ] `[TRIG-REG]`: **Systemic Trigger Dispatch Integration**
+  - Hook trigger calls into [`Player.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Player.cpp), [`Network.cpp`](file:///Users/matt/code/cpp/alx/src/alx/Network.cpp), [`EnemyManager.cpp`](file:///Users/matt/code/cpp/alx/src/alx/EnemyManager.cpp), and [`MainScene.cpp`](file:///Users/matt/code/cpp/alx/src/alx/MainScene.cpp).
+  - Connect action events to `dismiss_if_matching(PromptId)`.
 
 ---
 
