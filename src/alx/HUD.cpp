@@ -141,6 +141,135 @@ void draw_in_game_bar(const HUDState& state, int screen_width, int screen_height
             COLOR_TEXT, 1, Layer::HUD_Text, &TextStyles::font
         );
     }
+
+    // Twilight Momentum Barometer
+    draw_momentum_barometer(state, screen_width, screen_height);
+}
+
+void draw_momentum_barometer(const HUDState& state, int screen_width, int /*screen_height*/) {
+    const int bar_h = BAR_HEIGHT;
+    const int bar_y = PADDING_VERTICAL;
+    const int base_y = bar_y + bar_h + momentum_offset_y;
+
+    const auto& mom = state.momentum;
+    const int center_x = (screen_width / 2) + static_cast<int>(std::round(mom.kick_offset_x));
+
+    // 1. Determine active center icon and chevron configuration
+    const char* icon = "\x04"; // Default: Equilibrium Diamond
+    const char* chevrons = "";
+    bool is_light = false;
+    bool is_twilight = false;
+
+    switch (mom.current_tier) {
+        case MomentumTier::HeavyLight:
+            icon = "\x0F";
+            chevrons = "<<<";
+            is_light = true;
+            break;
+        case MomentumTier::ModerateLight:
+            icon = "\x0F";
+            chevrons = "<<";
+            is_light = true;
+            break;
+        case MomentumTier::SlightLight:
+            icon = "\x0F";
+            chevrons = "<";
+            is_light = true;
+            break;
+        case MomentumTier::Equilibrium:
+            icon = "\x04";
+            chevrons = "";
+            break;
+        case MomentumTier::SlightTwilight:
+            icon = "\x08";
+            chevrons = ">";
+            is_twilight = true;
+            break;
+        case MomentumTier::ModerateTwilight:
+            icon = "\x08";
+            chevrons = ">>";
+            is_twilight = true;
+            break;
+        case MomentumTier::HeavyTwilight:
+            icon = "\x08";
+            chevrons = ">>>";
+            is_twilight = true;
+            break;
+    }
+
+    // 2. Determine base color
+    uint32_t base_color = color_momentum_equilibrium;
+    if (mom.flash_timer > 0.0f) {
+        base_color = mom.flash_is_light ? color_momentum_light_flash : color_momentum_tw_flash;
+    } else {
+        switch (mom.current_tier) {
+            case MomentumTier::HeavyLight:
+            case MomentumTier::ModerateLight:
+                base_color = color_momentum_light_vivid;
+                break;
+            case MomentumTier::SlightLight:
+                base_color = color_momentum_light_muted;
+                break;
+            case MomentumTier::Equilibrium:
+                base_color = color_momentum_equilibrium;
+                break;
+            case MomentumTier::SlightTwilight:
+                base_color = color_momentum_tw_muted;
+                break;
+            case MomentumTier::ModerateTwilight:
+                base_color = color_momentum_tw_vivid;
+                break;
+            case MomentumTier::HeavyTwilight:
+                base_color = color_momentum_tw_flash;
+                break;
+        }
+    }
+
+    // 3. Apply Pulse-Beat Luminance Modulation (when not in snap-flash)
+    uint32_t active_color = base_color;
+    if (mom.flash_timer <= 0.0f) {
+        const float sin_val = std::sin(mom.pulse_phase);
+        const float lum = std::clamp(1.0f + (0.25f * sin_val), 0.5f, 1.5f);
+
+        const uint32_t a = (base_color >> 24) & 0xFF;
+        const uint32_t r = std::clamp(static_cast<uint32_t>(((base_color >> 16) & 0xFF) * lum), 0u, 255u);
+        const uint32_t g = std::clamp(static_cast<uint32_t>(((base_color >> 8) & 0xFF) * lum), 0u, 255u);
+        const uint32_t b = std::clamp(static_cast<uint32_t>((base_color & 0xFF) * lum), 0u, 255u);
+        active_color = (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    // 4. Chevron spacing breathing (dynamic 0-1px extra padding at pulse peak)
+    const float spacing_factor = std::clamp((std::sin(mom.pulse_phase) + 1.0f) * 0.5f, 0.0f, 1.0f);
+    const int extra_spacing = (mom.current_tier != MomentumTier::Equilibrium && spacing_factor > 0.6f) ? 1 : 0;
+
+    // 5. Layout and Render
+    const int icon_w = Draw::text_width(icon, 1, &TextStyles::font);
+    const int icon_x = center_x - (icon_w / 2);
+
+    // Draw center icon
+    Draw::text_shadow(
+        static_cast<float>(icon_x), static_cast<float>(base_y),
+        icon,
+        active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
+    );
+
+    // Draw directional chevrons
+    if (is_light && chevrons[0] != '\0') {
+        const int chev_w = Draw::text_width(chevrons, 1, &TextStyles::font);
+        const int chev_x = icon_x - chev_w - 1 - extra_spacing;
+        Draw::text_shadow(
+            static_cast<float>(chev_x), static_cast<float>(base_y),
+            chevrons,
+            active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
+        );
+    } else if (is_twilight && chevrons[0] != '\0') {
+        const int chev_x = icon_x + icon_w + 1 + extra_spacing;
+        Draw::text_shadow(
+            static_cast<float>(chev_x), static_cast<float>(base_y),
+            chevrons,
+            active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
+        );
+    }
 }
 
 void draw_game_over_fade(float fade_timer, float duration, int screen_width, int screen_height) {

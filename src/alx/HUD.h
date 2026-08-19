@@ -4,6 +4,7 @@
 #include <string_view>
 #include "alx/Fixture.h"
 #include "alx/Menu.h"
+#include "alx/TwilightMomentumTracker.h"
 
 namespace alx {
 
@@ -24,6 +25,7 @@ struct HUDState {
     float game_over_fade_timer{0.0f};
     float game_over_fade_duration{0.5f};
     bool is_victory_screen{false};
+    TwilightMomentumState momentum{};
 };
 
 namespace HUD {
@@ -46,8 +48,19 @@ inline constexpr uint32_t COLOR_OVERLAY_BACKDROP = 0x80000000;
 inline constexpr int PADDING_SIDE = 6;
 inline constexpr int PADDING_VERTICAL = 4;
 
+// Twilight Momentum Barometer Styling & Layout Constants
+inline constexpr int momentum_offset_y = 2;
+inline constexpr uint32_t color_momentum_light_flash = 0xFFFFFFFF;
+inline constexpr uint32_t color_momentum_light_vivid = 0xFF00E5FF;
+inline constexpr uint32_t color_momentum_light_muted = 0xFF40A8C0;
+inline constexpr uint32_t color_momentum_equilibrium = 0xFF4A6B82;
+inline constexpr uint32_t color_momentum_tw_muted    = 0xFF7A4B9E;
+inline constexpr uint32_t color_momentum_tw_vivid    = 0xFF9B30FF;
+inline constexpr uint32_t color_momentum_tw_flash    = 0xFFD154FF;
+
 void draw(const HUDState& state, const Menu& menu, int screen_width, int screen_height);
 void draw_in_game_bar(const HUDState& state, int screen_width, int screen_height);
+void draw_momentum_barometer(const HUDState& state, int screen_width, int screen_height);
 void draw_game_over_fade(float fade_timer, float duration, int screen_width, int screen_height);
 void draw_overlay_menu(
     std::string_view title,

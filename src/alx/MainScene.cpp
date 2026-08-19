@@ -86,6 +86,7 @@ void MainScene::load_dark_towers(std::span<const DarkTowerSpawn> spawns) {
 void MainScene::reset_level_telemetry() {
     m_time_to_zero_twilight = -1.0f;
     m_telemetry.reset(m_twilight_level);
+    m_momentum_tracker.reset(m_twilight_level);
 }
 
 void MainScene::load_tiles_and_network(const Level& level) {
@@ -390,6 +391,7 @@ void MainScene::update_twilight_metrics(float dt, float prev_twilight) {
     }
 
     m_telemetry.update_metrics(dt, m_twilight_level, prev_twilight);
+    m_momentum_tracker.update(dt, m_twilight_level, prev_twilight);
 }
 
 void MainScene::update_headless_defense(float dt) {
@@ -503,6 +505,7 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
         .game_over_fade_timer = m_game_over_fade_timer,
         .game_over_fade_duration = GAME_OVER_FADE_DURATION,
         .is_victory_screen = m_is_victory_screen,
+        .momentum = m_momentum_tracker.state(),
     };
 
     const Menu& active_menu = m_paused

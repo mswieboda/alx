@@ -16,6 +16,7 @@
 #include "alx/HUD.h"
 #include "alx/TwilightOverlay.h"
 #include "alx/MainSceneTelemetry.h"
+#include "alx/TwilightMomentumTracker.h"
 
 namespace alx {
 
@@ -92,6 +93,7 @@ private:
     float m_time_to_zero_twilight{-1.0f};
 
     MainSceneTelemetry m_telemetry;
+    TwilightMomentumTracker m_momentum_tracker;
 
     static constexpr float CAMERA_SHAKE_PEAK_INTENSITY = 3.33f;
     static constexpr float CAMERA_SHAKE_DURATION = 1.33f;
