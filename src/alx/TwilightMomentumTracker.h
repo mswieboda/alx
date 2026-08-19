@@ -13,9 +13,10 @@ namespace twilight_momentum {
     inline constexpr size_t bucket_count = 60; // 60 * 0.25s = 15.0s
 
     // Rate thresholds (% change projected per rolling window)
-    inline constexpr float threshold_slight = 0.5f;    // |delta| >= 0.5% (below this is Equilibrium)
-    inline constexpr float threshold_moderate = 2.0f;  // |delta| >= 2.0%
-    inline constexpr float threshold_heavy = 5.0f;     // |delta| >= 5.0%
+    inline constexpr float threshold_slight = 3.0f;    // |delta| >= 3.0% (below this is Equilibrium)
+    inline constexpr float threshold_moderate = 5.0f;  // |delta| >= 5.0%
+    inline constexpr float threshold_heavy = 15.0f;    // |delta| >= 15.0%
+    inline constexpr float min_sampling_window_sec = 3.0f; // Warmup floor for delta calculation
 
     // Pulse beat frequencies (Hz)
     inline constexpr float pulse_freq_equilibrium = 0.5f;

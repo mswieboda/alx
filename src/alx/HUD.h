@@ -50,6 +50,10 @@ inline constexpr int PADDING_VERTICAL = 4;
 
 // Twilight Momentum Barometer Styling & Layout Constants
 inline constexpr int momentum_offset_y = 2;
+inline constexpr int momentum_chevron_width = 3;
+inline constexpr int momentum_chevron_height = 4;
+inline constexpr int momentum_chevron_base_spacing = 2;
+inline constexpr int momentum_icon_gap = 3;
 inline constexpr uint32_t color_momentum_light_flash = 0xFFFFFFFF;
 inline constexpr uint32_t color_momentum_light_vivid = 0xFF00E5FF;
 inline constexpr uint32_t color_momentum_light_muted = 0xFF40A8C0;

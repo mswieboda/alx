@@ -156,43 +156,43 @@ void draw_momentum_barometer(const HUDState& state, int screen_width, int /*scre
 
     // 1. Determine active center icon and chevron configuration
     const char* icon = "\x04"; // Default: Equilibrium Diamond
-    const char* chevrons = "";
+    int chevron_count = 0;
     bool is_light = false;
     bool is_twilight = false;
 
     switch (mom.current_tier) {
         case MomentumTier::HeavyLight:
             icon = "\x0F";
-            chevrons = "<<<";
+            chevron_count = 3;
             is_light = true;
             break;
         case MomentumTier::ModerateLight:
             icon = "\x0F";
-            chevrons = "<<";
+            chevron_count = 2;
             is_light = true;
             break;
         case MomentumTier::SlightLight:
             icon = "\x0F";
-            chevrons = "<";
+            chevron_count = 1;
             is_light = true;
             break;
         case MomentumTier::Equilibrium:
             icon = "\x04";
-            chevrons = "";
+            chevron_count = 0;
             break;
         case MomentumTier::SlightTwilight:
             icon = "\x08";
-            chevrons = ">";
+            chevron_count = 1;
             is_twilight = true;
             break;
         case MomentumTier::ModerateTwilight:
             icon = "\x08";
-            chevrons = ">>";
+            chevron_count = 2;
             is_twilight = true;
             break;
         case MomentumTier::HeavyTwilight:
             icon = "\x08";
-            chevrons = ">>>";
+            chevron_count = 3;
             is_twilight = true;
             break;
     }
@@ -241,34 +241,58 @@ void draw_momentum_barometer(const HUDState& state, int screen_width, int /*scre
     // 4. Chevron spacing breathing (dynamic 0-1px extra padding at pulse peak)
     const float spacing_factor = std::clamp((std::sin(mom.pulse_phase) + 1.0f) * 0.5f, 0.0f, 1.0f);
     const int extra_spacing = (mom.current_tier != MomentumTier::Equilibrium && spacing_factor > 0.6f) ? 1 : 0;
+    const int spacing = momentum_chevron_base_spacing + extra_spacing;
 
-    // 5. Layout and Render
+    // 5. Layout and Render Center Icon
     const int icon_w = Draw::text_width(icon, 1, &TextStyles::font);
     const int icon_x = center_x - (icon_w / 2);
 
-    // Draw center icon
     Draw::text_shadow(
         static_cast<float>(icon_x), static_cast<float>(base_y),
         icon,
         active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
     );
 
-    // Draw directional chevrons
-    if (is_light && chevrons[0] != '\0') {
-        const int chev_w = Draw::text_width(chevrons, 1, &TextStyles::font);
-        const int chev_x = icon_x - chev_w - 1 - extra_spacing;
-        Draw::text_shadow(
-            static_cast<float>(chev_x), static_cast<float>(base_y),
-            chevrons,
-            active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
-        );
-    } else if (is_twilight && chevrons[0] != '\0') {
-        const int chev_x = icon_x + icon_w + 1 + extra_spacing;
-        Draw::text_shadow(
-            static_cast<float>(chev_x), static_cast<float>(base_y),
-            chevrons,
-            active_color, COLOR_TEXT_SHADOW, 1, Layer::HUD_Text, &TextStyles::font
-        );
+    // 6. Draw Pixel Primitive Chevrons with Drop Shadow
+    const int chev_y = base_y + (TextStyles::font.size - momentum_chevron_height) / 2;
+
+    auto draw_pixel_with_shadow = [](int px, int py, uint32_t color) {
+        Draw::rect(static_cast<float>(px + 1), static_cast<float>(py + 1), 1.0f, 1.0f, COLOR_TEXT_SHADOW, true, 1, Layer::HUD_Text);
+        Draw::rect(static_cast<float>(px), static_cast<float>(py), 1.0f, 1.0f, color, true, 1, Layer::HUD_Text);
+    };
+
+    auto draw_chevron_left = [&](int start_x, int start_y, uint32_t color) {
+        const float mid_r = (momentum_chevron_height - 1) * 0.5f;
+        for (int r = 0; r < momentum_chevron_height; ++r) {
+            const float dist = std::abs(static_cast<float>(r) - mid_r);
+            const int col = (mid_r > 0.001f)
+                ? std::clamp(static_cast<int>(std::round(dist * static_cast<float>(momentum_chevron_width - 1) / mid_r)), 0, momentum_chevron_width - 1)
+                : 0;
+            draw_pixel_with_shadow(start_x + col, start_y + r, color);
+        }
+    };
+
+    auto draw_chevron_right = [&](int start_x, int start_y, uint32_t color) {
+        const float mid_r = (momentum_chevron_height - 1) * 0.5f;
+        for (int r = 0; r < momentum_chevron_height; ++r) {
+            const float dist = std::abs(static_cast<float>(r) - mid_r);
+            const int col = (mid_r > 0.001f)
+                ? std::clamp(static_cast<int>(std::round(dist * static_cast<float>(momentum_chevron_width - 1) / mid_r)), 0, momentum_chevron_width - 1)
+                : 0;
+            draw_pixel_with_shadow(start_x + (momentum_chevron_width - 1 - col), start_y + r, color);
+        }
+    };
+
+    if (is_light && chevron_count > 0) {
+        for (int i = 0; i < chevron_count; ++i) {
+            const int cx = (icon_x - momentum_icon_gap - momentum_chevron_width) - (i * (momentum_chevron_width + spacing));
+            draw_chevron_left(cx, chev_y, active_color);
+        }
+    } else if (is_twilight && chevron_count > 0) {
+        for (int i = 0; i < chevron_count; ++i) {
+            const int cx = (icon_x + icon_w + momentum_icon_gap) + (i * (momentum_chevron_width + spacing));
+            draw_chevron_right(cx, chev_y, active_color);
+        }
     }
 }
 

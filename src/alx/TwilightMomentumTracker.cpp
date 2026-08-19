@@ -79,7 +79,8 @@ void TwilightMomentumTracker::update(float dt, float current_twilight, float pre
     }
 
     if (total_dt > 0.001f) {
-        const float rate_per_sec = total_delta / total_dt;
+        const float effective_dt = std::max(total_dt, twilight_momentum::min_sampling_window_sec);
+        const float rate_per_sec = total_delta / effective_dt;
         m_state.rolling_delta = rate_per_sec * twilight_momentum::rolling_window_sec * 100.0f;
     } else {
         m_state.rolling_delta = 0.0f;
