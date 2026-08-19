@@ -5,11 +5,11 @@
 
 namespace alx {
 
-class Camera;
+struct Camera;
 
 class TwilightOverlay {
 private:
-    std::vector<uint32_t> m_pixel_buffer;
+    mutable std::vector<uint32_t> m_pixel_buffer;
     float m_vignette_timer{0.0f};
 
     static constexpr float VIGNETTE_PEAK_INTENSITY = 0.33f;
@@ -31,7 +31,7 @@ public:
         float player_center_x,
         float player_center_y,
         float wand_radius
-    );
+    ) const;
 
     void draw_vignette_surge() const;
 };

@@ -25,6 +25,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Enable Interprocedural Optimization (LTO / LTCG) for Release builds
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
+if(WIN32)
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 # ----------------------------------------------------
 
 include_directories(deps)

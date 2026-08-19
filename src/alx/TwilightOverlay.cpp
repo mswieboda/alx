@@ -42,7 +42,7 @@ void TwilightOverlay::draw(
     float player_center_x,
     float player_center_y,
     float wand_radius
-) {
+) const {
     if (twilight_level <= 0.0f) return;
 
     const int w = Game::WIDTH;

@@ -8,7 +8,7 @@ namespace alx {
 
 class EnemyManager;
 class Network;
-class Player;
+struct Player;
 class Tiles;
 
 #if ALX_ENABLE_TELEMETRY || ALX_ENABLE_HEADLESS
