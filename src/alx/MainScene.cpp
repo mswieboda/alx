@@ -41,6 +41,7 @@ void MainScene::load_level(int level_id) {
     m_player_spawn = lvl->player_spawn;
     m_twilight_level = std::clamp(lvl->initial_twilight, TWILIGHT_MIN, TWILIGHT_MAX);
     m_can_build = lvl->can_build;
+    m_prompt_overlay.reset();
     m_victory_hold_timer = 0.0f;
     m_victory_sequence_timer = 0.0f;
     m_last_countdown_second = -1;
@@ -55,6 +56,13 @@ void MainScene::load_level(int level_id) {
     load_tiles_and_network(*lvl);
     load_dark_towers(lvl->dark_tower_spawns);
     reset_level_telemetry();
+
+#if ALX_ENABLE_DEBUG
+    // Test prompt queue for visual validation (Debug only)
+    m_prompt_overlay.show("[A] Mine alloy", PromptSeverity::info_tutorial, PromptId::mine_alloy_hint, 2.5f);
+    m_prompt_overlay.show("Low alloy (need 2)", PromptSeverity::resource_warning, PromptId::low_alloy_warning, 2.5f);
+    m_prompt_overlay.show("Surge incoming!", PromptSeverity::critical_threat, PromptId::surge_incoming_alert, 2.5f);
+#endif // ALX_ENABLE_DEBUG
 }
 
 void MainScene::setup_player_at_spawn(GridPos spawn_pos) {
@@ -233,6 +241,7 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
     update_victory_condition(raw_dt);
     update_game_over_fade(raw_dt);
     update_time_dilation_hotkeys();
+    m_prompt_overlay.update(raw_dt);
 
     if (m_victory_achieved) {
         if (m_victory_sequence_timer > 0.0f) {
@@ -513,6 +522,7 @@ void MainScene::draw_screen(std::vector<uint32_t>& pixel_buffer, float alpha) {
         : (m_is_victory_screen ? m_victory_menu : m_game_over_menu);
 
     HUD::draw(hud_state, active_menu, Game::WIDTH, Game::HEIGHT);
+    m_prompt_overlay.draw(Game::WIDTH, Game::HEIGHT);
 }
 
 void MainScene::draw_victory_shockwave(float alpha) {

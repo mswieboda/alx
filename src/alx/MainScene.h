@@ -17,6 +17,7 @@
 #include "alx/TwilightOverlay.h"
 #include "alx/MainSceneTelemetry.h"
 #include "alx/TwilightMomentumTracker.h"
+#include "alx/PromptOverlay.h"
 
 namespace alx {
 
@@ -94,6 +95,7 @@ private:
 
     MainSceneTelemetry m_telemetry;
     TwilightMomentumTracker m_momentum_tracker;
+    PromptOverlay m_prompt_overlay;
 
     static constexpr float CAMERA_SHAKE_PEAK_INTENSITY = 3.33f;
     static constexpr float CAMERA_SHAKE_DURATION = 1.33f;
@@ -146,6 +148,8 @@ public:
     const Tiles& tiles() const { return m_tiles; }
     Network& network() { return m_network; }
     const Network& network() const { return m_network; }
+    PromptOverlay& prompt_overlay() noexcept { return m_prompt_overlay; }
+    const PromptOverlay& prompt_overlay() const noexcept { return m_prompt_overlay; }
 };
 
 } // namespace alx

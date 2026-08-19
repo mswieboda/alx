@@ -6,6 +6,10 @@ namespace Game {
     // game metadata
     constexpr std::string_view TITLE = "Aetherlux";
 
+    // game dimensions
+    constexpr int WIDTH = 320;
+    constexpr int HEIGHT = 240;
+
     // window / game loop
     constexpr int DEFAULT_WINDOW_SCALE = 2;
     constexpr int TARGET_FPS = 60; // Set your cap here
@@ -14,9 +18,7 @@ namespace Game {
     // tiles / maps
     constexpr int TILE_SIZE = 16;
 
-    // game dimensions
-    constexpr int WIDTH = 320;
-    constexpr int HEIGHT = 240;
+    // dimension helpers
     constexpr int half_screen_width = Game::WIDTH / 2.0f;
     constexpr int half_screen_height = Game::HEIGHT / 2.0f;
     constexpr int qtr_screen_height = Game::HEIGHT / 4.0f;
