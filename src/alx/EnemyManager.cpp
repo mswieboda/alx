@@ -163,6 +163,12 @@ namespace alx {
         return val;
     }
 
+    bool EnemyManager::consume_mana_spark_fired_event() noexcept {
+        bool val = m_mana_spark_fired_event;
+        m_mana_spark_fired_event = false;
+        return val;
+    }
+
     void EnemyManager::spawn_enemy_wave(const Tiles& tiles, const Network* network , int count , float player_start_x , float player_start_y , bool clear_existing ) {
         if (clear_existing) {
             clear();
@@ -411,6 +417,7 @@ namespace alx {
             update_combat_and_loot(*player, particles);
             
             if (player->consume_mana_spark_fire()) {
+                m_mana_spark_fired_event = true;
                 m_mana_sparks.emplace_back(
                     player->center_x(), player->center_y(),
                     player->facing_dx * 200.0f, player->facing_dy * 200.0f

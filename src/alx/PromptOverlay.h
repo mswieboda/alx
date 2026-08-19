@@ -7,10 +7,10 @@
 
 namespace alx {
 
-enum class PromptSeverity : uint8_t {
-    info_tutorial = 0, // Tier 0: Guidance, discovery, first-time control hints
-    resource_warning,  // Tier 1: Low alloy, unlinked pipes, stalled flow
-    critical_threat    // Tier 2: Spire attacked, Twilight surge incoming
+enum class PromptType : uint8_t {
+    info = 0, // Tier 0: Guidance, discovery, first-time control hints
+    warning,  // Tier 1: Low alloy, unlinked pipes, stalled flow
+    alert    // Tier 2: Spire attacked, Twilight surge incoming
 };
 
 enum class PromptState : uint8_t {
@@ -28,15 +28,17 @@ enum class PromptId : uint16_t {
     low_alloy_warning,
     pipe_unlinked_warning,
     spire_attacked_alert,
-    surge_incoming_alert
+    surge_incoming_alert,
+    mana_spark_hint
 };
 
 struct PromptMessage {
     std::string_view text{};
     PromptId id{PromptId::none};
-    PromptSeverity severity{PromptSeverity::info_tutorial};
+    PromptType type{PromptType::info};
     float hold_duration_sec{3.0f};
     bool dismiss_on_action{true};
+    bool is_sticky{false};
 };
 
 namespace prompt_style {
@@ -74,7 +76,7 @@ private:
     float m_alpha{0.0f};
     float m_slide_offset_y{0.0f};
 
-    [[nodiscard]] uint32_t border_color_for_severity(PromptSeverity severity) const noexcept;
+    [[nodiscard]] uint32_t border_color_for_type(PromptType type) const noexcept;
     [[nodiscard]] static uint32_t apply_alpha(uint32_t argb, float alpha) noexcept;
 
 public:
@@ -82,9 +84,10 @@ public:
 
     void show(
         std::string_view text,
-        PromptSeverity severity = PromptSeverity::info_tutorial,
+        PromptType type = PromptType::info,
         PromptId id = PromptId::none,
-        float hold_duration = prompt_style::default_hold_duration_sec
+        float hold_duration = prompt_style::default_hold_duration_sec,
+        bool is_sticky = false
     );
 
     void dismiss();

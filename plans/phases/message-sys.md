@@ -9,11 +9,11 @@ This document outlines the phased roadmap for implementing the **Contextual Text
 ```cpp
 namespace alx::ui::prompt {
 
-// Severity tiers defining visual borders and preemption priority
-enum class PromptSeverity : uint8_t {
-    info_tutorial = 0, // Tier 0: Guidance, discovery, first-time control hints
-    resource_warning,  // Tier 1: Low alloy, unlinked pipes, stalled flow
-    critical_threat    // Tier 2: Spire attacked, Twilight surge incoming
+// Tiers defining visual borders and preemption priority
+enum class PromptType : uint8_t {
+    info = 0, // Tier 0: Guidance, discovery, first-time control hints
+    warning,  // Tier 1: Low alloy, unlinked pipes, stalled flow
+    alert    // Tier 2: Spire attacked, Twilight surge incoming
 };
 
 // Internal animation lifecycle state machine
@@ -40,7 +40,7 @@ enum class PromptId : uint16_t {
 struct PromptMessage {
     std::string_view text_content{};
     PromptId id{PromptId::none};
-    PromptSeverity severity{PromptSeverity::info_tutorial};
+    PromptType type{PromptType::info};
     float hold_duration_sec{3.0f};
     bool dismiss_on_action{true};
 };
@@ -98,6 +98,8 @@ inline constexpr uint32_t prompt_border_tier2_rgba = 0xFFD82850;      // Crimson
 - [x] `[BLTP-PAL]`: **3-Tier Theme Palette Integration**
   - Apply distinct border styling for Tier 0 (Resonant Silver), Tier 1 (Electric Lavender `[ELAV]`), and Tier 2 (Crimson Quartz).
   - Render crisp 1-pixel rounded borders and dark translucent backing (`0xD80F131D`).
+- [x] `[BLTP-STK]`: **Sticky Prompt Support**
+  - Add `is_sticky` support allowing prompts to remain active indefinitely until explicitly dismissed via player action fulfillment or `dismiss_if_matching(PromptId)`.
 
 ---
 

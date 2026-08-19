@@ -6,13 +6,13 @@
 
 namespace alx {
 
-uint32_t PromptOverlay::border_color_for_severity(PromptSeverity severity) const noexcept {
-    switch (severity) {
-        case PromptSeverity::info_tutorial:
+uint32_t PromptOverlay::border_color_for_type(PromptType type) const noexcept {
+    switch (type) {
+        case PromptType::info:
             return prompt_style::color_border_tier0;
-        case PromptSeverity::resource_warning:
+        case PromptType::warning:
             return prompt_style::color_border_tier1_elav;
-        case PromptSeverity::critical_threat:
+        case PromptType::alert:
             return prompt_style::color_border_tier2;
     }
     return prompt_style::color_border_tier0;
@@ -27,15 +27,17 @@ uint32_t PromptOverlay::apply_alpha(uint32_t argb, float alpha) noexcept {
 
 void PromptOverlay::show(
     std::string_view text,
-    PromptSeverity severity,
+    PromptType type,
     PromptId id,
-    float hold_duration
+    float hold_duration,
+    bool is_sticky
 ) {
     if (m_state == PromptState::inactive) {
         m_current.text = text;
-        m_current.severity = severity;
+        m_current.type = type;
         m_current.id = id;
         m_current.hold_duration_sec = hold_duration;
+        m_current.is_sticky = is_sticky;
 
         m_state = PromptState::fade_in;
         m_state_timer_sec = 0.0f;
@@ -45,7 +47,7 @@ void PromptOverlay::show(
     }
 
     // Preemption for critical threats over lower-priority active prompts
-    if (severity == PromptSeverity::critical_threat && m_current.severity != PromptSeverity::critical_threat) {
+    if (type == PromptType::alert && m_current.type != PromptType::alert) {
         if (m_queue_count < max_queued_prompts) {
             for (size_t i = m_queue_count; i > 0; --i) {
                 m_queue[i] = m_queue[i - 1];
@@ -54,9 +56,10 @@ void PromptOverlay::show(
             ++m_queue_count;
         }
         m_current.text = text;
-        m_current.severity = severity;
+        m_current.type = type;
         m_current.id = id;
         m_current.hold_duration_sec = hold_duration;
+        m_current.is_sticky = is_sticky;
 
         m_state = PromptState::fade_in;
         m_state_timer_sec = 0.0f;
@@ -70,9 +73,10 @@ void PromptOverlay::show(
         m_queue[m_queue_count] = PromptMessage{
             .text = text,
             .id = id,
-            .severity = severity,
+            .type = type,
             .hold_duration_sec = hold_duration,
             .dismiss_on_action = true,
+            .is_sticky = is_sticky,
         };
         ++m_queue_count;
     }
@@ -128,7 +132,7 @@ void PromptOverlay::update(float dt) noexcept {
         case PromptState::active_hold: {
             m_alpha = 1.0f;
             m_slide_offset_y = 0.0f;
-            if (m_state_timer_sec >= m_current.hold_duration_sec) {
+            if (!m_current.is_sticky && m_state_timer_sec >= m_current.hold_duration_sec) {
                 m_state = PromptState::fade_out;
                 m_state_timer_sec = 0.0f;
             }
@@ -183,7 +187,7 @@ void PromptOverlay::draw(int screen_width, int screen_height) const {
     const float box_y = base_y + m_slide_offset_y;
 
     const uint32_t bg_color = apply_alpha(prompt_style::color_bg, m_alpha);
-    const uint32_t border_color = apply_alpha(border_color_for_severity(m_current.severity), m_alpha);
+    const uint32_t border_color = apply_alpha(border_color_for_type(m_current.type), m_alpha);
     const uint32_t text_color = apply_alpha(prompt_style::color_text, m_alpha);
 
     // 1. Solid translucent rounded background box

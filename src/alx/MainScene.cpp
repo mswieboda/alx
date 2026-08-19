@@ -59,9 +59,10 @@ void MainScene::load_level(int level_id) {
 
 #if ALX_ENABLE_DEBUG
     // Test prompt queue for visual validation (Debug only)
-    m_prompt_overlay.show("[A] Mine alloy", PromptSeverity::info_tutorial, PromptId::mine_alloy_hint, 2.5f);
-    m_prompt_overlay.show("Low alloy (need 2)", PromptSeverity::resource_warning, PromptId::low_alloy_warning, 2.5f);
-    m_prompt_overlay.show("Surge incoming!", PromptSeverity::critical_threat, PromptId::surge_incoming_alert, 2.5f);
+    m_prompt_overlay.show("[A] Mine alloy", PromptType::info, PromptId::mine_alloy_hint);
+    m_prompt_overlay.show("Low alloy (need 2)", PromptType::warning, PromptId::low_alloy_warning);
+    m_prompt_overlay.show("Surge incoming!", PromptType::alert, PromptId::surge_incoming_alert);
+    m_prompt_overlay.show("[R] Mana spark", PromptType::info, PromptId::mana_spark_hint, 0.0f, true);
 #endif // ALX_ENABLE_DEBUG
 }
 
@@ -287,6 +288,12 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
             trigger_tower_spawn_alert();
             Audio::play_sfx(SFX::dark_tower_spawn());
         }
+
+#if ALX_ENABLE_DEBUG
+        if (m_enemy_manager.consume_mana_spark_fired_event()) {
+            m_prompt_overlay.dismiss_if_matching(PromptId::mana_spark_hint);
+        }
+#endif // ALX_ENABLE_DEBUG
 
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
         if (tw_inc > 0.0f) {
