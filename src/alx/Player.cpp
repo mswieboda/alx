@@ -732,6 +732,9 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
     
     if (!m_is_charging_spark) {
         if (btn_just_pressed && attack_phase == AttackPhase::Idle) {
+            if (prompt_overlay) {
+                prompt_overlay->dismiss_if_matching(PromptId::sword_attack_hint);
+            }
             sync_prev_transforms();
             attack_phase = AttackPhase::ActiveSweep;
             attack_timer = 0.0f;

@@ -24,11 +24,18 @@ enum class PromptState : uint8_t {
 enum class PromptId : uint16_t {
     none = 0,
     // Onboarding / First-time hints (Run-once)
+    sword_attack_hint,
+    camera_pan_hint,
+    protect_network_hint,
+    mana_spark_hint,
+    refiner_info,
+    spire_info,
+    dark_tower_hint,
+
+    // Building & Logistics Onboarding
     mine_alloy_hint,
     place_pipe_hint,
     cycle_fixture_hint,
-    camera_pan_hint,
-    mana_spark_hint,
 
     // Network & Automation Logistics (Room Cooldowns)
     pipe_unlinked_warning,

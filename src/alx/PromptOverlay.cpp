@@ -78,7 +78,7 @@ size_t PromptOverlay::format_tokens(std::string_view input, char* out_buf, size_
             if (token == "CANCEL" || token == "DEMOLISH") return "[B]";
             if (token == "CYCLE") return "[Y]";
             if (token == "PAN") return "[L]";
-            if (token == "SPARK") return "[ZR]";
+            if (token == "SPARK" || token == "MANA_SPARK") return "[ZR]";
             if (token == "BUILD_MODE") return "[R]";
             if (token == "FOUNDATION") return "[A]";
             if (token == "MENU") return "[START]";
@@ -88,7 +88,7 @@ size_t PromptOverlay::format_tokens(std::string_view input, char* out_buf, size_
             if (token == "CANCEL" || token == "DEMOLISH") return "[K]";
             if (token == "CYCLE") return "[I]";
             if (token == "PAN") return "[Tab]";
-            if (token == "SPARK") return "[;]";
+            if (token == "SPARK" || token == "MANA_SPARK") return "[;]";
             if (token == "BUILD_MODE") return "[L]";
             if (token == "FOUNDATION") return "[Space]";
             if (token == "MENU") return "[Enter]";

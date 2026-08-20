@@ -163,6 +163,12 @@ namespace alx {
         return val;
     }
 
+    bool EnemyManager::consume_tower_hit_event() noexcept {
+        bool val = m_tower_hit_event;
+        m_tower_hit_event = false;
+        return val;
+    }
+
     bool EnemyManager::consume_mana_spark_fired_event() noexcept {
         bool val = m_mana_spark_fired_event;
         m_mana_spark_fired_event = false;
@@ -1275,6 +1281,7 @@ namespace alx {
                     if (Collision::circle_vs_aabb(hit_c, struct_obj.ground_aabb())) {
                         struct_obj.last_hit_swing_id = player.current_swing_id;
                         struct_obj.take_damage(1);
+                        m_tower_hit_event = true;
                         if (particles) {
                             int tower_sort_y = static_cast<int>(struct_obj.transform.y + struct_obj.transform.height);
                             ParticleEmitters::spawn_hit_blood(*particles, hit_c.cx, hit_c.cy, player.facing_dx * 100.0f, player.facing_dy * 100.0f, 10, Layer::WorldObjFX, tower_sort_y, 0.5f);

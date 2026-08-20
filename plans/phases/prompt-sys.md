@@ -144,13 +144,14 @@ inline constexpr uint32_t prompt_border_tier2_rgba = 0xFFD82850;      // Crimson
 
 ---
 
-### `[PH-CTXP-LV1]`: Phase 5 - Level 1 Tutorial Script & Curation (`[CLV1]`)
+### `[PH-CTXP-LV1]`: Phase 5 - Level 1 Tutorial Script & Curation (`[CLV1]`) (COMPLETED)
 *Focus: Curating, balancing, and testing in-game copy and onboarding flows for Level 1.*
 
-- [ ] `[MCUR-LV1]`: **Level 1 Tutorial Script**
-  - Basic movement, sword sweep `{ATTACK}`, camera scouting `{PAN}`, surviving twilight waves.
-- [ ] `[MCUR-FIT1]`: **Level 1 Screen Width & Pacing Pass**
+- [x] `[MCUR-LV1]`: **Level 1 Tutorial Script**
+  - Sequenced onboarding: Sword attack `{ATTACK}`, camera scouting `{PAN}`, `"Protect the Mana Network"`, spark `{SPARK}`, refiner/spire hints, and tower combat warnings.
+- [x] `[MCUR-FIT1]`: **Level 1 Screen Width & Pacing Pass**
   - Ensure all Level 1 copy fits inside 16px-tall banners and respects readable hold durations across 240x160 GBA resolution.
+
 
 ---
 
