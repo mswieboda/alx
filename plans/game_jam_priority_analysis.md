@@ -87,13 +87,14 @@
 - [x] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
 - [x] **`[TWBAR]`**: Twilight Momentum Barometer — Rolling 15s average delta calculation + directional arrow indicator. 0.5 day.
 - [x] **`[TUTR]`**: Contextual Text Prompts — Fade-in/fade-out message overlay trigger system. 0.5 day.
-- [ ] **`[TPTU]`**: Text Prompts Tutorial, Usages — Actual real/non test usages of prompt messages. 0.5 day.
+- [x] **`[TPTU]`**: Text Prompts Tutorial, Usages — Actual real/non test usages of prompt messages. 0.5 day.
 
 ---
 
 ### 🟡 WEEK 2 (Aug 20 – Aug 26): Scaffolded Levels 2 & 3 + Visuals & Ending
 
-- [ ] **`[LV1D]`**: Level 1 Tutorial Polish — Finalize pre-built network layout and observe mode constraints. 1.0 day.
+- [ ] **`[LV1D]`**: Level 1 Tutorial Polish — Finalize pre-built network layout and observe mode constraints. 0.5 days.
+- [ ] **`[LV1BAL]`**: Level 1 — Twilight Dark Tower, Enemy Balance Tuning. 0.25 days.
 - [ ] **`[LV2D]`**: Level 2 Implementation — Layout with missing pipe connections for player to bridge. 1.5 days.
 - [ ] **`[LV3D]`**: Level 3 Implementation — Full build-from-scratch room layout with strategic Stone tiles. 1.5 days.
 - [ ] **`[STNBLK]`**: Stone Tile Placement Blocking — Enforce fixture placement checks on non-buildable terrain. 0.5 day.
@@ -105,7 +106,9 @@
 ### 🟢 WEEK 3 (Aug 27 – Sept 1): Audio Polish, Testing & Jam Submission
 
 - [ ] **`[MSCBG]`**: Tracker Music Polish — Custom / modified `.mod` background music tracks for Title and Gameplay. 1.5 days.
-- [ ] **`[BALNC]`**: Balance Tuning — Leverage `--telemetry` and `--report` logs to fine-tune spawn rates and twilight deltas. 1.5 days.
+- [ ] **`[BALNC]`**: Balance Tuning — Leverage `--telemetry` and `--report` logs to fine-tune spawn rates and twilight deltas. 0.75 days.
+- [ ] **`[LV2BAL]`**: Level 2 — Twilight Dark Tower, Enemy Balance Tuning. 0.25 days.
+- [ ] **`[LV3BAL]`**: Level 3 — Twilight Dark Tower, Enemy Balance Tuning. 0.25 days.
 - [ ] **`[SIZE]`**: Binary Size Audit — Verify release build stays under the 1,440 KB floppy disk limit. 0.5 day.
 - [ ] **`[SUBMT]`**: Packaging & Submission — Final bug fixes, verification, and jam submission before Sept 1st! 1.0 day.
 
@@ -134,17 +137,20 @@
 | **Day 1** | Aug 13 | `[TTLS]` + `[TRNS]` | Main Title Screen & Fade Transitions |
 | **Day 2** | Aug 14 | `[GOVR]` + `[PAUS]` | Game Over Screen & Pause Menu Overlay |
 | **Day 3** | Aug 15 | `[LVCM]` | 15s Win Hold Countdown & Level Clear Screen |
-| **Day 4** | Aug 16 | `[TWBAR]` + `[TUTR]` | Twilight Momentum Barometer & Prompt System |
-| **Day 5** | Aug 17 | `[LV1D]` + `[TPTU]` | Level 1 Pre-built Observe Layout & Polish, Tutorial Prompts |
+| **Day 4** | Aug 16 | `[TWBAR]` + `[TUTR]` + `[TPTU]` | Twilight Momentum Barometer & Prompt System |
+| **Day 5** | Aug 17 | `[LV1D]` | Level 1 Pre-built Observe Layout & Polish, Tutorial Prompts |
+| **Day 5** | Aug 17 | `[LV1BAL]` | Level 1 Telemetry & Headless Balance Tuning |
 | **Day 6** | Aug 18 | `[LV2D]` | Level 2 Missing Pipe Connection Layout |
 | **Day 7** | Aug 19 | `[LV3D]` + `[STNBLK]` | Level 3 Build-from-Scratch Layout & Stone Blocking |
 | **Day 8** | Aug 20 | Full Playthrough Test | Validate Level 1 -> 2 -> 3 Loop & Game Shell |
 | **Day 9** | Aug 21 | `[SPRIT]` | 8-Direction Player Sprites & Mob Visual Pass |
-| **Day 10** | Aug 22 | `[CRED]` | Credits Screen & Game Completion Flow |
+| **Day 10** | Aug 22 | `[MSCBG]` | Background Music Track Integration |
 | **Day 11** | Aug 23 | Playtesting & Polish | Combat feel, camera, hit flashes |
 | **Day 12** | Aug 24 | Build UX Polish | Cost Preview & Placement Feedback |
-| **Day 13** | Aug 25 | `[MSCBG]` | Background Music Track Integration |
+| **Day 13** | Aug 25 | `[CRED]` | Credits Screen & Game Completion Flow |
 | **Day 14** | Aug 26 | `[BALNC]` | Telemetry & Headless Balance Tuning |
+| **Day 14** | Aug 26 | `[LV2BAL]` | Level 2 Telemetry & Headless Balance Tuning |
+| **Day 14** | Aug 26 | `[LV3BAL]` | Level 3 Telemetry & Headless Balance Tuning |
 | **Day 15** | Aug 27 | Bug Fixes | Edge case testing across all 3 levels |
 | **Day 16** | Aug 28 | `[SIZE]` Audit | Floppy disk binary size verification (<1,440 KB) |
 | **Day 17** | Aug 29 | Final Playtesting | Playthrough verification on gamepads/keyboard |
