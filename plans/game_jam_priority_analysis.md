@@ -86,7 +86,8 @@
 - [x] **`[LVCM]`**: Win Condition Tuning & Level Clear Screen — 15s hold countdown, light flash FX, Level Clear screen with stats. 1.0 day.
 - [x] **`[PAUS]`**: Pause Menu Overlay — Resume / Restart Level / Options / Quit to Title. 0.5 day.
 - [x] **`[TWBAR]`**: Twilight Momentum Barometer — Rolling 15s average delta calculation + directional arrow indicator. 0.5 day.
-- [~] **`[TUTR]`**: Contextual Text Prompts — Fade-in/fade-out message overlay trigger system. 0.5 day.
+- [x] **`[TUTR]`**: Contextual Text Prompts — Fade-in/fade-out message overlay trigger system. 0.5 day.
+- [ ] **`[TPTU]`**: Text Prompts Tutorial, Usages — Actual real/non test usages of prompt messages. 0.5 day.
 
 ---
 
@@ -133,8 +134,8 @@
 | **Day 1** | Aug 13 | `[TTLS]` + `[TRNS]` | Main Title Screen & Fade Transitions |
 | **Day 2** | Aug 14 | `[GOVR]` + `[PAUS]` | Game Over Screen & Pause Menu Overlay |
 | **Day 3** | Aug 15 | `[LVCM]` | 15s Win Hold Countdown & Level Clear Screen |
-| **Day 4** | Aug 16 | `[TWBAR]` + `[TUTR]` | Twilight Momentum Barometer & Contextual Prompts |
-| **Day 5** | Aug 17 | `[LV1D]` | Level 1 Pre-built Observe Layout & Polish |
+| **Day 4** | Aug 16 | `[TWBAR]` + `[TUTR]` | Twilight Momentum Barometer & Prompt System |
+| **Day 5** | Aug 17 | `[LV1D]` + `[TPTU]` | Level 1 Pre-built Observe Layout & Polish, Tutorial Prompts |
 | **Day 6** | Aug 18 | `[LV2D]` | Level 2 Missing Pipe Connection Layout |
 | **Day 7** | Aug 19 | `[LV3D]` + `[STNBLK]` | Level 3 Build-from-Scratch Layout & Stone Blocking |
 | **Day 8** | Aug 20 | Full Playthrough Test | Validate Level 1 -> 2 -> 3 Loop & Game Shell |
