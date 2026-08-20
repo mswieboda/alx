@@ -133,14 +133,14 @@ inline constexpr uint32_t prompt_border_tier2_rgba = 0xFFD82850;      // Crimson
 
 ---
 
-### `[PH-CTXP-JUICE]`: Phase 4 - Audio Blip & Visual Polish (`[PJUICE]`)
+### `[PH-CTXP-JUICE]`: Phase 4 - Audio Blip & Visual Polish (`[PJUICE]`) (COMPLETED)
 *Focus: Retro sound cues, border pulse animations, and visual polish.*
 
-- [ ] `[SND-BLIP]`: **Subtle Retro Blip Audio Cue**
-  - Play a short, crisp chiptune blip when Tier 0/1 prompts appear.
-  - Play an urgent alert tone when Tier 2 threats trigger.
-- [ ] `[VFX-SHIM]`: **Warning & Threat Border Shimmer**
-  - Apply subtle sine-wave palette oscillation on Electric Lavender and Crimson Quartz borders during active hold.
+- [x] `[SND-BLIP]`: **Subtle Retro Blip Audio Cue**
+  - Play a soft low/mid bass bump/blip when prompts complete fade-in and lock into active display.
+- [x] `[VFX-SHIM]`: **Warning & Threat Border Shimmer**
+  - Apply subtle sine-wave palette oscillation on Electric Lavender (2.5 Hz) and Crimson Quartz (5.0 Hz) borders during active hold.
+
 
 ---
 

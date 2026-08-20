@@ -53,6 +53,17 @@ void MainScene::load_level(int level_id) {
     m_tiles = Tiles(lvl->map_width, lvl->map_height);
     m_network = Network(lvl->map_width, lvl->map_height);
 
+    // --- TEMP prompt test ---
+    // m_prompt_overlay.try_show_cooldown(
+    //     "{Action} Test",
+    //     PromptType::alert,
+    //     PromptId::mana_spark_hint,
+    //     2.5f,
+    //     false,
+    //     5.0f
+    // );
+    // --- TEMP ^^^ --- prompt test ---
+
     setup_player_at_spawn(m_player_spawn);
     update_camera_map_boundary();
     load_tiles_and_network(*lvl);

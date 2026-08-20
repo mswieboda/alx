@@ -90,6 +90,12 @@ namespace prompt_style {
     inline constexpr float default_hold_duration_sec = 3.00f;
     inline constexpr float prompt_repeat_cooldown_sec = 10.00f;
 
+    // Shimmer & Pulse Animation Constants
+    inline constexpr float shimmer_freq_tier1_hz = 2.5f;
+    inline constexpr float shimmer_amp_tier1 = 0.20f;
+    inline constexpr float shimmer_freq_tier2_hz = 5.0f;
+    inline constexpr float shimmer_amp_tier2 = 0.35f;
+
     // Palette definitions (Strictly no amber/gold)
     inline constexpr uint32_t color_bg = 0xD80F131D;               // 85% alpha dark slate
     inline constexpr uint32_t color_border_tier0 = 0xFFA8C0D8;      // Resonant silver / slate
@@ -111,12 +117,14 @@ private:
     float m_state_timer_sec{0.0f};
     float m_alpha{0.0f};
     float m_slide_offset_y{0.0f};
+    float m_pulse_timer_sec{0.0f};
 
     // Hybrid History & Cooldown Tracking
     std::bitset<prompt_id_count> m_seen_history{};
     std::array<float, prompt_id_count> m_cooldown_timers{};
 
     [[nodiscard]] uint32_t border_color_for_type(PromptType type) const noexcept;
+    [[nodiscard]] uint32_t compute_shimmer_border_color() const noexcept;
     [[nodiscard]] static uint32_t apply_alpha(uint32_t argb, float alpha) noexcept;
     static size_t format_tokens(std::string_view input, char* out_buf, size_t max_out_len) noexcept;
 
@@ -167,4 +175,3 @@ public:
 };
 
 } // namespace alx
-

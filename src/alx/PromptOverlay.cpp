@@ -1,8 +1,11 @@
 #include "alx/PromptOverlay.h"
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include "alx/Action.h"
+#include "alx/SFX.h"
 #include "alx/TextStyles.h"
+#include "core/Audio.h"
 #include "core/Draw.h"
 #include "core/Input.h"
 
@@ -18,6 +21,33 @@ uint32_t PromptOverlay::border_color_for_type(PromptType type) const noexcept {
             return prompt_style::color_border_tier2;
     }
     return prompt_style::color_border_tier0;
+}
+
+uint32_t PromptOverlay::compute_shimmer_border_color() const noexcept {
+    const uint32_t base_color = border_color_for_type(m_current.type);
+    if (m_current.type == PromptType::info) {
+        return base_color;
+    }
+
+    float freq = 0.0f;
+    float amp = 0.0f;
+    if (m_current.type == PromptType::warning) {
+        freq = prompt_style::shimmer_freq_tier1_hz;
+        amp = prompt_style::shimmer_amp_tier1;
+    } else if (m_current.type == PromptType::alert) {
+        freq = prompt_style::shimmer_freq_tier2_hz;
+        amp = prompt_style::shimmer_amp_tier2;
+    }
+
+    const float sin_val = std::sin(m_pulse_timer_sec * (2.0f * std::numbers::pi_v<float> * freq));
+    const float lum = std::clamp(1.0f + (amp * sin_val), 0.0f, 2.0f);
+
+    const uint32_t a = (base_color >> 24) & 0xFF;
+    const uint32_t r = std::clamp(static_cast<uint32_t>(static_cast<float>((base_color >> 16) & 0xFF) * lum), 0u, 255u);
+    const uint32_t g = std::clamp(static_cast<uint32_t>(static_cast<float>((base_color >> 8) & 0xFF) * lum), 0u, 255u);
+    const uint32_t b = std::clamp(static_cast<uint32_t>(static_cast<float>(base_color & 0xFF) * lum), 0u, 255u);
+
+    return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
 uint32_t PromptOverlay::apply_alpha(uint32_t argb, float alpha) noexcept {
@@ -112,6 +142,7 @@ bool PromptOverlay::show(
         m_state_timer_sec = 0.0f;
         m_alpha = 0.0f;
         m_slide_offset_y = prompt_style::slide_distance_px;
+        m_pulse_timer_sec = 0.0f;
         return true;
     }
 
@@ -137,6 +168,7 @@ bool PromptOverlay::show(
         m_state_timer_sec = 0.0f;
         m_alpha = 0.0f;
         m_slide_offset_y = prompt_style::slide_distance_px;
+        m_pulse_timer_sec = 0.0f;
         return true;
     }
 
@@ -216,6 +248,7 @@ void PromptOverlay::reset() {
     m_state_timer_sec = 0.0f;
     m_alpha = 0.0f;
     m_slide_offset_y = 0.0f;
+    m_pulse_timer_sec = 0.0f;
     m_current = {};
     m_queue_count = 0;
 }
@@ -278,12 +311,15 @@ void PromptOverlay::update(float dt) noexcept {
                 m_state_timer_sec = 0.0f;
                 m_alpha = 1.0f;
                 m_slide_offset_y = 0.0f;
+                m_pulse_timer_sec = 0.0f;
+                Audio::play_sfx(SFX::prompt_toast());
             }
             break;
         }
         case PromptState::active_hold: {
             m_alpha = 1.0f;
             m_slide_offset_y = 0.0f;
+            m_pulse_timer_sec += dt;
             if (!m_current.is_sticky && m_state_timer_sec >= m_current.hold_duration_sec) {
                 m_state = PromptState::fade_out;
                 m_state_timer_sec = 0.0f;
@@ -310,11 +346,13 @@ void PromptOverlay::update(float dt) noexcept {
                     m_state_timer_sec = 0.0f;
                     m_alpha = 0.0f;
                     m_slide_offset_y = prompt_style::slide_distance_px;
+                    m_pulse_timer_sec = 0.0f;
                 } else {
                     m_state = PromptState::inactive;
                     m_state_timer_sec = 0.0f;
                     m_alpha = 0.0f;
                     m_slide_offset_y = 0.0f;
+                    m_pulse_timer_sec = 0.0f;
                     m_current = {};
                 }
             }
@@ -339,7 +377,7 @@ void PromptOverlay::draw(int screen_width, int screen_height) const {
     const float box_y = base_y + m_slide_offset_y;
 
     const uint32_t bg_color = apply_alpha(prompt_style::color_bg, m_alpha);
-    const uint32_t border_color = apply_alpha(border_color_for_type(m_current.type), m_alpha);
+    const uint32_t border_color = apply_alpha(compute_shimmer_border_color(), m_alpha);
     const uint32_t text_color = apply_alpha(prompt_style::color_text, m_alpha);
 
     // 1. Solid translucent rounded background box

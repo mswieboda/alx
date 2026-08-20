@@ -253,6 +253,20 @@ namespace SFX {
         return p;
     }
 
+    // Prompt Toast Notification: Soft low/mid bass blip / tactile lock bump
+    inline SfxrParams prompt_toast() {
+        SfxrParams p;
+        p.gain = 0.90f; // % baseline gain (soft, non-intrusive)
+        p.wave_type = SAWTOOTH;
+        p.attack_time = 0.001f;
+        p.sustain_time = 0.033f;
+        p.decay_time = 0.133f;
+        p.start_frequency = 0.033f;
+        p.min_frequency = 0.069f;
+        p.slide = -0.069f;
+        return p;
+    }
+
     // Legacy presets
     inline SfxrParams phaser() { return sword_swipe(); }
     inline SfxrParams explosion() { return player_death(); }
