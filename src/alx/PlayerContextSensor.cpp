@@ -11,6 +11,44 @@
 
 namespace alx {
 
+namespace {
+
+[[nodiscard]] bool is_near_root_fixture(
+    const Network& network,
+    float px,
+    float py,
+    int tile_sz,
+    FixtureType target_type,
+    float offset_x,
+    float offset_y,
+    float max_dist_sq
+) noexcept {
+    const int net_w = network.width();
+    const int net_h = network.height();
+    const float tile_sz_f = static_cast<float>(tile_sz);
+
+    for (int ty = 0; ty < net_h; ++ty) {
+        for (int tx = 0; tx < net_w; ++tx) {
+            const Fixture& fix = network.fixture(tx, ty);
+            if (fix.type == target_type && fix.is_root()) {
+                if (target_type == FixtureType::Seep && fix.flow_out_mask != 0) {
+                    continue;
+                }
+                const float fx = (static_cast<float>(tx) + offset_x) * tile_sz_f;
+                const float fy = (static_cast<float>(ty) + offset_y) * tile_sz_f;
+                const float dx = fx - px;
+                const float dy = fy - py;
+                if ((dx * dx + dy * dy) <= max_dist_sq) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+} // namespace
+
 void PlayerContextSensor::reset() noexcept {
     m_eval_timer_sec = 0.0f;
     m_level_elapsed_sec = 0.0f;
@@ -161,29 +199,23 @@ void PlayerContextSensor::check_refiner_proximity(
         return;
     }
 
-    const int net_w = network.width();
-    const int net_h = network.height();
-
-    for (int ty = 0; ty < net_h; ++ty) {
-        for (int tx = 0; tx < net_w; ++tx) {
-            const Fixture& fix = network.fixture(tx, ty);
-            if (fix.type == FixtureType::Refiner && fix.is_root()) {
-                const float fx = (static_cast<float>(tx) + sensor_config::fixture_center_offset_2x2) * static_cast<float>(tile_sz);
-                const float fy = (static_cast<float>(ty) + sensor_config::fixture_center_offset_2x2) * static_cast<float>(tile_sz);
-                const float dx = fx - px;
-                const float dy = fy - py;
-                if ((dx * dx + dy * dy) <= sensor_config::proximity_distance_sq) {
-                    overlay.try_show_once(
-                        "Refiner: purifies Dark Mana",
-                        PromptType::info,
-                        PromptId::refiner_info,
-                        sensor_config::refiner_hint_hold_duration_sec,
-                        false
-                    );
-                    return;
-                }
-            }
-        }
+    if (is_near_root_fixture(
+        network,
+        px,
+        py,
+        tile_sz,
+        FixtureType::Refiner,
+        sensor_config::fixture_center_offset_2x2,
+        sensor_config::fixture_center_offset_2x2,
+        sensor_config::proximity_distance_sq
+    )) {
+        overlay.try_show_once(
+            "Refiner: purifies Dark Mana",
+            PromptType::info,
+            PromptId::refiner_info,
+            sensor_config::refiner_hint_hold_duration_sec,
+            false
+        );
     }
 }
 
@@ -198,29 +230,23 @@ void PlayerContextSensor::check_spire_proximity(
         return;
     }
 
-    const int net_w = network.width();
-    const int net_h = network.height();
-
-    for (int ty = 0; ty < net_h; ++ty) {
-        for (int tx = 0; tx < net_w; ++tx) {
-            const Fixture& fix = network.fixture(tx, ty);
-            if (fix.type == FixtureType::Spire && fix.is_root()) {
-                const float fx = (static_cast<float>(tx) + sensor_config::fixture_center_offset_2x2) * static_cast<float>(tile_sz);
-                const float fy = (static_cast<float>(ty) + sensor_config::fixture_center_offset_2x2) * static_cast<float>(tile_sz);
-                const float dx = fx - px;
-                const float dy = fy - py;
-                if ((dx * dx + dy * dy) <= sensor_config::proximity_distance_sq) {
-                    overlay.try_show_once(
-                        "Spire: creates \x0F clearing \x08",
-                        PromptType::info,
-                        PromptId::spire_info,
-                        sensor_config::spire_hint_hold_duration_sec,
-                        false
-                    );
-                    return;
-                }
-            }
-        }
+    if (is_near_root_fixture(
+        network,
+        px,
+        py,
+        tile_sz,
+        FixtureType::Spire,
+        sensor_config::fixture_center_offset_2x2,
+        sensor_config::fixture_center_offset_2x2,
+        sensor_config::proximity_distance_sq
+    )) {
+        overlay.try_show_once(
+            "Spire: creates \x0F clearing \x08",
+            PromptType::info,
+            PromptId::spire_info,
+            sensor_config::spire_hint_hold_duration_sec,
+            false
+        );
     }
 }
 
@@ -260,29 +286,24 @@ void PlayerContextSensor::check_building_hints(
 ) {
     // Proximity to unlinked Seeps (encourage pipe placement)
     if (!overlay.has_seen(PromptId::place_pipe_hint)) {
-        const int net_w = network.width();
-        const int net_h = network.height();
-
-        for (int ty = 0; ty < net_h; ++ty) {
-            for (int tx = 0; tx < net_w; ++tx) {
-                const Fixture& fix = network.fixture(tx, ty);
-                if (fix.type == FixtureType::Seep && fix.is_root() && fix.flow_out_mask == 0) {
-                    const float fx = (static_cast<float>(tx) + sensor_config::seep_center_offset_x) * static_cast<float>(tile_sz);
-                    const float fy = (static_cast<float>(ty) + sensor_config::seep_center_offset_y) * static_cast<float>(tile_sz);
-                    const float dx = fx - px;
-                    const float dy = fy - py;
-                    if ((dx * dx + dy * dy) <= sensor_config::proximity_distance_sq) {
-                        overlay.try_show_once(
-                            "Hold {PLACE} to build Pipe",
-                            PromptType::info,
-                            PromptId::place_pipe_hint,
-                            sensor_config::building_hint_hold_duration_sec,
-                            true
-                        );
-                        return;
-                    }
-                }
-            }
+        if (is_near_root_fixture(
+            network,
+            px,
+            py,
+            tile_sz,
+            FixtureType::Seep,
+            sensor_config::seep_center_offset_x,
+            sensor_config::seep_center_offset_y,
+            sensor_config::proximity_distance_sq
+        )) {
+            overlay.try_show_once(
+                "Hold {PLACE} to build Pipe",
+                PromptType::info,
+                PromptId::place_pipe_hint,
+                sensor_config::building_hint_hold_duration_sec,
+                true
+            );
+            return;
         }
     }
 

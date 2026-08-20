@@ -114,7 +114,11 @@ void frame_updates(GameWindow& window, FrameTime& frame_time, SceneManager& scen
 
         if (window.is_active()) {
             // Early out on Escape key if allowed
-            if (scene_manager.m_is_quit || Debug::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
+            bool should_quit = scene_manager.m_is_quit;
+            if constexpr (Debug::QUIT_ON_ESC) {
+                should_quit = should_quit || Input::is_key_just_pressed(KeyCode::Escape);
+            }
+            if (should_quit) {
                 window.close();
                 break;
             }

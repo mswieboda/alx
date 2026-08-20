@@ -11,6 +11,52 @@
 
 namespace alx {
 
+namespace {
+
+struct TokenBinding {
+    std::string_view token;
+    std::string_view gamepad_label;
+    std::string_view keyboard_label;
+};
+
+inline constexpr std::array<TokenBinding, 11> action_token_bindings{{
+    {"ATTACK",     "[A]",     "[J]"},
+    {"PLACE",      "[X]",     "[U]"},
+    {"CANCEL",     "[B]",     "[K]"},
+    {"DEMOLISH",   "[B]",     "[K]"},
+    {"CYCLE",      "[Y]",     "[I]"},
+    {"PAN",        "[L]",     "[Tab]"},
+    {"SPARK",      "[ZR]",    "[;]"},
+    {"MANA_SPARK", "[ZR]",    "[;]"},
+    {"BUILD_MODE", "[R]",     "[L]"},
+    {"FOUNDATION", "[A]",     "[Space]"},
+    {"MENU",       "[START]", "[Enter]"},
+}};
+
+[[nodiscard]] std::string_view resolve_action_label(std::string_view token, bool is_gamepad) noexcept {
+    for (const auto& binding : action_token_bindings) {
+        if (binding.token == token) {
+            return is_gamepad ? binding.gamepad_label : binding.keyboard_label;
+        }
+    }
+    return {};
+}
+
+} // namespace
+
+std::string_view PromptMessage::text() const noexcept {
+    return std::string_view(text_buf.data(), text_len);
+}
+
+void PromptMessage::set_text(std::string_view str) noexcept {
+    const size_t len = std::min(str.size(), max_text_length - 1);
+    if (len > 0) {
+        std::copy_n(str.data(), len, text_buf.data());
+    }
+    text_buf[len] = '\0';
+    text_len = len;
+}
+
 uint32_t PromptOverlay::border_color_for_type(PromptType type) const noexcept {
     switch (type) {
         case PromptType::info:
@@ -71,38 +117,13 @@ size_t PromptOverlay::format_tokens(std::string_view input, char* out_buf, size_
         }
     };
 
-    auto resolve_action_label = [&](std::string_view token) -> std::string_view {
-        if (is_gamepad) {
-            if (token == "ATTACK") return "[A]";
-            if (token == "PLACE") return "[X]";
-            if (token == "CANCEL" || token == "DEMOLISH") return "[B]";
-            if (token == "CYCLE") return "[Y]";
-            if (token == "PAN") return "[L]";
-            if (token == "SPARK" || token == "MANA_SPARK") return "[ZR]";
-            if (token == "BUILD_MODE") return "[R]";
-            if (token == "FOUNDATION") return "[A]";
-            if (token == "MENU") return "[START]";
-        } else {
-            if (token == "ATTACK") return "[J]";
-            if (token == "PLACE") return "[U]";
-            if (token == "CANCEL" || token == "DEMOLISH") return "[K]";
-            if (token == "CYCLE") return "[I]";
-            if (token == "PAN") return "[Tab]";
-            if (token == "SPARK" || token == "MANA_SPARK") return "[;]";
-            if (token == "BUILD_MODE") return "[L]";
-            if (token == "FOUNDATION") return "[Space]";
-            if (token == "MENU") return "[Enter]";
-        }
-        return {};
-    };
-
     size_t i = 0;
     while (i < input.size() && out_idx + 1 < max_out_len) {
         if (input[i] == '{') {
             const size_t close_pos = input.find('}', i + 1);
             if (close_pos != std::string_view::npos) {
                 const std::string_view token = input.substr(i + 1, close_pos - (i + 1));
-                const std::string_view label = resolve_action_label(token);
+                const std::string_view label = resolve_action_label(token, is_gamepad);
                 if (!label.empty()) {
                     append_str(label);
                     i = close_pos + 1;

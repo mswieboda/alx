@@ -298,11 +298,6 @@ void MainScene::update(SceneManager& sm, float raw_dt) {
             m_prompt_overlay.dismiss_if_matching(PromptId::dark_tower_hint);
         }
 
-        if (m_enemy_manager.consume_mana_spark_fired_event()) {
-            m_prompt_overlay.dismiss_if_matching(PromptId::mana_spark_hint);
-        }
-
-
         float tw_inc = m_enemy_manager.consume_pending_twilight_increase();
         if (tw_inc > 0.0f) {
             m_twilight_level = std::clamp(m_twilight_level + tw_inc, TWILIGHT_MIN, TWILIGHT_MAX);

@@ -132,8 +132,6 @@ private:
     float m_pending_twilight_increase = 0.0f;
     bool m_tower_spawned_event = false;
     bool m_tower_hit_event = false;
-    // TODO(debug): Temporary test event for prompt system WIP; clean up when sensor hooks are complete
-    bool m_mana_spark_fired_event = false;
     int m_last_destroyed_tile_index = -1;
     bool m_is_frenzy = false;
     float m_frenzy_multiplier = 1.0f;
@@ -161,7 +159,6 @@ public:
     float consume_pending_twilight_increase();
     [[nodiscard]] bool consume_tower_spawned_event();
     [[nodiscard]] bool consume_tower_hit_event() noexcept;
-    [[nodiscard]] bool consume_mana_spark_fired_event() noexcept;
 
     void spawn_enemy_wave(const Tiles& tiles, const Network* network = nullptr, int count = -1, float player_start_x = -1.0f, float player_start_y = -1.0f, bool clear_existing = false);
 

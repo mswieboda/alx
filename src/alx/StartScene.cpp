@@ -21,11 +21,11 @@ void StartScene::init(SceneManager& sm) {
 }
 
 void StartScene::update(SceneManager& sm, float raw_dt) {
-    // TODO: keeping ESC in here, not sure if i want to kill that later
-    // but it's WAYYY faster for testing, maybe in debug only?
-    if (Debug::QUIT_ON_ESC && Input::is_key_just_pressed(KeyCode::Escape)) {
-        sm.m_is_quit = true;
-        return;
+    if constexpr (Debug::QUIT_ON_ESC) {
+        if (Input::is_key_just_pressed(KeyCode::Escape)) {
+            sm.m_is_quit = true;
+            return;
+        }
     }
 
     m_menu.update_navigation();

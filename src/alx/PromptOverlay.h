@@ -68,18 +68,8 @@ struct PromptMessage {
     bool dismiss_on_action{true};
     bool is_sticky{false};
 
-    [[nodiscard]] std::string_view text() const noexcept {
-        return std::string_view(text_buf.data(), text_len);
-    }
-
-    void set_text(std::string_view str) noexcept {
-        const size_t len = std::min(str.size(), max_text_length - 1);
-        if (len > 0) {
-            std::copy_n(str.data(), len, text_buf.data());
-        }
-        text_buf[len] = '\0';
-        text_len = len;
-    }
+    [[nodiscard]] std::string_view text() const noexcept;
+    void set_text(std::string_view str) noexcept;
 };
 
 namespace prompt_style {
