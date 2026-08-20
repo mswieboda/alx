@@ -42,6 +42,9 @@ namespace alx {
         m_next_emergence_cooldown = DarkTowerConstants::EMERGENCE_COOLDOWN_MIN;
         m_attack_hit_registered = false;
         m_pending_twilight_increase = 0.0f;
+        m_tower_spawned_event = false;
+        m_tower_hit_event = false;
+        m_mana_spark_fired_event = false;
         m_last_destroyed_tile_index = -1;
         m_is_frenzy = false;
         m_frenzy_multiplier = 1.0f;
