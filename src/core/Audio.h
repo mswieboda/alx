@@ -50,14 +50,14 @@ struct SfxrParams {
 
 namespace Audio {
     // --- AUDIO SYSTEM CONSTANTS ---
-    static constexpr float DEFAULT_MUSIC_VOLUME = 0.15f;
-    static constexpr float DEFAULT_SFX_VOLUME   = 0.75f;
+    static constexpr float DEFAULT_MUSIC_VOLUME = 0.70f;
+    static constexpr float DEFAULT_SFX_VOLUME   = 3.00f;
     static constexpr float DEFAULT_SFX_PAN      = 0.0f;
     static constexpr float MIN_SFX_PAN          = -1.0f;
     static constexpr float MAX_SFX_PAN          = 1.0f;
     static constexpr float MIN_VOLUME           = 0.0f;
-    static constexpr float MAX_SFX_VOLUME       = 0.75f;
-    static constexpr float MAX_MUSIC_VOLUME     = 0.5f;
+    static constexpr float MAX_SFX_VOLUME       = 5.00f;
+    static constexpr float MAX_MUSIC_VOLUME     = 2.50f;
     static constexpr uint32_t SAMPLE_RATE       = 44100;
     static constexpr uint32_t STEREO_CHANNELS   = 2;
 

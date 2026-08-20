@@ -11,7 +11,7 @@ namespace SFX {
     // Player Sword Swipe: Bright metallic whip / air swoosh
     inline SfxrParams sword_swipe() {
         SfxrParams p;
-        p.gain = 0.30f; // % baseline gain
+        p.gain = 0.23f; // % baseline gain
         p.wave_type = NOISE;
         p.attack_time = 0.002f;
         p.sustain_time = 0.015f;
@@ -113,7 +113,7 @@ namespace SFX {
     // Spire Burn/Cackle: Electric high-voltage crackle
     inline SfxrParams spire_burn() {
         SfxrParams p;
-        p.gain = 0.25f; // % baseline gain
+        p.gain = 0.05f; // % baseline gain
         p.wave_type = NOISE;
         p.attack_time = 0.01f;
         p.sustain_time = 0.30f;
@@ -128,7 +128,7 @@ namespace SFX {
     inline SfxrParams refiner_bubble() {
         SfxrParams p;
         p.wave_type = SINE;
-        p.gain = 0.30f; // % of baseline SFX volume
+        p.gain = 0.05f; // % of baseline SFX volume
         p.attack_time = 0.010f;
         p.sustain_time = 0.030f;
         p.decay_time = 0.080f;
@@ -143,7 +143,7 @@ namespace SFX {
     inline SfxrParams mana_converted() {
         SfxrParams p;
         p.wave_type = SINE;
-        p.gain = 0.350f; // % of baseline SFX volume
+        p.gain = 0.069f; // % of baseline SFX volume
         p.attack_time = 0.020f;
         p.sustain_time = 0.080f;
         p.decay_time = 0.160f;
