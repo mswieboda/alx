@@ -33,7 +33,7 @@ namespace sensor_config {
     // Proximity Hint Hold Durations
     inline constexpr float refiner_hint_hold_duration_sec = 4.0f;
     inline constexpr float spire_hint_hold_duration_sec = 3.0f;
-    inline constexpr float building_hint_hold_duration_sec = 0.0f;
+    inline constexpr float building_hint_hold_duration_sec = 5.0f;
 
     // Fixture Footprint Center Offsets (in tiles from root tile)
     inline constexpr float fixture_center_offset_2x2 = 1.0f;

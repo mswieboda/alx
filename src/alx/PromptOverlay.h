@@ -85,6 +85,7 @@ namespace prompt_style {
     inline constexpr float fade_in_duration_sec = 0.33f;
     inline constexpr float fade_out_duration_sec = 0.69f;
     inline constexpr float default_hold_duration_sec = 3.00f;
+    inline constexpr float max_sticky_hold_duration_sec = 5.00f;
     inline constexpr float prompt_repeat_cooldown_sec = 10.00f;
 
     // Shimmer & Pulse Animation Constants

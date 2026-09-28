@@ -341,7 +341,12 @@ void PromptOverlay::update(float dt) noexcept {
             m_alpha = 1.0f;
             m_slide_offset_y = 0.0f;
             m_pulse_timer_sec += dt;
-            if (!m_current.is_sticky && m_state_timer_sec >= m_current.hold_duration_sec) {
+            const float hold_limit = m_current.is_sticky
+                ? (m_current.hold_duration_sec > 0.0f
+                    ? std::min(m_current.hold_duration_sec, prompt_style::max_sticky_hold_duration_sec)
+                    : prompt_style::max_sticky_hold_duration_sec)
+                : m_current.hold_duration_sec;
+            if (m_state_timer_sec >= hold_limit) {
                 m_state = PromptState::fade_out;
                 m_state_timer_sec = 0.0f;
             }

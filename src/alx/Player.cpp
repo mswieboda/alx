@@ -755,6 +755,9 @@ void Player::update_actions(float dt, const Tiles& tiles, Network& network, bool
         } else {
             if (m_charge_timer >= ManaSpark::CHARGE_FULL_DURATION) {
                 m_pending_spark = true;
+                if (prompt_overlay) {
+                    prompt_overlay->dismiss_if_matching(PromptId::mana_spark_hint);
+                }
             }
             m_is_charging_spark = false;
             m_charge_timer = 0.0f;
